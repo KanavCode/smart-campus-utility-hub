@@ -1,8 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 
-// Import your new routes
+// Import your routes
 const authRoutes = require('./api/routes/auth.routes');
+const clubRoutes = require('./api/routes/clubs.routes');
+const eventRoutes = require('./api/routes/events.routes'); // Import event routes
 
 const app = express();
 
@@ -15,8 +17,8 @@ app.get('/', (req, res) => {
 });
 
 // --- Main API Routes ---
-// Any request starting with /api/auth will be handled by authRoutes
 app.use('/api/auth', authRoutes);
-
+app.use('/api/clubs', clubRoutes);
+app.use('/api/events', eventRoutes); // Use the event routes
 
 module.exports = app;

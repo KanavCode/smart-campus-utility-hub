@@ -85,8 +85,28 @@ const login = async (req, res) => {
     res.status(500).json({ message: 'An error occurred during login.', error: error.message });
   }
 };
+// --- Get Current User Profile ---
+const getMe = async (req, res) => {
+  try {
+    // The user's ID is attached to req.user by the verifyToken middleware
+    const userId = req.user.id;
+    
+    const userQuery = 'SELECT id, "fullName", email, role, department FROM "Users" WHERE id = $1';
+    const { rows } = await db.query(userQuery, [userId]);
 
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.status(200).json(rows[0]);
+
+  } catch (error) {
+    console.error('GetMe Error:', error);
+    res.status(500).json({ message: 'An error occurred while fetching user profile.' });
+  }
+};
 module.exports = {
   register,
   login,
+  getMe, // Add this here
 };
