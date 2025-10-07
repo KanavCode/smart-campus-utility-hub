@@ -91,12 +91,12 @@ const deleteEvent = async (req, res) => {
         res.status(204).send();
     } catch (error) {
         console.error('Delete Event Error:', error);
-        res.status(500).json({ message: 'Server error while deleting event.' });
+          res.status(500).json({ message: 'Server error while deleting event.' });
     }
 };
 
 module.exports = {
-  createEvent,
+   createEvent,
   getAllEvents,
   updateEvent,
   deleteEvent
