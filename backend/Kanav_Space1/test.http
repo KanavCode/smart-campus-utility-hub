@@ -1,0 +1,369 @@
+### Health Check
+GET http://localhost:5000/health
+
+### Get System Statistics
+GET http://localhost:5000/api/v1/stats
+
+### Get Sample Data
+GET http://localhost:5000/api/v1/sample-data
+
+### ===== TEACHERS ENDPOINTS =====
+
+### Get All Teachers
+GET http://localhost:5000/api/v1/teachers
+
+### Create Teacher 1
+POST http://localhost:5000/api/v1/teachers
+Content-Type: application/json
+
+{
+  "teacher_code": "T001",
+  "full_name": "Dr. Testing Sir",
+  "department": "Computer Science",
+  "email": "testing@university.com",
+  "phone": "1234567890"
+}
+
+### Create Teacher 2
+POST http://localhost:5000/api/v1/teachers
+Content-Type: application/json
+
+{
+  "teacher_code": "T002",
+  "full_name": "Prof. Jane Doe",
+  "department": "Computer Science",
+  "email": "jane.doe@university.edu",
+  "phone": "0987654321"
+}
+
+### Create Teacher 3
+POST http://localhost:5000/api/v1/teachers
+Content-Type: application/json
+
+{
+  "teacher_code": "T003",
+  "full_name": "Dr. Alice Johnson",
+  "department": "Computer Science",
+  "email": "alice.johnson@university.edu",
+  "phone": "5555555555"
+}
+
+### ===== SUBJECTS ENDPOINTS =====
+
+### Get All Subjects
+GET http://localhost:5000/api/v1/subjects
+
+### Create Subject 1 - Theory
+POST http://localhost:5000/api/v1/subjects
+Content-Type: application/json
+
+{
+  "subject_code": "CS501",
+  "subject_name": "Advanced Algorithms",
+  "hours_per_week": 4,
+  "course_type": "Theory",
+  "department": "Computer Science",
+  "semester": 5,
+  "requires_consecutive_periods": false,
+  "max_periods_per_day": 2
+}
+
+### Create Subject 2 - Lab
+POST http://localhost:5000/api/v1/subjects
+Content-Type: application/json
+
+{
+  "subject_code": "CS502",
+  "subject_name": "Database Lab",
+  "hours_per_week": 3,
+  "department": "Computer Science",
+  "semester": 5,
+  "requires_consecutive_periods": true,
+  "max_periods_per_day": 3
+}
+
+### Create Subject 3 - Theory
+POST http://localhost:5000/api/v1/subjects
+Content-Type: application/json
+
+{
+  "subject_code": "CS503",
+  "subject_name": "Software Engineering",
+  "hours_per_week": 3,
+  "course_type": "Theory",
+  "department": "Computer Science",
+  "semester": 5,
+  "requires_consecutive_periods": false,
+  "max_periods_per_day": 2
+}
+
+### ===== ROOMS ENDPOINTS =====
+
+### Get All Rooms
+GET http://localhost:5000/api/v1/rooms
+
+### Create Room 1 - Classroom
+POST http://localhost:5000/api/v1/rooms
+Content-Type: application/json
+
+{
+  "room_code": "R301",
+  "room_name": "Room 301",
+  "capacity": 60,
+  "room_type": "Classroom",
+  "floor_number": 3,
+  "building": "Main Building",
+  "has_projector": true,
+  "has_computer": false
+}
+
+### Create Room 2 - Lab
+POST http://localhost:5000/api/v1/rooms
+Content-Type: application/json
+
+{
+  "room_code": "LAB101",
+  "room_name": "Computer Lab 1",
+  "capacity": 40,
+  "room_type": "Lab",
+  "floor_number": 1,
+  "building": "Lab Building",
+  "has_projector": true,
+  "has_computer": true
+  ### Health Check
+}
+
+### Create Room 3 - Classroom
+POST http://localhost:5000/api/v1/rooms
+Content-Type: application/json
+
+{
+  "room_code": "R302",
+  "room_name": "Room 302",
+  "capacity": 50,
+  "room_type": "Classroom",
+  "floor_number": 3,
+  "building": "Main Building",
+  "has_projector": true,
+  "has_computer": false
+}
+
+### ===== STUDENT GROUPS ENDPOINTS =====
+
+### Get All Student Groups
+GET http://localhost:5000/api/v1/groups
+
+### Create Student Group 1
+POST http://localhost:5000/api/v1/groups
+Content-Type: application/json
+
+{
+  "group_code": "CSE5A",
+  "group_name": "5th Semester CSE Section A",
+  "strength": 55,
+  "department": "Computer Science",
+  "semester": 5,
+  "academic_year": "2024-25"
+}
+
+### Create Student Group 2
+POST http://localhost:5000/api/v1/groups
+Content-Type: application/json
+
+{
+  "group_code": "CSE5B",
+  "group_name": "5th Semester CSE Section B",
+  "strength": 50,
+  "department": "Computer Science",
+  "semester": 5,
+  "academic_year": "2024-25"
+}
+
+### ===== ASSIGNMENTS ENDPOINTS =====
+
+### Create Teacher-Subject Assignment
+# NOTE: Replace UUIDs with actual IDs from previous creations
+POST http://localhost:5000/api/v1/assignments/teacher-subject
+Content-Type: application/json
+
+{
+  "teacher_id": "REPLACE_WITH_TEACHER_ID",
+  "subject_id": "REPLACE_WITH_SUBJECT_ID",
+  "priority": 1
+}
+
+### Create Subject-Class Assignment
+# NOTE: Replace UUIDs with actual IDs from previous creations
+POST http://localhost:5000/api/v1/assignments/subject-class
+Content-Type: application/json
+
+{
+  "subject_id": "REPLACE_WITH_SUBJECT_ID",
+  "group_id": "REPLACE_WITH_GROUP_ID"
+}
+
+### Get All Teacher-Subject Assignments
+GET http://localhost:5000/api/v1/assignments/teacher-subject
+
+### Get All Subject-Class Assignments
+GET http://localhost:5000/api/v1/assignments/subject-class
+
+### ===== BULK CREATE ENDPOINT =====
+
+### Bulk Create All Entities
+POST http://localhost:5000/api/v1/bulk
+Content-Type: application/json
+
+{
+  "teachers": [
+    {
+      "teacher_code": "T004",
+      "full_name": "Dr. Robert Brown",
+      "department": "Computer Science",
+      "email": "robert.brown@university.edu",
+      "phone": "1111111111"
+    },
+    {
+      "teacher_code": "T005",
+      "full_name": "Prof. Sarah Wilson",
+      "department": "Computer Science",
+      "email": "sarah.wilson@university.edu",
+      "phone": "2222222222"
+    }
+  ],
+  "subjects": [
+    {
+      "subject_code": "CS504",
+      "subject_name": "Machine Learning",
+      "hours_per_week": 4,
+      "course_type": "Theory",
+      "department": "Computer Science",
+      "semester": 5,
+      "requires_consecutive_periods": false,
+      "max_periods_per_day": 2
+    },
+    {
+      "subject_code": "CS505",
+      "subject_name": "Web Development Lab",
+      "hours_per_week": 3,
+      "course_type": "Lab",
+      "department": "Computer Science",
+      "semester": 5,
+      "requires_consecutive_periods": true,
+      "max_periods_per_day": 3
+    }
+  ],
+  "rooms": [
+    {
+      "room_code": "LAB102",
+      "room_name": "Computer Lab 2",
+      "capacity": 35,
+      "room_type": "Lab",
+      "floor_number": 1,
+      "building": "Lab Building",
+      "has_projector": true,
+      "has_computer": true
+    }
+  ],
+  "student_groups": [
+    {
+      "group_code": "CSE5C",
+      "group_name": "5th Semester CSE Section C",
+      "strength": 45,
+      "department": "Computer Science",
+      "semester": 5,
+      "academic_year": "2024-25"
+    }
+  ]
+}
+
+### ===== TIMETABLE GENERATION =====
+
+### Generate Timetable
+# NOTE: Replace group IDs with actual UUIDs from your created groups
+POST http://localhost:5000/api/v1/timetable/generate
+Content-Type: application/json
+
+{
+  "academic_year": "2024-25",
+  "semester_type": "odd",
+  "groups": ["REPLACE_WITH_ACTUAL_GROUP_ID"],
+  "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+  "periods_per_day": 6,
+  "lunch_break_period": 4,
+  "preferences": {
+    "minimize_gaps": true,
+    "consecutive_labs": true,
+    "balanced_distribution": true,
+    "respect_teacher_preferences": true
+  }
+}
+
+### Get Generated Timetable
+GET http://localhost:5000/api/v1/timetable/2024-25/odd
+
+### Get Timetable for Specific Group
+# NOTE: Replace group ID with actual UUID
+GET http://localhost:5000/api/v1/timetable/2024-25/odd/group/REPLACE_WITH_GROUP_ID
+
+### Export Timetable
+GET http://localhost:5000/api/v1/export/2024-25/odd
+
+### Clear Timetable
+DELETE http://localhost:5000/api/v1/timetable/2024-25/odd
+
+### ===== VALIDATION TESTS =====
+
+### Test Validation Error - Invalid Teacher
+POST http://localhost:5000/api/v1/teachers
+Content-Type: application/json
+
+{
+  "teacher_code": "T",
+  "full_name": "",
+  "department": "CS",
+  "email": "invalid-email",
+  "phone": "123"
+}
+
+### Test Validation Error - Invalid Subject
+POST http://localhost:5000/api/v1/subjects
+Content-Type: application/json
+
+{
+  "subject_code": "CS",
+  "subject_name": "A",
+  "hours_per_week": 0,
+  "course_type": "InvalidType",
+  "department": "CS",
+  "semester": 10
+}
+
+### ===== UTILITY ENDPOINTS =====
+
+### Get System Stats (After Data Creation)
+GET http://localhost:5000/api/v1/stats
+
+### Validate Constraints
+POST http://localhost:5000/api/v1/validate
+Content-Type: application/json
+
+{
+  "academic_year": "2024-25",
+  "semester_type": "odd",
+  "groups": ["group-id-here"]
+}
+
+### ===== ERROR HANDLING TESTS =====
+
+### Test 404 - Non-existent Teacher
+GET http://localhost:5000/api/v1/teachers/00000000-0000-0000-0000-000000000000
+
+### Test 404 - Invalid Endpoint
+GET http://localhost:5000/api/v1/invalid-endpoint
+
+### Test Rate Limiting (Send multiple rapid requests)
+GET http://localhost:5000/api/v1/teachers
+GET http://localhost:5000/api/v1/teachers
+GET http://localhost:5000/api/v1/teachers
+# ... continue to test rate limiting
