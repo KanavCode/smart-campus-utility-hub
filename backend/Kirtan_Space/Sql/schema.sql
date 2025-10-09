@@ -2,12 +2,12 @@
 -- Schema for the Campus Events & Club Management API
 -- =================================================================
 
+
 -- Drop tables if they exist to start with a clean slate (optional, but good for testing)
 DROP TABLE IF EXISTS "SavedEvents";
 DROP TABLE IF EXISTS "Events";
 DROP TABLE IF EXISTS "Clubs";
-DROP TABLE IF EXISTS "Users";
-
+DROP TABLE IF EXISTS "Users"; 
 -- =================================================================
 -- Table: Users
 -- Purpose: Stores information for both students and admins.
@@ -20,7 +20,6 @@ CREATE TABLE "Users" (
     "role" VARCHAR(20) NOT NULL DEFAULT 'student', -- Can be 'student' or 'admin'
     "department" VARCHAR(100) -- User's academic department for personalization
 );
-
 -- =================================================================
 -- Table: Clubs
 -- Purpose: Stores the central directory of all campus clubs.
@@ -47,15 +46,15 @@ CREATE TABLE "Events" (
     "clubId" INTEGER REFERENCES "Clubs"("id") ON DELETE CASCADE NOT NULL,
     "targetDepartment" VARCHAR(100), -- For department-specific events
     "isFeatured" BOOLEAN DEFAULT FALSE, -- For spotlight announcements
-    "tags" TEXT[] -- PostgreSQL array for filterable tags like {'Workshop', 'Competition'}
+    "tags"  TEXT[] -- PostgreSQL array for filterable tags like {'Workshop', 'Competition'}
 );
-
 -- =================================================================
 -- Table: SavedEvents
 -- Purpose: A join table to track which users have saved which events.
 -- =================================================================
 CREATE TABLE "SavedEvents" (
     "userId" INTEGER REFERENCES "Users"("id") ON DELETE CASCADE,
-    "eventId" INTEGER REFERENCES "Events"("id") ON DELETE CASCADE,
-    PRIMARY KEY ("userId", "eventId") -- Prevents a user from saving the same event twice
+    "eventId " INTEGER REFERENCES "Events"("id") ON DELETE CASCADE,
+     
+     PRIMARY KEY ("userId", "eventId") -- Prevents a user from saving the same event twice
 );

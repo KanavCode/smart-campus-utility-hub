@@ -69,10 +69,12 @@ const login = async (req, res) => {
       department: user.department,
     };
 
+    
     // 5. Sign the token
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: '1d', // Token expires in 1 day
     });
+
 
     // 6. Send the token to the client
     res.status(200).json({
