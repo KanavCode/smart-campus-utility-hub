@@ -69,15 +69,17 @@ const login = async (req, res) => {
       department: user.department,
     };
 
-    
-    // 5. Sign the token
+    // 5.  Sign the token
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: '1d', // Token expires in 1 day
+      expiresIn: '1d',  // Token expires in 1 day
     });
+
+
 
 
     // 6. Send the token to the client
     res.status(200).json({
+     
       message: 'Logged in successfully!',
       token: token,
     });
@@ -86,6 +88,7 @@ const login = async (req, res) => {
     console.error('Login Error:', error);
     res.status(500).json({ message: 'An error occurred during login.', error: error.message });
   }
+  
 };
 // --- Get Current User Profile ---
 const getMe = async (req, res) => {
