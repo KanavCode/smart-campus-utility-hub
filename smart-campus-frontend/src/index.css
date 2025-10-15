@@ -1,0 +1,167 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Lexend:wght@300;400;500;600;700;800;900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background dark:bg-background-dark text-text dark:text-text-dark font-sans;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  /* Glassmorphism effect */
+  .glass {
+    @apply bg-white/10 dark:bg-white/5 backdrop-blur-md border border-white/20 dark:border-white/10;
+  }
+
+  .glass-strong {
+    @apply bg-white/20 dark:bg-white/10 backdrop-blur-xl border border-white/30 dark:border-white/20;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+  }
+
+  /* Premium card */
+  .premium-card {
+    @apply bg-white dark:bg-backgroundAlt-dark rounded-2xl shadow-premium border border-border dark:border-border-dark;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .premium-card:hover {
+    @apply shadow-2xl;
+    transform: translateY(-4px);
+  }
+
+  /* Smooth scroll */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-backgroundAlt dark:bg-backgroundAlt-dark;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-primary/30 dark:bg-primary-dark/30 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary/50 dark:bg-primary-dark/50;
+  }
+
+  /* Animated gradient background */
+  .animated-gradient {
+    background: linear-gradient(-45deg, #7950f2, #9775fa, #14b8a6, #2dd4bf);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
+
+  /* Focus visible styles */
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:focus-visible:ring-offset-background-dark;
+  }
+
+  /* Skeleton loader animation */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 dark:bg-gray-700 rounded;
+  }
+
+  /* Button base styles */
+  .btn-base {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 focus-ring;
+  }
+
+  .btn-primary {
+    @apply btn-base bg-primary hover:bg-primary-light text-white shadow-lg hover:shadow-xl;
+  }
+
+  .btn-secondary {
+    @apply btn-base bg-accent hover:bg-accent-light text-white shadow-lg hover:shadow-xl;
+  }
+
+  .btn-outline {
+    @apply btn-base border-2 border-primary text-primary hover:bg-primary hover:text-white;
+  }
+
+  .btn-ghost {
+    @apply btn-base hover:bg-backgroundAlt dark:hover:bg-backgroundAlt-dark;
+  }
+
+  /* Input styles */
+  .input-field {
+    @apply w-full px-4 py-3 rounded-lg border border-border dark:border-border-dark bg-white dark:bg-backgroundAlt-dark text-text dark:text-text-dark focus-ring transition-colors;
+  }
+
+  /* Modal backdrop */
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm z-40;
+  }
+}
+
+@layer utilities {
+  /* Text gradient utilities */
+  .text-gradient-purple-teal {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  .text-gradient-purple-pink {
+    @apply bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent;
+  }
+
+  /* Animation delays */
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .animation-delay-500 {
+    animation-delay: 500ms;
+  }
+}
+
+/* AOS animation overrides */
+[data-aos] {
+  pointer-events: auto;
+}
+
+/* React Hot Toast custom styles */
+.toast-success {
+  @apply bg-success text-white;
+}
+
+.toast-error {
+  @apply bg-error text-white;
+}
