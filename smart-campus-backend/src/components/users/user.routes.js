@@ -29,6 +29,13 @@ router.get(
   userController.getProfile
 );
 
+router.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Auth API is working. Available routes: /register, /login, /profile',
+  });
+});
+
 router.put(
   '/profile',
   verifyToken,
