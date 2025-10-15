@@ -1,7 +1,9 @@
 const db = require('../../config/db');
 
+
 // @desc    Create a new club (Admin only)
 const createClub = async (req, res) => {
+ 
   try {
     const { name, description, contactEmail, category } = req.body;
     if (!name) {
@@ -13,6 +15,7 @@ const createClub = async (req, res) => {
       VALUES ($1, $2, $3, $4)
       RETURNING *;
     `;
+
     const { rows } = await db.query(newClubQuery, [name, description, contactEmail, category]);
     res.status(201).json(rows[0]);
   } catch (error) {
@@ -32,6 +35,8 @@ const getAllClubs = async (req, res) => {
   }
 };
 
+
+
 // @desc    Get a single club by ID (Public)
 const getClubById = async (req, res) => {
   try {
@@ -40,13 +45,13 @@ const getClubById = async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Club not found.' });
     }
+
     res.status(200).json(rows[0]);
   } catch (error) {
     console.error('Get Club By ID Error:', error);
     res.status(500).json({ message: 'Server error while fetching club.' });
   }
 };
-
 // @desc    Update a club (Admin only)
 const updateClub = async (req, res) => {
   try {
