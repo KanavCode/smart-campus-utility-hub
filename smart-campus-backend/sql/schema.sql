@@ -349,6 +349,7 @@ INSERT INTO clubs (name, description, category, contact_email) VALUES
 ('Tech Club', 'Innovation and Technology', 'Technical', 'tech@smartcampus.edu'),
 ('Drama Club', 'Theater and Performing Arts', 'Cultural', 'drama@smartcampus.edu');
 
+
 -- =====================================================================
 -- SCHEMA CREATION COMPLETE
 -- =====================================================================
