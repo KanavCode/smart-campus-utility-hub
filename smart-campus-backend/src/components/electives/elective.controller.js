@@ -7,6 +7,20 @@ const { logger } = require('../../config/db');
  * Handles elective subject management and allocation
  */
 
+// Fixed 10 allowed subjects
+const allowedSubjects = [
+  "Artificial Intelligence",
+  "Statistics in Data Science",
+  "Data Warehousing & Data Mining",
+  "Distributed Systems",
+  "Network Security",
+  "Big Data Analytics",
+  "Cloud Computing",
+  "Machine Learning",
+  "Mobile Computing",
+  "Computer Vision & Applications",
+];
+
 /**
  * Create a new elective (Admin only)
  * POST /api/electives
@@ -141,18 +155,33 @@ const deleteElective = asyncHandler(async (req, res) => {
  * POST /api/electives/choices
  */
 const submitChoices = asyncHandler(async (req, res) => {
-  const { choices } = req.body; // Array of { elective_id, preference_rank }
+  const { choices } = req.body; // Array of { subject_name, preference_rank }
   const userId = req.user.id;
 
+  // Fetch electives from DB
+  const electivesResult = await query('SELECT id, subject_name FROM electives');
+  const subjectToId = {};
+  electivesResult.rows.forEach(e => {
+    subjectToId[e.subject_name] = e.id;
+  });
+
+  // Validate submitted subjects
+  const invalidSubjects = choices.filter(c => !subjectToId[c.subject_name]);
+  if (invalidSubjects.length > 0) {
+    return res.status(400).json({
+      message: `Invalid subjects: ${invalidSubjects.map(c => c.subject_name).join(', ')}`
+    });
+  }
+
+  // Save choices in transaction
   await transaction(async (client) => {
-    // Delete existing choices
     await client.query('DELETE FROM student_choices WHERE student_id = $1', [userId]);
 
-    // Insert new choices
     for (const choice of choices) {
+      const electiveId = subjectToId[choice.subject_name];
       await client.query(
         'INSERT INTO student_choices (student_id, elective_id, preference_rank) VALUES ($1, $2, $3)',
-        [userId, choice.elective_id, choice.preference_rank]
+        [userId, electiveId, choice.preference_rank]
       );
     }
   });
