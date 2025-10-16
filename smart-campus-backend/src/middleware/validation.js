@@ -27,6 +27,20 @@ const validate = (schema, property = 'body') => {
     next();
   };
 };
+// Core elective subjects
+const allowedSubjects = [
+  "Artificial Intelligence",
+  "Statistics in Data Science",
+  "Data Warehousing & Data Mining",
+  "Distributed Systems",
+  "Network Security",
+  "Big Data Analytics",
+  "Cloud Computing",
+  "Machine Learning",
+  "Mobile Computing",
+  "Computer Vision & Applications",
+];
+
 
 // Common validation schemas
 const validationSchemas = {
@@ -35,7 +49,7 @@ const validationSchemas = {
     full_name: Joi.string().min(2).max(100).required(),
     email: Joi.string().email().required(),
     password: Joi.string().min(6).required(),
-    role: Joi.string().valid('student', 'admin', 'faculty').default('student'),
+    role: Joi.string().valid('student', 'admin').required(),
     department: Joi.string().max(100).optional(),
     cgpa: Joi.number().min(0).max(10).precision(2).optional(),
     semester: Joi.number().integer().min(1).max(8).optional()
@@ -87,13 +101,14 @@ const validationSchemas = {
 
   // Elective choices submission
   submitChoices: Joi.object({
-    choices: Joi.array().items(
-      Joi.object({
-        elective_id: Joi.number().integer().required(),
-        preference_rank: Joi.number().integer().min(1).max(5).required()
-      })
-    ).min(1).max(5).required()
-  }),
+  choices: Joi.array().items(
+    Joi.object({
+      subject_name: Joi.string().valid(...allowedSubjects).required(),
+      preference_rank: Joi.number().integer().min(1).max(5).required()
+    })
+  ).min(1).max(5).required()
+}),
+
 
   // UUID parameter validation
   uuidParam: Joi.object({

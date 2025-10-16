@@ -12,13 +12,59 @@ const { logger } = require('../../config/db');
  * Register a new user
  * POST /api/auth/register
  */
-const register = asyncHandler(async (req, res) => {
+const allowedSubjects = [
+  "Artificial Intelligence",
+  "Statistics in Data Science",
+  "Data Warehousing & Data Mining",
+  "Distributed Systems",
+  "Network Security",
+  "Big Data Analytics",
+  "Cloud Computing",
+  "Machine Learning",
+  "Mobile Computing",
+  "Computer Vision & Applications",
+];
+
+const subjectToId = {
+"Artificial Intelligence":1,
+  "Statistics in Data Science":2,
+  "Data Warehousing & Data Mining":3,
+  "Distributed Systems":4,
+  "Network Security":5,
+  "Big Data Analytics":6,
+  "Cloud Computing":7,
+  "Machine Learning":8,
+  "Mobile Computing":9,
+  "Computer Vision & Applications":10,
+};
+  const register = asyncHandler(async (req, res) => {
   const { full_name, email, password, role, department, cgpa, semester } = req.body;
 
   // Check if user already exists
   const existingUser = await UserModel.findByEmail(email);
   if (existingUser) {
     throw new ApiError(409, 'User with this email already exists');
+  }
+
+  // Role-based validation
+  if (role === 'student') {
+    if (cgpa == null || semester == null) {
+      throw new ApiError(400, 'CGPA and Semester are required for students.');
+    }
+
+    if (cgpa < 0 || cgpa > 10) {
+      throw new ApiError(400, 'CGPA must be between 0 and 10.');
+    }
+
+    if (semester < 1 || semester > 8) {
+      throw new ApiError(400, 'Semester must be between 1 and 8.');
+    }
+  }
+
+  // Admin or others shouldn't send CGPA/semester
+  if (role === 'admin') {
+    req.body.cgpa = null;
+    req.body.semester = null;
   }
 
   // Create user
@@ -28,9 +74,10 @@ const register = asyncHandler(async (req, res) => {
     password,
     role,
     department,
-    cgpa,
-    semester
+    cgpa: role === 'student' ? cgpa : null,
+    semester: role === 'student' ? semester : null
   });
+
 
   // Generate JWT token
   const token = generateToken({
@@ -41,14 +88,18 @@ const register = asyncHandler(async (req, res) => {
 
   logger.info('New user registered', { userId: user.id, email: user.email });
 
-  res.status(201).json({
-    success: true,
-    message: 'User registered successfully',
-    data: {
-      user,
-      token
-    }
-  });
+
+  // fetchs password new added
+const { password_hash, ...userData } = user;
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      data: {
+        user: userData,
+        token
+      }
+    });
+
 });
 
 /**

@@ -11,12 +11,14 @@ const { validate, validationSchemas } = require('../../middleware/validation');
 
 // Public routes
 router.get('/', electiveController.getAllElectives);
-router.get('/:id', validate(validationSchemas.idParam, 'params'), electiveController.getElectiveById);
 
-// Student routes (protected)
+// 👇 Move all '/my/...' student routes BEFORE '/:id'
 router.post('/choices', verifyToken, verifyStudent, validate(validationSchemas.submitChoices), electiveController.submitChoices);
 router.get('/my/choices', verifyToken, verifyStudent, electiveController.getMyChoices);
 router.get('/my/allocation', verifyToken, verifyStudent, electiveController.getMyAllocation);
+
+// Routes using ID param — must come AFTER '/my/...'
+router.get('/:id', validate(validationSchemas.idParam, 'params'), electiveController.getElectiveById);
 
 // Admin routes
 router.post('/', verifyToken, verifyAdmin, validate(validationSchemas.createElective), electiveController.createElective);
