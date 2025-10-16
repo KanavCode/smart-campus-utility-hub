@@ -292,13 +292,182 @@ const createRoom = asyncHandler(async (req, res) => {
 });
 
 /**
- * NOTE: Timetable generation endpoint would integrate with solver.service.js
- * For the full backtracking algorithm implementation, refer to:
- * backend/Kanav_Space1/src/services/solver.service.js
- * 
- * POST /api/timetable/generate
- * This would require migrating the complex backtracking logic
+ * Create a student group (Admin only)
+ * POST /api/timetable/groups
  */
+const createGroup = asyncHandler(async (req, res) => {
+  const { group_code, group_name, strength, department, semester, academic_year } = req.body;
+  
+  const sql = `
+    INSERT INTO student_groups (group_code, group_name, strength, department, semester, academic_year)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING *
+  `;
+  
+  const result = await query(sql, [group_code, group_name, strength, department, semester, academic_year]);
+  
+  logger.info('Student group created', { groupId: result.rows[0].id, createdBy: req.user.id });
+  
+  res.status(201).json({
+    success: true,
+    message: 'Student group created successfully',
+    data: { group: result.rows[0] }
+  });
+});
+
+/**
+ * Assign teacher to subject (Admin only)
+ * POST /api/timetable/assign/teacher-subject
+ */
+const assignTeacherToSubject = asyncHandler(async (req, res) => {
+  const { teacher_id, subject_id, priority } = req.body;
+  
+  const sql = `
+    INSERT INTO teacher_subject_assignments (teacher_id, subject_id, priority)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (teacher_id, subject_id) 
+    DO UPDATE SET priority = $3, is_active = true
+    RETURNING *
+  `;
+  
+  const result = await query(sql, [teacher_id, subject_id, priority || 1]);
+  
+  logger.info('Teacher assigned to subject', { 
+    teacherId: teacher_id, 
+    subjectId: subject_id,
+    createdBy: req.user.id 
+  });
+  
+  res.status(201).json({
+    success: true,
+    message: 'Teacher assigned to subject successfully',
+    data: { assignment: result.rows[0] }
+  });
+});
+
+/**
+ * Assign subject to group (Admin only)
+ * POST /api/timetable/assign/subject-group
+ */
+const assignSubjectToGroup = asyncHandler(async (req, res) => {
+  const { subject_id, group_id } = req.body;
+  
+  const sql = `
+    INSERT INTO subject_class_assignments (subject_id, group_id)
+    VALUES ($1, $2)
+    ON CONFLICT (subject_id, group_id) 
+    DO UPDATE SET is_active = true
+    RETURNING *
+  `;
+  
+  const result = await query(sql, [subject_id, group_id]);
+  
+  logger.info('Subject assigned to group', { 
+    subjectId: subject_id, 
+    groupId: group_id,
+    createdBy: req.user.id 
+  });
+  
+  res.status(201).json({
+    success: true,
+    message: 'Subject assigned to group successfully',
+    data: { assignment: result.rows[0] }
+  });
+});
+
+/**
+ * Generate timetable using backtracking algorithm (Admin only)
+ * POST /api/timetable/generate
+ */
+const generateTimetable = asyncHandler(async (req, res) => {
+  const { 
+    groups, 
+    days, 
+    periods_per_day, 
+    lunch_break_period,
+    academic_year,
+    semester_type,
+    preferences 
+  } = req.body;
+
+  // Validate required fields
+  if (!groups || !days || !periods_per_day || !academic_year || !semester_type) {
+    throw new ApiError('Missing required fields', 400);
+  }
+
+  logger.info('Starting timetable generation', { 
+    groups: groups.length,
+    days: days.length,
+    periods_per_day,
+    academic_year,
+    semester_type,
+    requestedBy: req.user.id 
+  });
+
+  // Import service
+  const { generateTimetable: generate, saveTimetableToDatabase } = require('./timetable.service');
+
+  // Generate timetable
+  const result = await generate({
+    groups,
+    days,
+    periods_per_day,
+    lunch_break_period,
+    preferences
+  });
+
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      error: result.error,
+      message: result.message,
+      details: result.details
+    });
+  }
+
+  // Save to database
+  await saveTimetableToDatabase(result.timetable, academic_year, semester_type);
+
+  logger.info('Timetable generation completed', {
+    totalSlots: result.statistics.totalSlots,
+    iterations: result.statistics.iterations
+  });
+
+  res.status(201).json({
+    success: true,
+    message: 'Timetable generated successfully',
+    data: {
+      timetable: result.timetable,
+      statistics: result.statistics,
+      academic_year,
+      semester_type
+    }
+  });
+});
+
+/**
+ * Get timetable generation constraints/configuration
+ * GET /api/timetable/config
+ */
+const getTimetableConfig = asyncHandler(async (req, res) => {
+  const groupsResult = await query('SELECT id, group_code, group_name, department, semester FROM student_groups WHERE is_active = true');
+  const teachersResult = await query('SELECT id, teacher_code, full_name, department FROM teachers WHERE is_active = true');
+  const subjectsResult = await query('SELECT id, subject_code, subject_name, course_type, hours_per_week FROM subjects WHERE is_active = true');
+  const roomsResult = await query('SELECT id, room_code, room_name, room_type, capacity FROM rooms WHERE is_active = true');
+
+  res.json({
+    success: true,
+    data: {
+      groups: groupsResult.rows,
+      teachers: teachersResult.rows,
+      subjects: subjectsResult.rows,
+      rooms: roomsResult.rows,
+      defaultDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+      defaultPeriodsPerDay: 7,
+      defaultLunchBreak: 4
+    }
+  });
+});
 
 module.exports = {
   getAllTeachers,
@@ -309,5 +478,10 @@ module.exports = {
   getTimetableByTeacher,
   createTeacher,
   createSubject,
-  createRoom
+  createRoom,
+  createGroup,
+  assignTeacherToSubject,
+  assignSubjectToGroup,
+  generateTimetable,
+  getTimetableConfig
 };
