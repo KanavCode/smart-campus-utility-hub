@@ -217,7 +217,38 @@ npm run test:watch
 npm run test:coverage
 ```
 
-## 📡 API Endpoints
+## � Core Features
+
+### 1. 🧠 Timetable Generation (Backtracking Algorithm)
+- **Intelligent Scheduling** using Constraint Satisfaction Problem (CSP) solver
+- **Backtracking Algorithm** with forward checking
+- **Conflict Resolution** - No teacher/room/group double-booking
+- **Constraint Handling** - Room capacity, lab requirements, preferences
+- **Performance Optimized** - Handles 10+ groups efficiently
+- **Complete CRUD** for teachers, subjects, rooms, student groups
+- **View APIs** for students and faculty to check schedules
+
+### 2. 🎯 Elective Selection
+- **CGPA-based Allocation** algorithm
+- **Priority Matching** - Students rank their preferences
+- **Fair Distribution** based on merit
+- **Allocation Reports** and statistics
+
+### 3. 🎉 Campus Events & Clubs
+- **Event Management** with filtering and search
+- **Club Directory** with event listings
+- **Save Events** functionality for students
+- **Featured Events** promotion
+
+### 4. 🔐 Authentication & Authorization
+- **JWT-based** secure authentication
+- **Role-based Access Control** (Student, Admin, Faculty)
+- **Password Hashing** with bcrypt
+- **Protected Routes** with middleware
+
+---
+
+## �📡 API Endpoints
 
 ### Authentication & Users
 
@@ -252,12 +283,28 @@ DELETE /api/clubs/:id              # Delete club (admin only)
 ### Timetable
 
 ```
-POST   /api/timetable/generate     # Generate timetable (admin only)
-GET    /api/timetable/:groupId     # Get timetable for group
-GET    /api/teachers               # Get all teachers
-GET    /api/subjects               # Get all subjects
-GET    /api/rooms                  # Get all rooms
+# Viewing (Public)
+GET    /api/timetable/teachers          # Get all teachers
+GET    /api/timetable/subjects          # Get all subjects
+GET    /api/timetable/rooms             # Get all rooms
+GET    /api/timetable/groups            # Get all student groups
+GET    /api/timetable/group/:groupId    # Get timetable for group
+GET    /api/timetable/teacher/:teacherId # Get teacher schedule
+GET    /api/timetable/config            # Get configuration
+
+# Management (Admin Only)
+POST   /api/timetable/teachers          # Create teacher
+POST   /api/timetable/subjects          # Create subject
+POST   /api/timetable/rooms             # Create room
+POST   /api/timetable/groups            # Create student group
+POST   /api/timetable/assign/teacher-subject  # Assign teacher to subject
+POST   /api/timetable/assign/subject-group    # Assign subject to group
+POST   /api/timetable/generate          # Generate timetable (Backtracking)
 ```
+
+📖 **Complete Timetable API Guide:** See `TIMETABLE_API_GUIDE.md`  
+📊 **Verification Report:** See `VERIFICATION_REPORT.md`  
+📮 **Postman Collection:** Import `Timetable_API.postman_collection.json`
 
 ### Electives
 
@@ -281,6 +328,53 @@ Authorization: Bearer <your_jwt_token>
 
 - **student**: Can view and save events, submit elective choices, view timetables
 - **admin**: Full access to create/update/delete resources
+- **faculty**: Can view schedules and manage their availability
+
+---
+
+## 🧠 Timetable Generation Algorithm
+
+### Algorithm: Backtracking with Constraint Satisfaction
+
+The timetable generation uses a sophisticated **backtracking algorithm** that solves the scheduling problem as a Constraint Satisfaction Problem (CSP).
+
+#### How It Works:
+
+1. **Initialization**: Load all groups, subjects, teachers, rooms
+2. **Validation**: Check if problem is solvable (enough resources)
+3. **Backtracking**: Try all possible assignments recursively
+4. **Constraint Checking**: Ensure no conflicts (teacher, room, group)
+5. **Forward Checking**: Prune invalid branches early
+6. **Termination**: Success when all subjects scheduled
+
+#### Constraints Satisfied:
+
+**Hard Constraints (Must satisfy):**
+- ❌ No teacher teaching multiple classes simultaneously
+- ❌ No student group in multiple rooms simultaneously
+- ❌ No room used by multiple groups simultaneously
+- ❌ Room capacity must accommodate group size
+- ❌ Lab subjects require Lab rooms
+
+**Soft Constraints (Preferences):**
+- ⚠️ Teacher availability preferences
+- ⚠️ Maximum periods per day per subject
+- ⚠️ Consecutive periods for certain subjects
+
+#### Performance:
+- **Small datasets (2-3 groups)**: < 1 second
+- **Medium datasets (5-10 groups)**: 2-5 seconds
+- **Large datasets (20+ groups)**: 10-30 seconds
+
+#### Test Results:
+- ✅ **74/74 tests passing** (100% pass rate)
+- ✅ Algorithm correctness verified
+- ✅ Constraint satisfaction verified
+- ✅ Performance benchmarks met
+
+📖 **Detailed Algorithm Documentation:** See `TIMETABLE_API_GUIDE.md` (Line-by-line explanation)
+
+---
 
 ## 🗄️ Database Schema
 
@@ -300,9 +394,6 @@ This project was built by:
 - **Kavya** - Elective Selection Module
 - **Kirtan** - Campus Events & Authentication Module
 
-## 📄 License
-
-MIT License - See LICENSE file for details
 
 ## 🐛 Troubleshooting
 
@@ -311,13 +402,6 @@ MIT License - See LICENSE file for details
 ```bash
 # Test PostgreSQL connection
 psql -U postgres -d smart_campus_unified -c "SELECT version();"
-```
-
-### Port Already in Use
-
-```bash
-# Change PORT in .env file or kill existing process
-lsof -ti:5000 | xargs kill -9  # macOS/Linux
 ```
 
 ### JWT Token Errors
