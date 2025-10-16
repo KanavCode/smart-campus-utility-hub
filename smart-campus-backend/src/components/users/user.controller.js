@@ -37,16 +37,34 @@ const subjectToId = {
   "Mobile Computing":9,
   "Computer Vision & Applications":10,
 };
-
-
-
-const register = asyncHandler(async (req, res) => {
+  const register = asyncHandler(async (req, res) => {
   const { full_name, email, password, role, department, cgpa, semester } = req.body;
 
   // Check if user already exists
   const existingUser = await UserModel.findByEmail(email);
   if (existingUser) {
     throw new ApiError(409, 'User with this email already exists');
+  }
+
+  // Role-based validation
+  if (role === 'student') {
+    if (cgpa == null || semester == null) {
+      throw new ApiError(400, 'CGPA and Semester are required for students.');
+    }
+
+    if (cgpa < 0 || cgpa > 10) {
+      throw new ApiError(400, 'CGPA must be between 0 and 10.');
+    }
+
+    if (semester < 1 || semester > 8) {
+      throw new ApiError(400, 'Semester must be between 1 and 8.');
+    }
+  }
+
+  // Admin or others shouldn't send CGPA/semester
+  if (role === 'admin') {
+    req.body.cgpa = null;
+    req.body.semester = null;
   }
 
   // Create user
@@ -56,9 +74,10 @@ const register = asyncHandler(async (req, res) => {
     password,
     role,
     department,
-    cgpa,
-    semester
+    cgpa: role === 'student' ? cgpa : null,
+    semester: role === 'student' ? semester : null
   });
+
 
   // Generate JWT token
   const token = generateToken({
