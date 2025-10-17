@@ -83,7 +83,7 @@ CREATE TABLE events (
     target_department VARCHAR(100),
     is_featured BOOLEAN DEFAULT FALSE,
     tags TEXT[],
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =====================================================================
