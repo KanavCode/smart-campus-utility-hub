@@ -18,7 +18,7 @@ const allowedSubjects = [
   "Data Warehousing & Data Mining",
   "Distributed Systems",
   "Network Security",
-  "Big Data Analytics",
+   "Big Data Analytics",
   "Cloud Computing",
   "Machine Learning",
   "Mobile Computing",
