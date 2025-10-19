@@ -8,10 +8,7 @@ const { logger } = require('../../config/db');
  * Handles all user-related HTTP requests
  */
 
-/**
- * Register a new user
- * POST /api/auth/register
- */
+/* Register a new user --> POST /api/auth/register */
 const allowedSubjects = [
   "Artificial Intelligence",
   "Statistics in Data Science",
@@ -102,10 +99,7 @@ const { password_hash, ...userData } = user;
 
 });
 
-/**
- * Login user
- * POST /api/auth/login
- */
+/* Login user --> POST /api/auth/login */
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -148,11 +142,7 @@ const login = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * Get current user profile
- * GET /api/auth/profile
- * Protected route
- */
+/* Get current user profile --> GET /api/auth/profile -> Protected route*/
 const getProfile = asyncHandler(async (req, res) => {
   const user = await UserModel.findById(req.user.id);
   
@@ -166,11 +156,7 @@ const getProfile = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * Update user profile
- * PUT /api/auth/profile
- * Protected route
- */
+/* Update user profile --> PUT /api/auth/profile -> Protected route */
 const updateProfile = asyncHandler(async (req, res) => {
   const { full_name, department, cgpa, semester } = req.body;
 
@@ -190,11 +176,7 @@ const updateProfile = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * Change password
- * POST /api/auth/change-password
- * Protected route
- */
+/* Change password --> POST /api/auth/change-password -> Protected route */
 const changePassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
 
@@ -216,11 +198,7 @@ const changePassword = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * Get all users (admin only)
- * GET /api/users
- * Protected route - Admin only
- */
+/* Get all users (admin only) --> GET /api/users -> Protected route - Admin only */
 const getAllUsers = asyncHandler(async (req, res) => {
   const { role, department, page = 1, limit = 50 } = req.query;
   
@@ -246,11 +224,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * Get user by ID (admin only)
- * GET /api/users/:id
- * Protected route - Admin only
- */
+/* Get user by ID (admin only) -->GET /api/users/:id -> Protected route - Admin only */
 const getUserById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   
@@ -266,11 +240,7 @@ const getUserById = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * Deactivate user (admin only)
- * PATCH /api/users/:id/deactivate
- * Protected route - Admin only
- */
+/*Deactivate user (admin only) --> PATCH /api/users/:id/deactivate -> Protected route - Admin only */
 const deactivateUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
   
@@ -288,11 +258,7 @@ const deactivateUser = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * Delete user (admin only)
- * DELETE /api/users/:id
- * Protected route - Admin only
- */
+/* Delete user (admin only) --> DELETE /api/users/:id -> Protected route - Admin only*/
 const deleteUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
   
