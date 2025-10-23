@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Light Theme - Professional */
+    --background: 217 10% 97%;
+    --foreground: 220 9% 7%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 9% 7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 9% 7%;
+    --primary: 84 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 220 9% 7%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 220 4% 44%;
+    --accent: 249 90% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 84 100% 50%;
+    --radius: 0.75rem;
+    
+    /* Glassmorphism */
+    --glass-bg: 0 0% 100% / 0.7;
+    --glass-border: 220 13% 91% / 0.2;
+    
+    /* Glow Effects */
+    --glow-primary: 84 100% 50% / 0.3;
+    --glow-accent: 249 90% 60% / 0.3;
+  }
+
+  .dark {
+    /* Dark Theme - Futuristic (Default) */
+    --background: 240 10% 4%;
+    --foreground: 0 0% 100%;
+    --card: 240 8% 7%;
+    --card-foreground: 0 0% 100%;
+    --popover: 240 8% 7%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 84 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 240 5% 11%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 5% 11%;
+    --muted-foreground: 220 4% 54%;
+    --accent: 249 90% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 5% 18%;
+    --input: 240 5% 18%;
+    --ring: 84 100% 50%;
+    
+    /* Glassmorphism */
+    --glass-bg: 240 8% 7% / 0.7;
+    --glass-border: 240 5% 18% / 0.2;
+    
+    /* Glow Effects */
+    --glow-primary: 84 100% 50% / 0.3;
+    --glow-accent: 249 90% 60% / 0.3;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--glass-border));
+  }
+  
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(var(--glow-primary));
+  }
+  
+  .glow-accent {
+    box-shadow: 0 0 20px hsl(var(--glow-accent));
+  }
+  
+  .glow-primary-hover:hover {
+    box-shadow: 0 0 30px hsl(var(--glow-primary));
+  }
+  
+  .glow-accent-hover:hover {
+    box-shadow: 0 0 30px hsl(var(--glow-accent));
+  }
+}
