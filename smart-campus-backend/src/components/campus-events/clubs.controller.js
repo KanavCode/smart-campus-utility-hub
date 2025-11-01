@@ -5,7 +5,7 @@ const { logger } = require('../../config/db');
 /**
  * Clubs Controller
  * Handles all club-related HTTP requests
- */
+  */
 
 /**
  * Create a new club (Admin only)
