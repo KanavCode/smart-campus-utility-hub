@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { roomService } from '@/services/roomService';
+import { timetableService } from '@/services/timetableService';
 
 interface RoomFormProps {
   onSuccess: () => void;
@@ -17,24 +17,48 @@ export const RoomForm = ({ onSuccess, onCancel, initialData }: RoomFormProps) =>
     room_code: initialData?.room_code || '',
     room_name: initialData?.room_name || '',
     capacity: initialData?.capacity || '',
-    room_type: initialData?.room_type || 'classroom',
+    room_type: initialData?.room_type || 'Classroom',
     floor_number: initialData?.floor_number || '',
     building: initialData?.building || '',
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
-      if (initialData?.id) {
-        await roomService.update(initialData.id, formData);
-        toast.success('Room updated successfully!');
-      } else {
-        await roomService.create(formData);
-        toast.success('Room created successfully!');
+      // Validate required fields
+      if (!formData.room_code.trim()) {
+        toast.error('Room code is required');
+        return;
       }
+      if (!formData.room_name.trim()) {
+        toast.error('Room name is required');
+        return;
+      }
+      if (!formData.capacity) {
+        toast.error('Capacity is required');
+        return;
+      }
+      if (!formData.building.trim()) {
+        toast.error('Building is required');
+        return;
+      }
+
+      await timetableService.createRoom({
+        room_code: formData.room_code.trim(),
+        room_name: formData.room_name.trim(),
+        capacity: parseInt(formData.capacity as any),
+        room_type: (formData.room_type as any),
+        floor_number: formData.floor_number ? parseInt(formData.floor_number as any) : undefined,
+        building: formData.building.trim(),
+      });
+      toast.success('Room created successfully!');
       onSuccess();
-    } catch (error) {
-      toast.error('Failed to save room');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to create room');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,10 +114,10 @@ export const RoomForm = ({ onSuccess, onCancel, initialData }: RoomFormProps) =>
             required
             className="w-full p-2 rounded-lg glass border border-border"
           >
-            <option value="classroom">Classroom</option>
-            <option value="lab">Lab</option>
-            <option value="auditorium">Auditorium</option>
-            <option value="seminar_hall">Seminar Hall</option>
+            <option value="Classroom">Classroom</option>
+            <option value="Lab">Lab</option>
+            <option value="Auditorium">Auditorium</option>
+            <option value="Seminar_Hall">Seminar Hall</option>
           </select>
         </div>
 
@@ -126,11 +150,12 @@ export const RoomForm = ({ onSuccess, onCancel, initialData }: RoomFormProps) =>
       <div className="flex gap-3 pt-4">
         <Button
           type="submit"
+          disabled={isLoading}
           className="flex-1 bg-primary text-primary-foreground font-semibold glow-primary-hover"
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            {initialData?.id ? 'Update Room' : 'Create Room'}
+            {isLoading ? 'Creating...' : 'Create Room'}
           </motion.button>
         </Button>
         <Button
@@ -138,6 +163,7 @@ export const RoomForm = ({ onSuccess, onCancel, initialData }: RoomFormProps) =>
           onClick={onCancel}
           variant="outline"
           className="flex-1"
+          disabled={isLoading}
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>

@@ -11,7 +11,7 @@ const { logger } = require('../../config/db');
  * Create a new club (Admin only)
  * POST /api/clubs
  */
-const createClub = asyncHandler(async (req, res) => {
+ const createClub = asyncHandler(async (req, res) => {
   const { name, description, contact_email, category } = req.body;
 
   const sql = `

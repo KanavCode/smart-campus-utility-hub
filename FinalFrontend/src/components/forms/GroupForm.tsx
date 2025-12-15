@@ -16,19 +16,57 @@ export const GroupForm = ({ onSuccess, onCancel, initialData }: GroupFormProps) 
   const [formData, setFormData] = useState({
     group_code: initialData?.group_code || '',
     group_name: initialData?.group_name || '',
+    strength: initialData?.strength || '',
     department: initialData?.department || '',
     semester: initialData?.semester || '',
-    student_count: initialData?.student_count || '',
+    academic_year: initialData?.academic_year || new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
-      await timetableService.createGroup(formData);
+      // Validate required fields
+      if (!formData.group_code.trim()) {
+        toast.error('Group code is required');
+        return;
+      }
+      if (!formData.group_name.trim()) {
+        toast.error('Group name is required');
+        return;
+      }
+      if (!formData.strength) {
+        toast.error('Strength is required');
+        return;
+      }
+      if (!formData.department.trim()) {
+        toast.error('Department is required');
+        return;
+      }
+      if (!formData.semester) {
+        toast.error('Semester is required');
+        return;
+      }
+      if (!formData.academic_year.trim()) {
+        toast.error('Academic year is required');
+        return;
+      }
+
+      await timetableService.createGroup({
+        group_code: formData.group_code.trim(),
+        group_name: formData.group_name.trim(),
+        strength: parseInt(formData.strength as any),
+        department: formData.department.trim(),
+        semester: parseInt(formData.semester as any),
+        academic_year: formData.academic_year.trim(),
+      });
       toast.success('Group created successfully!');
       onSuccess();
-    } catch (error) {
-      toast.error('Failed to save group');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to create group');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -77,6 +115,8 @@ export const GroupForm = ({ onSuccess, onCancel, initialData }: GroupFormProps) 
             id="semester"
             name="semester"
             type="number"
+            min="1"
+            max="8"
             value={formData.semester}
             onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
             required
@@ -85,27 +125,44 @@ export const GroupForm = ({ onSuccess, onCancel, initialData }: GroupFormProps) 
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="student_count">Student Count *</Label>
-        <Input
-          id="student_count"
-          name="student_count"
-          type="number"
-          value={formData.student_count}
-          onChange={(e) => setFormData({ ...formData, student_count: e.target.value })}
-          required
-          className="glass"
-        />
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="strength">Student Strength *</Label>
+          <Input
+            id="strength"
+            name="strength"
+            type="number"
+            min="1"
+            value={formData.strength}
+            onChange={(e) => setFormData({ ...formData, strength: e.target.value })}
+            required
+            className="glass"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="academic_year">Academic Year *</Label>
+          <Input
+            id="academic_year"
+            name="academic_year"
+            placeholder="e.g., 2024-25"
+            value={formData.academic_year}
+            onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}
+            required
+            className="glass"
+          />
+        </div>
       </div>
 
       <div className="flex gap-3 pt-4">
         <Button
           type="submit"
+          disabled={isLoading}
           className="flex-1 bg-primary text-primary-foreground font-semibold glow-primary-hover"
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            Create Group
+            {isLoading ? 'Creating...' : 'Create Group'}
           </motion.button>
         </Button>
         <Button
@@ -113,6 +170,7 @@ export const GroupForm = ({ onSuccess, onCancel, initialData }: GroupFormProps) 
           onClick={onCancel}
           variant="outline"
           className="flex-1"
+          disabled={isLoading}
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>

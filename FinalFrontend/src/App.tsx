@@ -27,6 +27,7 @@ import Clubs from "./pages/admin/Clubs";
 import Teachers from "./pages/admin/Teachers";
 import Rooms from "./pages/admin/Rooms";
 import Settings from "./pages/admin/Settings";
+import Chatbot from "./components/chatbot/Chatbot";
 
 const queryClient = new QueryClient();
 
@@ -45,10 +46,26 @@ const App = () => (
 
               {/* Student Routes */}
               <Route
+                path="/student/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <StudentDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
                     <StudentDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/my-timetable"
+                element={
+                  <ProtectedRoute>
+                    <Timetable />
                   </ProtectedRoute>
                 }
               />
@@ -61,10 +78,26 @@ const App = () => (
                 }
               />
               <Route
+                path="/student/events"
+                element={
+                  <ProtectedRoute>
+                    <EventsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/events"
                 element={
                   <ProtectedRoute>
                     <EventsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/electives"
+                element={
+                  <ProtectedRoute>
+                    <Electives />
                   </ProtectedRoute>
                 }
               />
@@ -77,10 +110,26 @@ const App = () => (
                 }
               />
               <Route
+                path="/student/profile"
+                element={
+                  <ProtectedRoute>
+                    <StudentProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/profile"
                 element={
                   <ProtectedRoute>
                     <StudentProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/saved-events"
+                element={
+                  <ProtectedRoute>
+                    <SavedEvents />
                   </ProtectedRoute>
                 }
               />
@@ -186,6 +235,7 @@ const App = () => (
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <Chatbot />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
