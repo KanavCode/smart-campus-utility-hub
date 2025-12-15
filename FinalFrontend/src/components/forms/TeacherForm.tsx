@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { teacherService } from '@/services/teacherService';
+import { timetableService } from '@/services/timetableService';
 
 interface TeacherFormProps {
   onSuccess: () => void;
@@ -20,20 +20,47 @@ export const TeacherForm = ({ onSuccess, onCancel, initialData }: TeacherFormPro
     email: initialData?.email || '',
     phone: initialData?.phone || '',
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
-      if (initialData?.id) {
-        await teacherService.update(initialData.id, formData);
-        toast.success('Teacher updated successfully!');
-      } else {
-        await teacherService.create(formData);
-        toast.success('Teacher created successfully!');
+      // Validate required fields
+      if (!formData.teacher_code.trim()) {
+        toast.error('Teacher code is required');
+        return;
       }
+      if (!formData.full_name.trim()) {
+        toast.error('Full name is required');
+        return;
+      }
+      if (!formData.department.trim()) {
+        toast.error('Department is required');
+        return;
+      }
+      if (!formData.email.trim()) {
+        toast.error('Email is required');
+        return;
+      }
+      if (!formData.phone.trim()) {
+        toast.error('Phone is required');
+        return;
+      }
+
+      await timetableService.createTeacher({
+        teacher_code: formData.teacher_code.trim(),
+        full_name: formData.full_name.trim(),
+        department: formData.department.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+      });
+      toast.success('Teacher created successfully!');
       onSuccess();
-    } catch (error) {
-      toast.error('Failed to save teacher');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to create teacher');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -108,11 +135,12 @@ export const TeacherForm = ({ onSuccess, onCancel, initialData }: TeacherFormPro
       <div className="flex gap-3 pt-4">
         <Button
           type="submit"
+          disabled={isLoading}
           className="flex-1 bg-primary text-primary-foreground font-semibold glow-primary-hover"
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            {initialData?.id ? 'Update Teacher' : 'Create Teacher'}
+            {isLoading ? 'Creating...' : 'Create Teacher'}
           </motion.button>
         </Button>
         <Button
@@ -120,6 +148,7 @@ export const TeacherForm = ({ onSuccess, onCancel, initialData }: TeacherFormPro
           onClick={onCancel}
           variant="outline"
           className="flex-1"
+          disabled={isLoading}
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>

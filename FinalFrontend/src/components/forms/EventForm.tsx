@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { eventsService } from '@/services/eventService';
+import { clubService, Club } from '@/services/clubService';
 
 interface EventFormProps {
   onSuccess: () => void;
@@ -14,6 +15,8 @@ interface EventFormProps {
 }
 
 export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) => {
+  const [clubs, setClubs] = useState<Club[]>([]);
+  const [isLoadingClubs, setIsLoadingClubs] = useState(true);
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
     description: initialData?.description || '',
@@ -23,22 +26,48 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
     club_id: initialData?.club_id || '',
     target_department: initialData?.target_department || '',
     is_featured: initialData?.is_featured || false,
-    tags: initialData?.tags || '',
+    tags: initialData?.tags || [],
   });
+
+  useEffect(() => {
+    loadClubs();
+  }, []);
+
+  const loadClubs = async () => {
+    try {
+      setIsLoadingClubs(true);
+      const clubsList = await clubService.getAll();
+      setClubs(clubsList);
+    } catch (error) {
+      console.error('Failed to load clubs', error);
+    } finally {
+      setIsLoadingClubs(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Convert tags string to array if needed
+      const payload = {
+        ...formData,
+        tags: Array.isArray(formData.tags) 
+          ? formData.tags 
+          : (typeof formData.tags === 'string' 
+              ? formData.tags.split(',').map(t => t.trim()).filter(t => t)
+              : [])
+      };
+
       if (initialData?.id) {
-        await eventsService.update(initialData.id, formData);
+        await eventsService.update(initialData.id, payload);
         toast.success('Event updated successfully!');
       } else {
-        await eventsService.create(formData);
+        await eventsService.create(payload);
         toast.success('Event created successfully!');
       }
       onSuccess();
-    } catch (error) {
-      toast.error('Failed to save event');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to save event');
     }
   };
 
@@ -82,14 +111,28 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="club_id">Club ID</Label>
-          <Input
+          <Label htmlFor="club_id">Associated Club *</Label>
+          <select
             id="club_id"
             name="club_id"
-            value={formData.club_id}
-            onChange={(e) => setFormData({ ...formData, club_id: e.target.value })}
-            className="glass"
-          />
+            value={formData.club_id || ''}
+            onChange={(e) => setFormData({ ...formData, club_id: e.target.value ? parseInt(e.target.value) : '' })}
+            required
+            disabled={isLoadingClubs}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="">
+              {isLoadingClubs ? 'Loading clubs...' : 'Select a club...'}
+            </option>
+            {clubs.map(club => (
+              <option key={club.id} value={club.id}>
+                {club.name}
+              </option>
+            ))}
+          </select>
+          {clubs.length === 0 && !isLoadingClubs && (
+            <p className="text-xs text-red-600">No clubs available. Create a club first.</p>
+          )}
         </div>
       </div>
 
@@ -138,7 +181,7 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
           <Input
             id="tags"
             name="tags"
-            value={formData.tags}
+            value={Array.isArray(formData.tags) ? formData.tags.join(', ') : formData.tags}
             onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
             className="glass"
           />

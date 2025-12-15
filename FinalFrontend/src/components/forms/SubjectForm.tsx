@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { subjectService } from '@/services/subjectService';
+import { timetableService } from '@/services/timetableService';
 
 interface SubjectFormProps {
   onSuccess: () => void;
@@ -14,27 +14,55 @@ interface SubjectFormProps {
 
 export const SubjectForm = ({ onSuccess, onCancel, initialData }: SubjectFormProps) => {
   const [formData, setFormData] = useState({
-    subject_code: initialData?.code || '',
-    subject_name: initialData?.name || '',
+    subject_code: initialData?.subject_code || '',
+    subject_name: initialData?.subject_name || '',
     hours_per_week: initialData?.hours_per_week || '',
-    course_type: initialData?.course_type || 'theory',
+    course_type: initialData?.course_type || 'Theory',
     department: initialData?.department || '',
     semester: initialData?.semester || '',
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
-      if (initialData?.id) {
-        await subjectService.update(initialData.id, formData);
-        toast.success('Subject updated successfully!');
-      } else {
-        await subjectService.create(formData);
-        toast.success('Subject created successfully!');
+      // Validate required fields
+      if (!formData.subject_code.trim()) {
+        toast.error('Subject code is required');
+        return;
       }
+      if (!formData.subject_name.trim()) {
+        toast.error('Subject name is required');
+        return;
+      }
+      if (!formData.hours_per_week) {
+        toast.error('Hours per week is required');
+        return;
+      }
+      if (!formData.department.trim()) {
+        toast.error('Department is required');
+        return;
+      }
+      if (!formData.semester) {
+        toast.error('Semester is required');
+        return;
+      }
+
+      await timetableService.createSubject({
+        subject_code: formData.subject_code.trim(),
+        subject_name: formData.subject_name.trim(),
+        hours_per_week: parseInt(formData.hours_per_week as any),
+        course_type: (formData.course_type as any),
+        department: formData.department.trim(),
+        semester: parseInt(formData.semester as any),
+      });
+      toast.success('Subject created successfully!');
       onSuccess();
-    } catch (error) {
-      toast.error('Failed to save subject');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to create subject');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,9 +118,9 @@ export const SubjectForm = ({ onSuccess, onCancel, initialData }: SubjectFormPro
             required
             className="w-full p-2 rounded-lg glass border border-border"
           >
-            <option value="theory">Theory</option>
-            <option value="practical">Practical</option>
-            <option value="lab">Lab</option>
+            <option value="Theory">Theory</option>
+            <option value="Practical">Practical</option>
+            <option value="Lab">Lab</option>
           </select>
         </div>
       </div>
@@ -129,11 +157,12 @@ export const SubjectForm = ({ onSuccess, onCancel, initialData }: SubjectFormPro
       <div className="flex gap-3 pt-4">
         <Button
           type="submit"
+          disabled={isLoading}
           className="flex-1 bg-primary text-primary-foreground font-semibold glow-primary-hover"
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            {initialData?.id ? 'Update Subject' : 'Create Subject'}
+            {isLoading ? 'Creating...' : 'Create Subject'}
           </motion.button>
         </Button>
         <Button
@@ -141,6 +170,7 @@ export const SubjectForm = ({ onSuccess, onCancel, initialData }: SubjectFormPro
           onClick={onCancel}
           variant="outline"
           className="flex-1"
+          disabled={isLoading}
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>

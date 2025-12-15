@@ -2,23 +2,30 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Calendar, BookOpen, TrendingUp, Plus } from 'lucide-react';
+import { Users, Calendar, BookOpen, TrendingUp, Plus, Club } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { FormModal } from '@/components/modals/FormModal';
 import { UserForm } from '@/components/forms/UserForm';
 import { EventForm } from '@/components/forms/EventForm';
+import { ClubForm } from '@/components/forms/ClubForm';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [isClubModalOpen, setIsClubModalOpen] = useState(false);
 
   const quickActions = [
     { 
       label: 'Add User', 
       icon: Users, 
       action: () => setIsUserModalOpen(true)
+    },
+    { 
+      label: 'Create Club', 
+      icon: Club, 
+      action: () => setIsClubModalOpen(true)
     },
     { 
       label: 'Create Event', 
@@ -133,6 +140,17 @@ export default function AdminDashboard() {
       </FormModal>
 
       <FormModal
+        isOpen={isClubModalOpen}
+        onClose={() => setIsClubModalOpen(false)}
+        title="Create New Club"
+      >
+        <ClubForm
+          onSuccess={() => setIsClubModalOpen(false)}
+          onCancel={() => setIsClubModalOpen(false)}
+        />
+      </FormModal>
+
+      <FormModal
         isOpen={isEventModalOpen}
         onClose={() => setIsEventModalOpen(false)}
         title="Create New Event"
@@ -142,6 +160,8 @@ export default function AdminDashboard() {
           onCancel={() => setIsEventModalOpen(false)}
         />
       </FormModal>
+      
+
     </DashboardLayout>
   );
 }

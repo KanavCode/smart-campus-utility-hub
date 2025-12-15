@@ -1,41 +1,96 @@
 import { api } from '@/lib/axios';
 
+export interface Club {
+  id: number;
+  name: string;
+  description: string;
+  contact_email: string;
+  category: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClubWithEvents extends Club {
+  events: any[];
+}
+
 export const clubService = {
-  getAll: async (filters = {}) => {
-    // TODO: Backend integration
-    // const params = new URLSearchParams(filters).toString();
-    // const query = params ? `?${params}` : '';
-    // const { data } = await api.get(`/clubs${query}`);
-    // return data;
-    console.log('Fetching all clubs');
-    return { data: { clubs: [], count: 0 } };
+  /**
+   * Get all clubs
+   * GET /api/clubs
+   * Public endpoint
+   */
+  getAll: async (filters?: { category?: string; search?: string }): Promise<Club[]> => {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.category) params.append('category', filters.category);
+      if (filters?.search) params.append('search', filters.search);
+      
+      const query = params.toString() ? `?${params.toString()}` : '';
+      const { data } = await api.get(`/clubs${query}`);
+      return data.data.clubs;
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to fetch clubs' };
+    }
   },
 
-  getById: async (clubId: string) => {
-    // TODO: Backend integration
-    // const { data } = await api.get(`/clubs/${clubId}`);
-    // return data;
-    console.log('Fetching club:', clubId);
-    return { data: {} };
+  /**
+   * Get single club with its events
+   * GET /api/clubs/:id
+   * Public endpoint
+   */
+  getById: async (clubId: number): Promise<ClubWithEvents> => {
+    try {
+      const { data } = await api.get(`/clubs/${clubId}`);
+      return {
+        ...data.data.club,
+        events: data.data.events
+      };
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to fetch club details' };
+    }
   },
 
-  create: async (clubData: any) => {
-    // TODO: Backend integration
-    // const { data } = await api.post('/clubs', clubData);
-    // return data;
-    console.log('Creating club:', clubData);
+  /**
+   * Create a new club (Admin only)
+   * POST /api/clubs
+   */
+  create: async (clubData: {
+    name: string;
+    description: string;
+    contact_email: string;
+    category: string;
+  }): Promise<Club> => {
+    try {
+      const { data } = await api.post('/clubs', clubData);
+      return data.data.club;
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to create club' };
+    }
   },
 
-  update: async (id: string, clubData: any) => {
-    // TODO: Backend integration
-    // const { data } = await api.put(`/clubs/${id}`, clubData);
-    // return data;
-    console.log('Updating club:', id, clubData);
+  /**
+   * Update a club (Admin only)
+   * PUT /api/clubs/:id
+   */
+  update: async (id: number, clubData: Partial<Club>): Promise<Club> => {
+    try {
+      const { data } = await api.put(`/clubs/${id}`, clubData);
+      return data.data.club;
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to update club' };
+    }
   },
 
-  delete: async (id: string) => {
-    // TODO: Backend integration
-    // await api.delete(`/clubs/${id}`);
-    console.log('Deleting club:', id);
+  /**
+   * Delete a club (Admin only)
+   * DELETE /api/clubs/:id
+   */
+  delete: async (id: number): Promise<void> => {
+    try {
+      await api.delete(`/clubs/${id}`);
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to delete club' };
+    }
   },
 };

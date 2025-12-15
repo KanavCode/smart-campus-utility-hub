@@ -5,14 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, MapPin, Clock, Bookmark, Search, Filter } from 'lucide-react';
+import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader } from 'lucide-react';
 import { toast } from 'sonner';
-import { eventsService } from '@/services/eventService';
+import { eventsService, Event } from '@/services/eventService';
 
 export default function EventsPage() {
-  const [events, setEvents] = useState([]);
-  const [savedEventIds, setSavedEventIds] = useState<Set<string>>(new Set());
+  const [events, setEvents] = useState<Event[]>([]);
+  const [savedEventIds, setSavedEventIds] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [isSavingMap, setIsSavingMap] = useState<Map<number, boolean>>(new Map());
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     search: '',
     department: '',
@@ -27,10 +29,14 @@ export default function EventsPage() {
 
   const loadEvents = async () => {
     try {
+      setIsLoading(true);
+      setError(null);
       const response = await eventsService.getAll(filters);
       setEvents(response.data?.events || []);
-    } catch (error) {
-      toast.error('Failed to load events');
+    } catch (error: any) {
+      const errorMsg = error?.message || 'Failed to load events';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -39,7 +45,7 @@ export default function EventsPage() {
   const loadSavedEvents = async () => {
     try {
       const response = await eventsService.getMySaved();
-      const ids = new Set(response.data?.events?.map((e: any) => e.id) || []);
+      const ids = new Set(response.data?.events?.map((e: Event) => e.id) || []);
       setSavedEventIds(ids);
     } catch (error) {
       console.error('Failed to load saved events');
@@ -47,12 +53,13 @@ export default function EventsPage() {
   };
 
   const handleApplyFilters = () => {
-    setIsLoading(true);
     loadEvents();
   };
 
-  const handleSaveEvent = async (eventId: string) => {
+  const handleSaveEvent = async (eventId: number) => {
     try {
+      setIsSavingMap(new Map(isSavingMap).set(eventId, true));
+
       if (savedEventIds.has(eventId)) {
         await eventsService.unsave(eventId);
         setSavedEventIds(prev => {
@@ -66,10 +73,41 @@ export default function EventsPage() {
         setSavedEventIds(prev => new Set(prev).add(eventId));
         toast.success('Event saved successfully!');
       }
-    } catch (error) {
-      toast.error('Failed to save event');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to save event');
+    } finally {
+      setIsSavingMap(new Map(isSavingMap).set(eventId, false));
     }
   };
+
+  if (error && !isLoading) {
+    return (
+      <DashboardLayout>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6"
+        >
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Campus Events</h1>
+            <p className="text-muted-foreground">Discover and save upcoming events</p>
+          </div>
+
+          <Card className="glass border-destructive/50 bg-destructive/10">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 text-destructive">
+                <AlertCircle className="h-6 w-6" />
+                <div>
+                  <h3 className="font-semibold">Error Loading Events</h3>
+                  <p className="text-sm">{error}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -128,11 +166,16 @@ export default function EventsPage() {
                 <Button
                   onClick={handleApplyFilters}
                   className="w-full bg-accent text-accent-foreground"
-                  asChild
+                  disabled={isLoading}
                 >
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    Apply Filters
-                  </motion.button>
+                  {isLoading ? (
+                    <>
+                      <Loader className="h-4 w-4 mr-2 animate-spin" />
+                      Filtering...
+                    </>
+                  ) : (
+                    'Apply Filters'
+                  )}
                 </Button>
               </div>
             </div>
@@ -141,8 +184,11 @@ export default function EventsPage() {
 
         {/* Events Grid */}
         {isLoading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Loading events...</p>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center space-y-4">
+              <Loader className="h-8 w-8 animate-spin mx-auto text-primary" />
+              <p className="text-muted-foreground">Loading events...</p>
+            </div>
           </div>
         ) : events.length === 0 ? (
           <Card className="glass">
@@ -156,7 +202,7 @@ export default function EventsPage() {
           </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event: any, index: number) => (
+            {events.map((event: Event, index: number) => (
               <motion.div
                 key={event.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -165,16 +211,17 @@ export default function EventsPage() {
               >
                 <Card className="glass glow-accent-hover h-full flex flex-col">
                   <CardHeader>
-                    <CardTitle className="flex items-start justify-between">
-                      <span className="pr-2">{event.title}</span>
+                    <CardTitle className="flex items-start justify-between gap-2">
+                      <span className="flex-1">{event.title}</span>
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleSaveEvent(event.id)}
+                        disabled={isSavingMap.get(event.id) || false}
                         className="flex-shrink-0"
                       >
                         <Bookmark
-                          className={`h-5 w-5 ${
+                          className={`h-5 w-5 transition-colors ${
                             savedEventIds.has(event.id)
                               ? 'text-primary fill-primary'
                               : 'text-muted-foreground'
@@ -199,9 +246,14 @@ export default function EventsPage() {
                         <span>{event.location}</span>
                       </div>
                     </div>
-                    {event.tags && (
+                    {event.club_name && (
+                      <div className="text-xs text-accent font-medium pt-2">
+                        By: {event.club_name}
+                      </div>
+                    )}
+                    {event.tags && event.tags.length > 0 && (
                       <div className="flex flex-wrap gap-2 pt-2">
-                        {event.tags.split(',').map((tag: string, i: number) => (
+                        {event.tags.map((tag: string, i: number) => (
                           <span
                             key={i}
                             className="px-2 py-1 text-xs rounded-full bg-accent/20 text-accent-foreground"

@@ -51,7 +51,7 @@ export default function StudentDashboard() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name?.split(' ')[0]}! 👋</h1>
+                  <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.full_name?.split(' ')[0]}! 👋</h1>
                   <p className="text-muted-foreground">Here's what's happening with your campus today</p>
                 </div>
                 <motion.div
