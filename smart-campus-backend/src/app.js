@@ -5,7 +5,7 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const { testConnection, logger } = require('./config/db');
+const { testConnection, logger, isDatabaseConnected } = require('./config/db');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 // Import routes
@@ -103,7 +103,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     environment: process.env.NODE_ENV || 'development',
-    database: 'Connected' // Will be enhanced with actual DB check
+    database: isDatabaseConnected() ? 'Connected' : 'Disconnected'
   });
 });
 
@@ -144,8 +144,8 @@ app.use(errorHandler);
  */
 const startServer = async () => {
   try {
-    // Test database connection
-    await testConnection();
+    // Test database connection (non-blocking)
+    const dbConnected = await testConnection();
     
     // Start listening
     app.listen(PORT, () => {
@@ -154,13 +154,19 @@ const startServer = async () => {
       logger.info('='.repeat(60));
       logger.info(`📍 Server running on: http://localhost:${PORT}`);
       logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`🗄️  Database: ${process.env.DB_NAME || 'smart_campus_unified'}`);
+      logger.info(`🗄️  Database: ${dbConnected ? 'Connected' : 'Not Connected (features limited)'}`);
       logger.info(`📅 Started at: ${new Date().toISOString()}`);
       logger.info('='.repeat(60));
       logger.info(`\n📚 API Documentation:`);
       logger.info(`   Health Check: http://localhost:${PORT}/health`);
       logger.info(`   Auth API: http://localhost:${PORT}/api/auth`);
       logger.info('='.repeat(60));
+      
+      if (!dbConnected) {
+        logger.warn('\n⚠️  DATABASE NOT CONNECTED');
+        logger.warn('Most API endpoints will return errors until PostgreSQL is configured.');
+        logger.warn('See DATABASE_SETUP.md for setup instructions.\n');
+      }
     });
   } catch (error) {
     logger.error('Failed to start server:', error);

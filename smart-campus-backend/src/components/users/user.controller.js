@@ -9,32 +9,7 @@ const { logger } = require('../../config/db');
  */
 
 /* Register a new user --> POST /api/auth/register */
-const allowedSubjects = [
-  "Artificial Intelligence",
-  "Statistics in Data Science",
-  "Data Warehousing & Data Mining",
-  "Distributed Systems",
-  "Network Security",
-   "Big Data Analytics",
-  "Cloud Computing",
-  "Machine Learning",
-  "Mobile Computing",
-  "Computer Vision & Applications",
-];
-
-const subjectToId = {
-"Artificial Intelligence":1,
-  "Statistics in Data Science":2,
-  "Data Warehousing & Data Mining":3,
-  "Distributed Systems":4,
-  "Network Security":5,
-  "Big Data Analytics":6,
-  "Cloud Computing":7,
-  "Machine Learning":8,
-  "Mobile Computing":9,
-  "Computer Vision & Applications":10,
-};
-  const register = asyncHandler(async (req, res) => {
+const register = asyncHandler(async (req, res) => {
   const { full_name, email, password, role, department, cgpa, semester } = req.body;
 
   // Check if user already exists

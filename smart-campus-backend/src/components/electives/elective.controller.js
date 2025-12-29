@@ -7,20 +7,6 @@ const { logger } = require('../../config/db');
  * Handles elective subject management and allocation
  */
 
-// Fixed 10 allowed subjects
-const allowedSubjects = [
-  "Artificial Intelligence",
-  "Statistics in Data Science",
-  "Data Warehousing & Data Mining",
-  "Distributed Systems",
-  "Network Security",
-  "Big Data Analytics",
-  "Cloud Computing",
-  "Machine Learning",
-  "Mobile Computing",
-  "Computer Vision & Applications",
-];
-
 /**
  * Create a new elective (Admin only)
  * POST /api/electives

@@ -40,23 +40,25 @@ const poolConfig = {
   // Pool configuration
   max: parseInt(process.env.DB_MAX_CONNECTIONS) || 20,
   idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS) || 30000,
-  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS) || 2000,
-  
-  // Connection retry configuration
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS) || 5000,
 };
 
 // Create connection pool
 const pool = new Pool(poolConfig);
 
+// Database connection state
+let isDbConnected = false;
+
 // Pool error handling
 pool.on('error', (err, client) => {
   logger.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  isDbConnected = false;
+  // Don't exit the process, allow graceful degradation
 });
 
 pool.on('connect', (client) => {
   logger.debug('New client connected to database');
+  isDbConnected = true;
 });
 
 pool.on('remove', (client) => {
@@ -76,15 +78,24 @@ const testConnection = async () => {
     logger.info(`📅 Server time: ${result.rows[0].now}`);
     logger.info(`🗄️  Database: ${poolConfig.database}`);
     logger.info(`🏢 Host: ${poolConfig.host}:${poolConfig.port}`);
+    isDbConnected = true;
     return true;
   } catch (err) {
-    logger.error('❌ Database connection failed:', err.message);
-    logger.error('Stack:', err.stack);
-    throw err;
+    logger.warn('⚠️ Database connection failed:', err.message);
+    logger.warn('Server will start but database features will be unavailable.');
+    logger.warn('Please ensure PostgreSQL is running and configured correctly.');
+    isDbConnected = false;
+    return false;
   } finally {
     if (client) client.release();
   }
 };
+
+/**
+ * Check if database is connected
+ * @returns {boolean} Connection state
+ */
+const isDatabaseConnected = () => isDbConnected;
 
 /**
  * Execute a query with automatic connection management
@@ -194,6 +205,7 @@ module.exports = {
   getClient,
   transaction,
   testConnection,
+  isDatabaseConnected,
   shutdown,
   logger
 };
