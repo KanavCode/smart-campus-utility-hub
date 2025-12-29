@@ -16,6 +16,7 @@ import EventsPage from "./pages/student/Events";
 import Electives from "./pages/student/Electives";
 import StudentProfile from "./pages/student/Profile";
 import SavedEvents from "./pages/student/SavedEvents";
+import StudentClubs from "./pages/student/Clubs";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProfile from "./pages/admin/Profile";
 import Users from "./pages/admin/Users";
@@ -138,6 +139,22 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <SavedEvents />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/clubs"
+                element={
+                  <ProtectedRoute>
+                    <StudentClubs />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/clubs"
+                element={
+                  <ProtectedRoute>
+                    <StudentClubs />
                   </ProtectedRoute>
                 }
               />

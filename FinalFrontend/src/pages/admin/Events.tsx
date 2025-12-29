@@ -21,7 +21,7 @@ function formatDatetimeForInput(isoString: string): string {
   return cleaned.substring(0, 16);
 }
 
-interface EventFormData extends CreateEventData {}
+type EventFormData = CreateEventData;
 
 export default function AdminEvents() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -54,7 +54,7 @@ export default function AdminEvents() {
     try {
       setIsLoadingClubs(true);
       const response = await clubService.getAll();
-      setClubs(response.data?.clubs || []);
+      setClubs(response || []);
     } catch (err: any) {
       const errorMsg = err?.message || 'Failed to load clubs';
       console.error(errorMsg);
