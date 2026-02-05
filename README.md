@@ -19,7 +19,6 @@
 - [Documentation](#-documentation)
 - [Screenshots](#-screenshots)
 - [Contributing](#-contributing)
-- [License](#-license)
 
 ---
 
