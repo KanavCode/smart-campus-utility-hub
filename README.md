@@ -203,7 +203,7 @@ smart-campus-utility-hub/
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/mannshah24/smart-campus-utility-hub.git
+git clone https://github.com/KanavCode/smart-campus-utility-hub.git
 cd smart-campus-utility-hub
 ```
 
@@ -484,8 +484,8 @@ For more troubleshooting, see [Backend Troubleshooting Guide](./smart-campus-bac
 
 ### Contact
 
-- **GitHub Issues**: [Report a bug](https://github.com/mannshah24/smart-campus-utility-hub/issues)
-- **Discussions**: [Ask questions](https://github.com/mannshah24/smart-campus-utility-hub/discussions)
+- **GitHub Issues**: [Report a bug](https://github.com/KanavCode/smart-campus-utility-hub/issues)
+- **Discussions**: [Ask questions](https://github.com/KanavCode/smart-campus-utility-hub/discussions)
 
 ---
 
