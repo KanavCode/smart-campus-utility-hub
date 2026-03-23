@@ -1,0 +1,92 @@
+# Smart Campus Utility Hub – Root .gitignore
+# Covers both sub-projects and common dev-tool artefacts.
+
+# -----------------------------------------------
+# Dependencies
+# -----------------------------------------------
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# -----------------------------------------------
+# Environment Variables  ← NEVER commit secrets
+# -----------------------------------------------
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
+
+# -----------------------------------------------
+# Build Artefacts
+# -----------------------------------------------
+dist/
+dist-ssr/
+build/
+out/
+.next/
+.nuxt/
+.svelte-kit/
+
+# -----------------------------------------------
+# Logs
+# -----------------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+combined.log
+error.log
+
+# -----------------------------------------------
+# Test Coverage
+# -----------------------------------------------
+coverage/
+.nyc_output/
+jest-coverage/
+.jest-cache/
+
+# -----------------------------------------------
+# OS / IDE artefacts
+# -----------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# -----------------------------------------------
+# Temporary Files
+# -----------------------------------------------
+tmp/
+temp/
+*.tmp
+
+# -----------------------------------------------
+# Database
+# -----------------------------------------------
+*.sql.backup
+*.db
+*.sqlite
+
+# -----------------------------------------------
+# Bun
+# -----------------------------------------------
+bun.lockb
+
+# -----------------------------------------------
+# TypeScript
+# -----------------------------------------------
+*.tsbuildinfo

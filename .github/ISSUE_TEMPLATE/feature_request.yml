@@ -1,0 +1,61 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "feat: <short description of the feature>"
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please describe it clearly so the maintainers and community can evaluate and prioritise it.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Motivation
+      description: Is this feature request related to a problem? Describe the pain point.
+      placeholder: Currently students cannot export their timetable to iCal format, which makes it hard to sync with personal calendars.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or features you've considered.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature Area
+      options:
+        - Frontend (UI)
+        - Backend (API)
+        - Database
+        - Authentication
+        - Timetable
+        - Electives
+        - Events & Clubs
+        - DevOps / CI
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: Estimated Difficulty
+      options:
+        - Beginner (Good First Issue)
+        - Intermediate
+        - Advanced
+    validations:
+      required: true

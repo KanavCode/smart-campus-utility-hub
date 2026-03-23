@@ -1,23 +1,51 @@
 # 🎓 Smart Campus Utility Hub
 
-> **A unified platform for intelligent campus management** - Streamline academic operations with AI-powered timetable generation, smart elective selection, and seamless event coordination.
+> **A unified platform for intelligent campus management** — Streamline academic operations with AI-powered timetable generation, smart elective selection, and seamless event coordination.
 
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-19+-61DAFB.svg)](https://reactjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13+-316192.svg)](https://www.postgresql.org/)
+<div align="center">
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18%2B-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13%2B-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Express.js](https://img.shields.io/badge/Express.js-5.x-000000?logo=express&logoColor=white)](https://expressjs.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![NSoC 2026](https://img.shields.io/badge/NSoC-2026-ff6b35)](https://github.com/KanavCode/smart-campus-utility-hub)
+[![GitHub Issues](https://img.shields.io/github/issues/KanavCode/smart-campus-utility-hub)](https://github.com/KanavCode/smart-campus-utility-hub/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/KanavCode/smart-campus-utility-hub?style=social)](https://github.com/KanavCode/smart-campus-utility-hub/stargazers)
+
+</div>
 
 ---
 
 ## 📋 Table of Contents
 
+- [Problem Statement](#-problem-statement)
 - [Overview](#-overview)
 - [Features](#-features)
 - [Tech Stack](#️-tech-stack)
 - [Project Structure](#-project-structure)
 - [Quick Start](#-quick-start)
+- [One-Command Setup](#-one-command-setup)
 - [Documentation](#-documentation)
 - [Screenshots](#-screenshots)
 - [Contributing](#-contributing)
+- [Roadmap](#️-roadmap)
+
+---
+
+## 🎯 Problem Statement
+
+University campuses face significant operational challenges with fragmented systems — timetable scheduling, elective allocation, and event management are handled through separate, often manual processes. This leads to:
+
+- **Scheduling conflicts** when rooms, teachers, or time slots are double-booked
+- **Unfair elective allocation** not based on objective criteria like CGPA
+- **Poor event visibility** with no central place for students to discover activities
+- **High administrative overhead** from managing everything in spreadsheets
+
+**Smart Campus Utility Hub** solves these problems by providing a unified, web-based platform that automates intelligent timetable generation, CGPA-based elective allocation, and centralised event management — accessible to students, faculty, and admins from a single interface.
 
 ---
 
@@ -131,60 +159,63 @@
 ```
 smart-campus-utility-hub/
 │
-├── FinalFrontend/                    # Production Frontend (TypeScript + React)
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── ui/                   # Reusable UI components
-│   │   │   ├── landing/              # Landing page sections
-│   │   │   └── animations/           # Animation components
-│   │   ├── pages/
-│   │   │   ├── Landing.tsx           # Landing page
-│   │   │   ├── Auth.tsx              # Authentication
-│   │   │   ├── student/              # Student dashboard
-│   │   │   └── admin/                # Admin dashboard
-│   │   ├── lib/
-│   │   │   └── axios.ts              # Configured API client
-│   │   ├── hooks/                    # Custom React hooks
-│   │   ├── store/                    # Zustand stores
-│   │   └── App.tsx                   # Main application
-│   ├── public/                       # Static assets
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── tailwind.config.ts
-│   └── INTEGRATION_GUIDE.md          # Integration documentation
+├── .github/                          # GitHub configuration
+│   ├── workflows/
+│   │   └── lint.yml                  # CI: lint + type-check + tests
+│   ├── ISSUE_TEMPLATE/               # Issue templates (bug, feature, good-first-issue)
+│   └── PULL_REQUEST_TEMPLATE.md
 │
-├── smart-campus-backend/             # Node.js Backend API
+├── smart-campus-backend/             # Node.js / Express API
 │   ├── src/
-│   │   ├── app.js                    # Express application
+│   │   ├── app.js                    # Express application entry point
 │   │   ├── config/
-│   │   │   └── db.js                 # PostgreSQL connection
+│   │   │   └── db.js                 # PostgreSQL connection pool
 │   │   ├── middleware/
 │   │   │   ├── auth.middleware.js    # JWT authentication
-│   │   │   ├── errorHandler.js       # Error handling
-│   │   │   └── validation.js         # Request validation
+│   │   │   ├── errorHandler.js       # Global error handling
+│   │   │   └── validation.js         # Request validation helpers
 │   │   └── components/
-│   │       ├── users/                # User authentication
-│   │       ├── timetable/            # Timetable generation
-│   │       ├── electives/            # Elective selection
-│   │       └── campus-events/        # Events & clubs
+│   │       ├── users/                # User registration & authentication
+│   │       ├── timetable/            # Timetable generation (backtracking)
+│   │       ├── electives/            # CGPA-based elective selection
+│   │       └── campus-events/        # Events & club management
 │   ├── sql/
-│   │   ├── schema.sql                # Database schema
-│   │   └── migrate.js                # Migration script
-│   ├── __tests__/                    # Test suites
-│   ├── package.json
-│   └── README.md                     # Backend documentation
+│   │   ├── schema.sql                # Full database schema
+│   │   └── migrate.js                # Migration runner
+│   ├── __tests__/                    # Jest test suites
+│   ├── .env.example                  # Environment variable template
+│   └── package.json
 │
-├── smart-campus-frontend/            # Alternative Frontend (React)
+├── smart-campus-frontend/            # React + TypeScript frontend (Vite)
 │   ├── src/
 │   │   ├── components/
+│   │   │   ├── ui/                   # shadcn/ui base components
+│   │   │   ├── landing/              # Landing page sections
+│   │   │   └── animations/           # Lottie / Framer Motion components
 │   │   ├── pages/
-│   │   ├── context/
-│   │   ├── hooks/
+│   │   │   ├── Landing.tsx           # Public landing page
+│   │   │   ├── Auth.tsx              # Login / Registration
+│   │   │   ├── student/              # Student dashboard & features
+│   │   │   └── admin/                # Admin panel
+│   │   ├── services/                 # API service layer (Axios)
+│   │   ├── contexts/                 # React context providers
+│   │   ├── hooks/                    # Custom React hooks
 │   │   └── lib/
-│   ├── package.json
-│   └── README.md                     # Frontend documentation
+│   │       └── axios.ts              # Configured Axios instance
+│   ├── .env.example                  # Environment variable template
+│   └── package.json
 │
-└── test-connection.html              # Backend connectivity test
+├── docs/
+│   ├── ISSUES.md                     # 20 pre-written NSoC GitHub issues
+│   └── LABELS.md                     # GitHub label strategy
+│
+├── scripts/
+│   └── setup.sh                      # One-command local setup script
+│
+├── docker-compose.yml                # Docker multi-service stack
+├── CONTRIBUTING.md                   # Contribution guide
+├── ROADMAP.md                        # Project roadmap (Phase 1/2/3)
+└── README.md
 ```
 
 ---
@@ -216,13 +247,9 @@ cd smart-campus-backend
 # Install dependencies
 npm install
 
-# Create .env file
+# Create .env file from the example
 cp .env.example .env
-
-# Configure your .env file with:
-# - DATABASE_URL
-# - JWT_SECRET
-# - PORT
+# Edit .env with your DB credentials and JWT_SECRET
 
 # Run database migrations
 npm run db:migrate
@@ -236,26 +263,18 @@ The backend will run on `http://localhost:5000`
 3. **Frontend Setup**
 
 ```bash
-# Navigate to frontend (choose one)
-cd FinalFrontend
-# or
-cd smart-campus-frontend
+# Navigate to frontend
+cd ../smart-campus-frontend
 
 # Install dependencies
 npm install
-# or with bun
-bun install
 
-# Create .env file
+# Create .env file from the example
 cp .env.example .env
-
-# Configure your .env file with:
-# VITE_API_URL=http://localhost:5000
+# VITE_API_BASE_URL=http://localhost:5000/api
 
 # Start development server
 npm run dev
-# or with bun
-bun run dev
 ```
 
 The frontend will run on `http://localhost:5173`
@@ -277,20 +296,44 @@ npm run db:migrate
 
 ---
 
+## ⚡ One-Command Setup
+
+The quickest way to get everything running locally:
+
+```bash
+# Automated setup (Node.js + PostgreSQL required)
+chmod +x scripts/setup.sh
+./scripts/setup.sh
+```
+
+Or with Docker (no local PostgreSQL needed):
+
+```bash
+# Copy and configure environment
+cp smart-campus-backend/.env.example smart-campus-backend/.env
+cp smart-campus-frontend/.env.example smart-campus-frontend/.env
+
+# Start all services
+docker compose up --build
+```
+
+This starts PostgreSQL, the backend API, and the frontend dev server automatically.
+
+---
+
 ## 📖 Documentation
 
 ### Backend API Documentation
 
-Comprehensive API documentation is available in the backend README:
+Comprehensive API documentation is available in the backend directory:
 
+📄 [smart-campus-backend/API_DOCUMENTATION.md](./smart-campus-backend/API_DOCUMENTATION.md)  
 📄 [smart-campus-backend/README.md](./smart-campus-backend/README.md)
 
 ### Frontend Documentation
 
-Detailed frontend guides:
-
-📄 [smart-campus-frontend/README.md](./smart-campus-frontend/README.md)  
-📄 [FinalFrontend/INTEGRATION_GUIDE.md](./FinalFrontend/INTEGRATION_GUIDE.md)
+📄 [smart-campus-frontend/INTEGRATION_GUIDE.md](./smart-campus-frontend/INTEGRATION_GUIDE.md)  
+📄 [smart-campus-frontend/README.md](./smart-campus-frontend/README.md)
 
 ### API Endpoints
 
@@ -357,11 +400,24 @@ npm run test:coverage
 ### Frontend Tests
 
 ```bash
-cd FinalFrontend
+cd smart-campus-frontend
 
-# Run tests (if configured)
-npm test
+# TypeScript type check
+npx tsc --noEmit
+
+# Lint
+npm run lint
 ```
+
+---
+
+## 🗺️ Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for the full project roadmap across three phases:
+
+- **Phase 1 (Q2 2026)** — Stability & open-source readiness
+- **Phase 2 (Q3 2026)** — New features (iCal export, waitlists, OAuth)
+- **Phase 3 (Q4 2026+)** — Scaling, Redis caching, CI/CD pipeline
 
 ---
 
@@ -411,32 +467,29 @@ npm test
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Whether it's bug fixes, feature additions, or documentation improvements.
+We welcome contributions from the community! Whether it's bug fixes, feature additions, or documentation improvements. This project participates in **NSoC 2026**.
+
+👉 Read the full contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ### How to Contribute
 
 1. **Fork the repository**
 2. **Create a feature branch**
    ```bash
-   git checkout -b feature/your-feature-name
+   git checkout -b feat/your-feature-name
    ```
-3. **Make your changes**
-4. **Commit with descriptive messages**
+3. **Commit with Conventional Commits**
    ```bash
-   git commit -m "Add: Brief description of your changes"
+   git commit -m "feat(timetable): add iCal export endpoint"
    ```
-5. **Push to your fork**
+4. **Push and open a Pull Request**
    ```bash
-   git push origin feature/your-feature-name
+   git push origin feat/your-feature-name
    ```
-6. **Open a Pull Request**
 
-### Code Style
+### Good First Issues
 
-- **Backend**: Follow ESLint configuration
-- **Frontend**: Use TypeScript strict mode
-- **Comments**: Add JSDoc comments for functions
-- **Testing**: Write tests for new features
+Looking for a place to start? Check out issues labelled [`good first issue`](https://github.com/KanavCode/smart-campus-utility-hub/labels/good%20first%20issue) or browse the pre-written issues in [`docs/ISSUES.md`](docs/ISSUES.md).
 
 ---
 
@@ -468,7 +521,7 @@ lsof -ti:5000 | xargs kill -9
 # Or change port in .env file
 ```
 
-For more troubleshooting, see [Backend Troubleshooting Guide](./smart-campus-backend/README.md#-troubleshooting).
+For more troubleshooting, see [Backend Troubleshooting Guide](./smart-campus-backend/README.md).
 
 ---
 
@@ -510,6 +563,6 @@ For more troubleshooting, see [Backend Troubleshooting Guide](./smart-campus-bac
 
 ⭐ Star this repository if you find it helpful!
 
-[Report Bug](https://github.com/mannshah24/smart-campus-utility-hub/issues) · [Request Feature](https://github.com/mannshah24/smart-campus-utility-hub/issues) · [Documentation](./smart-campus-backend/README.md)
+[Report Bug](https://github.com/KanavCode/smart-campus-utility-hub/issues) · [Request Feature](https://github.com/KanavCode/smart-campus-utility-hub/issues) · [Documentation](./smart-campus-backend/README.md) · [Contributing](./CONTRIBUTING.md)
 
 </div>
