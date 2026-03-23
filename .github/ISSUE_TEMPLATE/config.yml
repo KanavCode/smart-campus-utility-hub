@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Ask a Question / Start a Discussion
+    url: https://github.com/KanavCode/smart-campus-utility-hub/discussions
+    about: Use GitHub Discussions for questions, ideas, and general help.
+  - name: 📖 Read the Documentation
+    url: https://github.com/KanavCode/smart-campus-utility-hub/blob/main/README.md
+    about: Read the full project documentation before opening an issue.

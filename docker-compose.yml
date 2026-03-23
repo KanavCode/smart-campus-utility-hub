@@ -1,0 +1,95 @@
+version: '3.9'
+
+# =====================================================================
+# Smart Campus Utility Hub – Docker Compose
+# One-command local development stack
+#
+# Usage:
+#   docker compose up --build
+#
+# Services:
+#   db        – PostgreSQL 15 database
+#   backend   – Node.js / Express API  (http://localhost:5000)
+#   frontend  – Vite / React dev server (http://localhost:5173)
+# =====================================================================
+
+services:
+
+  # -------------------------------------------------------------------
+  # PostgreSQL Database
+  # -------------------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: smart_campus_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-smart_campus_unified}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./smart-campus-backend/sql/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-smart_campus_unified}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------
+  # Backend API (Node.js / Express)
+  # -------------------------------------------------------------------
+  backend:
+    build:
+      context: ./smart-campus-backend
+      dockerfile: Dockerfile
+    container_name: smart_campus_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-smart_campus_unified}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      CORS_ORIGINS: 'http://localhost:5173'
+    ports:
+      - '5000:5000'
+    volumes:
+      - ./smart-campus-backend/src:/app/src:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:5000/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------
+  # Frontend (Vite dev server)
+  # -------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./smart-campus-frontend
+      dockerfile: Dockerfile
+    container_name: smart_campus_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      VITE_API_BASE_URL: http://localhost:5000/api
+    ports:
+      - '5173:5173'
+    volumes:
+      - ./smart-campus-frontend/src:/app/src:ro
+
+volumes:
+  postgres_data:
+    driver: local

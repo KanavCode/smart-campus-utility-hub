@@ -62,7 +62,7 @@ export const authService = {
       // Check if backend is reachable
       if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
         throw { 
-          message: 'Cannot connect to server. Please ensure the backend server is running on http://localhost:5000' 
+          message: 'Cannot connect to server. Please ensure the backend server is running.' 
         };
       }
       
@@ -125,7 +125,7 @@ export const authService = {
       // Check if backend is reachable
       if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
         throw { 
-          message: 'Cannot connect to server. Please ensure the backend server is running on http://localhost:5000' 
+          message: 'Cannot connect to server. Please ensure the backend server is running.' 
         };
       }
       
