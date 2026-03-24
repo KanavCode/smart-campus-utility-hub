@@ -138,32 +138,7 @@ export default function SmartCore() {
           ))}
         </div>
 
-        {/* Trust Indicators */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-16 flex flex-wrap justify-center gap-8 text-center"
-        >
-          {[
-            { value: '99.9%', label: 'Uptime SLA' },
-            { value: '256-bit', label: 'Encryption' },
-            { value: '<50ms', label: 'Response Time' },
-            { value: 'ISO 27001', label: 'Certified' },
-          ].map((stat, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="glass px-6 py-4 rounded-lg"
-            >
-              <div className="text-2xl font-bold text-primary">{stat.value}</div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
-            </motion.div>
-          ))}
-        </motion.div>
+
       </div>
     </motion.section>
   );

@@ -1,9 +1,9 @@
-import { motion, AnimatePresence, useScroll, useInView, MotionValue } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, MotionValue } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
-import { Calendar, BookOpen, Clock, ArrowRight, Users, Shield, Zap, ChevronDown, CheckCircle2, Star } from 'lucide-react';
+import { Calendar, BookOpen, Clock, ArrowRight, Users, Shield, Zap, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef, MouseEvent } from 'react';
+import { useState, useRef, MouseEvent } from 'react';
 import AnimatedBackground from '@/components/animations/AnimatedBackground';
 import TiltCard from '@/components/animations/TiltCard';
 import CampusExplorer from '@/components/landing/CampusExplorer';
@@ -71,45 +71,7 @@ export default function Landing() {
     );
   };
 
-  // Animated counter component
-  const AnimatedCounter = ({ target, suffix = '' }: { target: number; suffix?: string }) => {
-    const [count, setCount] = useState(0);
-    const counterRef = useRef<HTMLDivElement>(null);
-    const isInView = useInView(counterRef, { once: true, margin: '-100px' });
 
-    useEffect(() => {
-      if (!isInView) return;
-      
-      let start = 0;
-      const end = target;
-      const duration = 2000;
-      const increment = end / (duration / 16);
-
-      const timer = setInterval(() => {
-        start += increment;
-        if (start >= end) {
-          setCount(end);
-          clearInterval(timer);
-        } else {
-          setCount(Math.floor(start));
-        }
-      }, 16);
-
-      return () => clearInterval(timer);
-    }, [isInView, target]);
-
-    return (
-      <motion.div
-        ref={counterRef}
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={isInView ? { opacity: 1, scale: 1 } : {}}
-        transition={{ duration: 0.5 }}
-        className="text-5xl md:text-6xl font-bold text-primary"
-      >
-        {count.toLocaleString()}{suffix}
-      </motion.div>
-    );
-  };
 
   const titleWords = ['Your', 'Entire', 'Campus,', 'Unified.'];
   
@@ -134,24 +96,6 @@ export default function Landing() {
     },
   ];
 
-  const testimonials = [
-    {
-      name: 'Sarah Chen',
-      role: 'Computer Science Student',
-      quote: 'This platform transformed how I manage my schedule. Everything I need is in one place!',
-    },
-    {
-      name: 'Marcus Rodriguez',
-      role: 'Student Council President',
-      quote: 'Event management has never been easier. Our club participation doubled this semester.',
-    },
-    {
-      name: 'Dr. Emily Johnson',
-      role: 'Academic Administrator',
-      quote: 'The timetable generation saves us countless hours. It\'s a game-changer for administration.',
-    },
-  ];
-
   const faqs = [
     {
       question: 'Is this free for students?',
@@ -171,7 +115,7 @@ export default function Landing() {
     },
   ];
 
-  const universities = ['MIT', 'Stanford', 'Harvard', 'Berkeley', 'Oxford', 'Cambridge'];
+
 
   return (
     <div ref={scrollRef} className="min-h-screen w-full relative overflow-x-clip">
@@ -255,34 +199,7 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* Social Proof Bar */}
-      <motion.section
-        initial={{ opacity: 0, y: 50 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ type: 'spring' }}
-        className="py-12 px-4 border-y border-border/50"
-      >
-        <div className="container mx-auto">
-          <h3 className="text-center text-muted-foreground text-sm font-medium mb-8">
-            Trusted by Leading Campus Groups
-          </h3>
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
-            {universities.map((uni, i) => (
-              <motion.div
-                key={uni}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="text-2xl font-bold text-muted-foreground/40 hover:text-muted-foreground transition-colors"
-              >
-                {uni}
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </motion.section>
+
 
       {/* --- ALL SECTIONS BELOW ARE RESTORED --- */}
 
@@ -499,107 +416,7 @@ export default function Landing() {
       <DayInLife />
       <SmartCore />
 
-      {/* Testimonials Section */}
-      <motion.section
-        initial={{ opacity: 0, y: 50 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ type: 'spring' }}
-        className="py-20 px-4 bg-secondary/20"
-      >
-        <div className="container mx-auto">
-          <h2 className="text-4xl font-bold text-center mb-12">What Our Users Say</h2>
-          <motion.div
-            variants={{
-              visible: {
-                transition: {
-                  staggerChildren: 0.2,
-                },
-              },
-            }}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid md:grid-cols-3 gap-8"
-          >
-            {testimonials.map((testimonial, i) => (
-              <motion.div
-                key={i}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0 },
-                }}
-                whileHover={{ y: -8, scale: 1.02 }}
-                transition={{ type: 'spring', stiffness: 200 }}
-                className="glass p-6 rounded-2xl glow-accent-hover"
-              >
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-primary text-primary" />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-4 italic">"{testimonial.quote}"</p>
-                <div>
-                  <p className="font-semibold">{testimonial.name}</p>
-                  <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </motion.section>
 
-      {/* Stats Section */}
-      <motion.section
-        initial={{ opacity: 0, y: 50 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ type: 'spring' }}
-        className="py-20 px-4"
-      >
-        <div className="container mx-auto">
-          <motion.h2
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-4xl font-bold text-center mb-16"
-          >
-            Our Impact in Numbers
-          </motion.h2>
-          <div className="grid md:grid-cols-3 gap-12">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="text-center space-y-2"
-            >
-              <AnimatedCounter target={5000} suffix="+" />
-              <p className="text-xl text-muted-foreground">Students Connected</p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="text-center space-y-2"
-            >
-              <AnimatedCounter target={100} suffix="+" />
-              <p className="text-xl text-muted-foreground">Campus Events Managed</p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="text-center space-y-2"
-            >
-              <AnimatedCounter target={98} suffix="%" />
-              <p className="text-xl text-muted-foreground">User Satisfaction Rate</p>
-            </motion.div>
-          </div>
-        </div>
-      </motion.section>
 
       {/* FAQ Section */}
       <motion.section
@@ -665,7 +482,7 @@ export default function Landing() {
         <div className="container mx-auto text-center">
           <h2 className="text-5xl font-bold mb-6">Ready to Simplify Your Campus Life?</h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join thousands of students and administrators who have transformed their campus experience.
+            A free, open-source platform to simplify campus management for students and administrators.
           </p>
           <MagneticShimmerButton
             onClick={() => navigate('/auth')}
