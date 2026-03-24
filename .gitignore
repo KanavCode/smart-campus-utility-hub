@@ -90,3 +90,4 @@ bun.lockb
 # TypeScript
 # -----------------------------------------------
 *.tsbuildinfo
+smart-campus-frontend/.env
