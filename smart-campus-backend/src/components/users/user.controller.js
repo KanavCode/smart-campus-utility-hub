@@ -1,6 +1,7 @@
 const UserModel = require('./user.model');
-const { generateToken } = require('../../middleware/auth.middleware');
-const { asyncHandler, ApiError } = require('../../middleware/errorHandler');
+const userAuthService = require('./user.auth.service');
+const userAdminService = require('./user.admin.service');
+const { asyncHandler } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
 
 /**
@@ -12,63 +13,24 @@ const { logger } = require('../../config/db');
 const register = asyncHandler(async (req, res) => {
   const { full_name, email, password, role, department, cgpa, semester } = req.body;
 
-  // Check if user already exists
-  const existingUser = await UserModel.findByEmail(email);
-  if (existingUser) {
-    throw new ApiError(409, 'User with this email already exists');
-  }
-
-  // Role-based validation
-  if (role === 'student') {
-    if (cgpa == null || semester == null) {
-      throw new ApiError(400, 'CGPA and Semester are required for students.');
-    }
-
-    if (cgpa < 0 || cgpa > 10) {
-      throw new ApiError(400, 'CGPA must be between 0 and 10.');
-    }
-
-    if (semester < 1 || semester > 8) {
-      throw new ApiError(400, 'Semester must be between 1 and 8.');
-    }
-  }
-
-  // Admin or others shouldn't send CGPA/semester
-  if (role === 'admin') {
-    req.body.cgpa = null;
-    req.body.semester = null;
-  }
-
-  // Create user
-  const user = await UserModel.create({
+  const result = await userAuthService.registerUser({
     full_name,
     email,
     password,
     role,
     department,
-    cgpa: role === 'student' ? cgpa : null,
-    semester: role === 'student' ? semester : null
+    cgpa,
+    semester,
   });
 
+  logger.info('New user registered', { userId: result.user.id, email: result.user.email });
 
-  // Generate JWT token
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-    role: user.role
-  });
-
-  logger.info('New user registered', { userId: user.id, email: user.email });
-
-
-  // fetchs password new added
-const { password_hash, ...userData } = user;
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
       data: {
-        user: userData,
-        token
+        user: result.user,
+        token: result.token
       }
     });
 
@@ -78,52 +40,23 @@ const { password_hash, ...userData } = user;
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  // Find user with password
-  const user = await UserModel.findByEmail(email, true);
-  if (!user) {
-    throw new ApiError(401, 'Invalid email or password');
-  }
+  const result = await userAuthService.loginUser({ email, password });
 
-  // Check if account is active
-  if (user.is_active === false) {
-    throw new ApiError(403, 'Account is deactivated. Please contact support.');
-  }
-
-  // Verify password
-  const isPasswordValid = await UserModel.verifyPassword(password, user.password_hash);
-  if (!isPasswordValid) {
-    throw new ApiError(401, 'Invalid email or password');
-  }
-
-  // Generate JWT token
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-    role: user.role
-  });
-
-  // Remove password from response
-  delete user.password_hash;
-
-  logger.info('User logged in', { userId: user.id, email: user.email });
+  logger.info('User logged in', { userId: result.user.id, email: result.user.email });
 
   res.json({
     success: true,
     message: 'Login successful',
     data: {
-      user,
-      token
+      user: result.user,
+      token: result.token
     }
   });
 });
 
 /* Get current user profile --> GET /api/auth/profile -> Protected route*/
 const getProfile = asyncHandler(async (req, res) => {
-  const user = await UserModel.findById(req.user.id);
-  
-  if (!user) {
-    throw new ApiError(404, 'User not found');
-  }
+  const user = await userAuthService.getProfileById(req.user.id);
 
   res.json({
     success: true,
@@ -135,7 +68,7 @@ const getProfile = asyncHandler(async (req, res) => {
 const updateProfile = asyncHandler(async (req, res) => {
   const { full_name, department, cgpa, semester } = req.body;
 
-  const updatedUser = await UserModel.update(req.user.id, {
+  const updatedUser = await userAuthService.updateProfileById(req.user.id, {
     full_name,
     department,
     cgpa,
@@ -155,15 +88,7 @@ const updateProfile = asyncHandler(async (req, res) => {
 const changePassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
 
-  if (!oldPassword || !newPassword) {
-    throw new ApiError(400, 'Old password and new password are required');
-  }
-
-  if (newPassword.length < 6) {
-    throw new ApiError(400, 'New password must be at least 6 characters long');
-  }
-
-  await UserModel.changePassword(req.user.id, oldPassword, newPassword);
+  await userAuthService.changePasswordById(req.user.id, { oldPassword, newPassword });
 
   logger.info('User changed password', { userId: req.user.id });
 
@@ -176,25 +101,13 @@ const changePassword = asyncHandler(async (req, res) => {
 /* Get all users (admin only) --> GET /api/users -> Protected route - Admin only */
 const getAllUsers = asyncHandler(async (req, res) => {
   const { role, department, page = 1, limit = 50 } = req.query;
-  
-  const offset = (page - 1) * limit;
-  
-  const users = await UserModel.findAll({
-    role,
-    department,
-    limit: parseInt(limit),
-    offset: parseInt(offset)
-  });
+  const result = await userAdminService.listUsers({ role, department, page, limit });
 
   res.json({
     success: true,
     data: {
-      users,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        count: users.length
-      }
+      users: result.users,
+      pagination: result.pagination
     }
   });
 });
@@ -202,12 +115,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
 /* Get user by ID (admin only) -->GET /api/users/:id -> Protected route - Admin only */
 const getUserById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  
-  const user = await UserModel.findById(parseInt(id));
-  
-  if (!user) {
-    throw new ApiError(404, 'User not found');
-  }
+  const user = await userAdminService.getUserById({ id });
 
   res.json({
     success: true,
@@ -218,29 +126,10 @@ const getUserById = asyncHandler(async (req, res) => {
 /* Update user (admin only) --> PUT /api/users/:id -> Protected route - Admin only */
 const updateUserByAdmin = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const targetId = parseInt(id, 10);
-
-  if (Number.isNaN(targetId)) {
-    throw new ApiError(400, 'Invalid user id');
-  }
-
-  if (req.body.role === 'student') {
-    const hasCgpa = Object.prototype.hasOwnProperty.call(req.body, 'cgpa');
-    const hasSemester = Object.prototype.hasOwnProperty.call(req.body, 'semester');
-    if (!(hasCgpa && hasSemester)) {
-      throw new ApiError(400, 'CGPA and Semester are required when role is student');
-    }
-  }
-
-  if (req.body.role === 'admin') {
-    req.body.cgpa = null;
-    req.body.semester = null;
-  }
-
-  const updatedUser = await UserModel.updateByAdmin(targetId, req.body);
-  if (!updatedUser) {
-    throw new ApiError(404, 'User not found');
-  }
+  const { targetId, updatedUser } = await userAdminService.updateUserByAdmin({
+    id,
+    updates: req.body
+  });
 
   logger.info('User updated by admin', { adminId: req.user.id, targetUserId: targetId });
 
@@ -254,14 +143,9 @@ const updateUserByAdmin = asyncHandler(async (req, res) => {
 /*Deactivate user (admin only) --> PATCH /api/users/:id/deactivate -> Protected route - Admin only */
 const deactivateUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  
-  const success = await UserModel.deactivate(parseInt(id));
-  
-  if (!success) {
-    throw new ApiError(404, 'User not found');
-  }
+  const targetId = await userAdminService.deactivateUser({ id });
 
-  logger.info('User deactivated', { adminId: req.user.id, targetUserId: id });
+  logger.info('User deactivated', { adminId: req.user.id, targetUserId: targetId });
 
   res.json({
     success: true,
@@ -272,19 +156,9 @@ const deactivateUser = asyncHandler(async (req, res) => {
 /* Delete user (admin only) --> DELETE /api/users/:id -> Protected route - Admin only*/
 const deleteUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  
-  // Prevent self-deletion
-  if (parseInt(id) === req.user.id) {
-    throw new ApiError(400, 'You cannot delete your own account');
-  }
-  
-  const success = await UserModel.delete(parseInt(id));
-  
-  if (!success) {
-    throw new ApiError(404, 'User not found');
-  }
+  const targetId = await userAdminService.deleteUser({ id, requesterId: req.user.id });
 
-  logger.info('User deleted', { adminId: req.user.id, targetUserId: id });
+  logger.info('User deleted', { adminId: req.user.id, targetUserId: targetId });
 
   res.json({
     success: true,

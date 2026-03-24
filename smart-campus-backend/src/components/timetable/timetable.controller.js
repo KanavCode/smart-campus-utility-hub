@@ -1,6 +1,7 @@
 const { query } = require('../../config/db');
 const { asyncHandler, ApiError } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
+const timetableReadService = require('./timetable.read.service');
 
 /**
  * Timetable Controller
@@ -15,22 +16,11 @@ const { logger } = require('../../config/db');
  */
 const getAllTeachers = asyncHandler(async (req, res) => {
   const { department } = req.query;
-  
-  let sql = 'SELECT * FROM teachers WHERE is_active = true';
-  const values = [];
-  
-  if (department) {
-    sql += ' AND department = $1';
-    values.push(department);
-  }
-  
-  sql += ' ORDER BY full_name ASC';
-  
-  const result = await query(sql, values);
+  const teachers = await timetableReadService.listTeachers({ department });
   
   res.json({
     success: true,
-    data: { teachers: result.rows, count: result.rows.length }
+    data: { teachers, count: teachers.length }
   });
 });
 
@@ -40,30 +30,11 @@ const getAllTeachers = asyncHandler(async (req, res) => {
  */
 const getAllSubjects = asyncHandler(async (req, res) => {
   const { department, semester } = req.query;
-  
-  let sql = 'SELECT * FROM subjects WHERE is_active = true';
-  const values = [];
-  let paramCounter = 1;
-  
-  if (department) {
-    sql += ` AND department = $${paramCounter}`;
-    values.push(department);
-    paramCounter++;
-  }
-  
-  if (semester) {
-    sql += ` AND semester = $${paramCounter}`;
-    values.push(parseInt(semester));
-    paramCounter++;
-  }
-  
-  sql += ' ORDER BY subject_name ASC';
-  
-  const result = await query(sql, values);
+  const subjects = await timetableReadService.listSubjects({ department, semester });
   
   res.json({
     success: true,
-    data: { subjects: result.rows, count: result.rows.length }
+    data: { subjects, count: subjects.length }
   });
 });
 
@@ -73,22 +44,11 @@ const getAllSubjects = asyncHandler(async (req, res) => {
  */
 const getAllRooms = asyncHandler(async (req, res) => {
   const { room_type } = req.query;
-  
-  let sql = 'SELECT * FROM rooms WHERE is_active = true';
-  const values = [];
-  
-  if (room_type) {
-    sql += ' AND room_type = $1';
-    values.push(room_type);
-  }
-  
-  sql += ' ORDER BY room_name ASC';
-  
-  const result = await query(sql, values);
+  const rooms = await timetableReadService.listRooms({ room_type });
   
   res.json({
     success: true,
-    data: { rooms: result.rows, count: result.rows.length }
+    data: { rooms, count: rooms.length }
   });
 });
 
@@ -98,30 +58,11 @@ const getAllRooms = asyncHandler(async (req, res) => {
  */
 const getAllGroups = asyncHandler(async (req, res) => {
   const { department, semester } = req.query;
-  
-  let sql = 'SELECT * FROM student_groups WHERE is_active = true';
-  const values = [];
-  let paramCounter = 1;
-  
-  if (department) {
-    sql += ` AND department = $${paramCounter}`;
-    values.push(department);
-    paramCounter++;
-  }
-  
-  if (semester) {
-    sql += ` AND semester = $${paramCounter}`;
-    values.push(parseInt(semester));
-    paramCounter++;
-  }
-  
-  sql += ' ORDER BY group_name ASC';
-  
-  const result = await query(sql, values);
+  const groups = await timetableReadService.listGroups({ department, semester });
   
   res.json({
     success: true,
-    data: { groups: result.rows, count: result.rows.length }
+    data: { groups, count: groups.length }
   });
 });
 
@@ -132,50 +73,18 @@ const getAllGroups = asyncHandler(async (req, res) => {
 const getTimetableByGroup = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
   const { academic_year, semester_type } = req.query;
-  
-  const sql = `
-    SELECT 
-      ts.id,
-      ts.day_of_week,
-      ts.period_number,
-      s.subject_name,
-      s.subject_code,
-      t.full_name as teacher_name,
-      t.teacher_code,
-      r.room_name,
-      r.room_code
-    FROM timetable_slots ts
-    JOIN subjects s ON ts.subject_id = s.id
-    JOIN teachers t ON ts.teacher_id = t.id
-    JOIN rooms r ON ts.room_id = r.id
-    WHERE ts.group_id = $1
-      AND ts.is_active = true
-      ${academic_year ? 'AND ts.academic_year = $2' : ''}
-      ${semester_type ? `AND ts.semester_type = $${academic_year ? 3 : 2}` : ''}
-    ORDER BY 
-      CASE ts.day_of_week
-        WHEN 'Monday' THEN 1
-        WHEN 'Tuesday' THEN 2
-        WHEN 'Wednesday' THEN 3
-        WHEN 'Thursday' THEN 4
-        WHEN 'Friday' THEN 5
-        WHEN 'Saturday' THEN 6
-      END,
-      ts.period_number ASC
-  `;
-  
-  const values = [groupId];
-  if (academic_year) values.push(academic_year);
-  if (semester_type) values.push(semester_type);
-  
-  const result = await query(sql, values);
+  const timetable = await timetableReadService.getGroupTimetable({
+    groupId,
+    academic_year,
+    semester_type
+  });
   
   res.json({
     success: true,
     data: { 
-      timetable: result.rows,
+      timetable,
       group_id: groupId,
-      count: result.rows.length 
+      count: timetable.length 
     }
   });
 });
@@ -186,36 +95,11 @@ const getTimetableByGroup = asyncHandler(async (req, res) => {
  */
 const getTimetableByTeacher = asyncHandler(async (req, res) => {
   const { teacherId } = req.params;
-  
-  const sql = `
-    SELECT 
-      ts.day_of_week,
-      ts.period_number,
-      s.subject_name,
-      sg.group_name,
-      r.room_name
-    FROM timetable_slots ts
-    JOIN subjects s ON ts.subject_id = s.id
-    JOIN student_groups sg ON ts.group_id = sg.id
-    JOIN rooms r ON ts.room_id = r.id
-    WHERE ts.teacher_id = $1 AND ts.is_active = true
-    ORDER BY 
-      CASE ts.day_of_week
-        WHEN 'Monday' THEN 1
-        WHEN 'Tuesday' THEN 2
-        WHEN 'Wednesday' THEN 3
-        WHEN 'Thursday' THEN 4
-        WHEN 'Friday' THEN 5
-        WHEN 'Saturday' THEN 6
-      END,
-      ts.period_number ASC
-  `;
-  
-  const result = await query(sql, [teacherId]);
+  const timetable = await timetableReadService.getTeacherTimetable({ teacherId });
   
   res.json({
     success: true,
-    data: { timetable: result.rows, teacher_id: teacherId }
+    data: { timetable, teacher_id: teacherId }
   });
 });
 
@@ -618,18 +502,15 @@ const generateTimetable = asyncHandler(async (req, res) => {
  * GET /api/timetable/config
  */
 const getTimetableConfig = asyncHandler(async (req, res) => {
-  const groupsResult = await query('SELECT id, group_code, group_name, department, semester FROM student_groups WHERE is_active = true');
-  const teachersResult = await query('SELECT id, teacher_code, full_name, department FROM teachers WHERE is_active = true');
-  const subjectsResult = await query('SELECT id, subject_code, subject_name, course_type, hours_per_week FROM subjects WHERE is_active = true');
-  const roomsResult = await query('SELECT id, room_code, room_name, room_type, capacity FROM rooms WHERE is_active = true');
+  const configData = await timetableReadService.getConfigData();
 
   res.json({
     success: true,
     data: {
-      groups: groupsResult.rows,
-      teachers: teachersResult.rows,
-      subjects: subjectsResult.rows,
-      rooms: roomsResult.rows,
+      groups: configData.groups,
+      teachers: configData.teachers,
+      subjects: configData.subjects,
+      rooms: configData.rooms,
       defaultDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
       defaultPeriodsPerDay: 7,
       defaultLunchBreak: 4

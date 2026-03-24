@@ -1,6 +1,6 @@
-const { query, transaction } = require('../../config/db');
-const { asyncHandler, ApiError } = require('../../middleware/errorHandler');
+const { asyncHandler } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
+const electiveService = require('./elective.service');
 
 /**
  * Electives Controller
@@ -13,21 +13,20 @@ const { logger } = require('../../config/db');
  */
 const createElective = asyncHandler(async (req, res) => {
   const { subject_name, description, max_students, department, semester } = req.body;
+  const elective = await electiveService.createElective({
+    subject_name,
+    description,
+    max_students,
+    department,
+    semester
+  });
 
-  const sql = `
-    INSERT INTO electives (subject_name, description, max_students, department, semester)
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING *
-  `;
-
-  const result = await query(sql, [subject_name, description, max_students || 50, department, semester]);
-
-  logger.info('Elective created', { electiveId: result.rows[0].id, createdBy: req.user.id });
+  logger.info('Elective created', { electiveId: elective.id, createdBy: req.user.id });
 
   res.status(201).json({
     success: true,
     message: 'Elective created successfully',
-    data: { elective: result.rows[0] }
+    data: { elective }
   });
 });
 
@@ -38,30 +37,11 @@ const createElective = asyncHandler(async (req, res) => {
  */
 const getAllElectives = asyncHandler(async (req, res) => {
   const { department, semester } = req.query;
-  
-  let sql = 'SELECT * FROM electives WHERE 1=1';
-  const values = [];
-  let paramCounter = 1;
-
-  if (department) {
-    sql += ` AND department = $${paramCounter}`;
-    values.push(department);
-    paramCounter++;
-  }
-
-  if (semester) {
-    sql += ` AND semester = $${paramCounter}`;
-    values.push(parseInt(semester));
-    paramCounter++;
-  }
-
-  sql += ' ORDER BY subject_name ASC';
-
-  const result = await query(sql, values);
+  const electives = await electiveService.listElectives({ department, semester });
 
   res.json({
     success: true,
-    data: { electives: result.rows, count: result.rows.length }
+    data: { electives, count: electives.length }
   });
 });
 
@@ -71,17 +51,11 @@ const getAllElectives = asyncHandler(async (req, res) => {
  */
 const getElectiveById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-
-  const sql = 'SELECT * FROM electives WHERE id = $1';
-  const result = await query(sql, [parseInt(id)]);
-
-  if (result.rows.length === 0) {
-    throw new ApiError(404, 'Elective not found');
-  }
+  const elective = await electiveService.getElectiveById(id);
 
   res.json({
     success: true,
-    data: { elective: result.rows[0] }
+    data: { elective }
   });
 });
 
@@ -92,26 +66,20 @@ const getElectiveById = asyncHandler(async (req, res) => {
 const updateElective = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { subject_name, description, max_students, department, semester } = req.body;
-
-  const sql = `
-    UPDATE electives
-    SET subject_name = $1, description = $2, max_students = $3, department = $4, semester = $5
-    WHERE id = $6
-    RETURNING *
-  `;
-
-  const result = await query(sql, [subject_name, description, max_students, department, semester, parseInt(id)]);
-
-  if (result.rows.length === 0) {
-    throw new ApiError(404, 'Elective not found');
-  }
+  const elective = await electiveService.updateElective(id, {
+    subject_name,
+    description,
+    max_students,
+    department,
+    semester
+  });
 
   logger.info('Elective updated', { electiveId: id, updatedBy: req.user.id });
 
   res.json({
     success: true,
     message: 'Elective updated successfully',
-    data: { elective: result.rows[0] }
+    data: { elective }
   });
 });
 
@@ -121,12 +89,7 @@ const updateElective = asyncHandler(async (req, res) => {
  */
 const deleteElective = asyncHandler(async (req, res) => {
   const { id } = req.params;
-
-  const result = await query('DELETE FROM electives WHERE id = $1 RETURNING *', [parseInt(id)]);
-
-  if (result.rowCount === 0) {
-    throw new ApiError(404, 'Elective not found');
-  }
+  await electiveService.deleteElective(id);
 
   logger.info('Elective deleted', { electiveId: id, deletedBy: req.user.id });
 
@@ -143,55 +106,14 @@ const deleteElective = asyncHandler(async (req, res) => {
 const submitChoices = asyncHandler(async (req, res) => {
   const { choices } = req.body; // Array of { elective_id|subject_name, preference_rank }
   const userId = req.user.id;
+  const result = await electiveService.submitChoices({ choices, userId });
 
-  const allChoicesUseIds = choices.every((choice) => choice.elective_id != null);
-  let normalizedChoices = [];
-
-  if (allChoicesUseIds) {
-    normalizedChoices = choices.map((choice) => ({
-      elective_id: parseInt(choice.elective_id, 10),
-      preference_rank: choice.preference_rank,
-      subject_name: choice.subject_name
-    }));
-  } else {
-    // Fetch electives from DB only when subject_name mapping is needed
-    const electivesResult = await query('SELECT id, subject_name FROM electives');
-    const subjectToId = {};
-    const validElectiveIds = new Set();
-    electivesResult.rows.forEach(e => {
-      subjectToId[e.subject_name] = e.id;
-      validElectiveIds.add(e.id);
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: result.message
     });
-
-    normalizedChoices = choices.map((choice) => {
-      const electiveId = choice.elective_id || subjectToId[choice.subject_name];
-      return {
-        elective_id: electiveId,
-        preference_rank: choice.preference_rank,
-        subject_name: choice.subject_name
-      };
-    });
-
-    const invalidChoices = normalizedChoices.filter(c => !validElectiveIds.has(c.elective_id));
-    if (invalidChoices.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid electives in choices submission'
-      });
-    }
   }
-
-  // Save choices in transaction
-  await transaction(async (client) => {
-    await client.query('DELETE FROM student_choices WHERE student_id = $1', [userId]);
-
-    for (const choice of normalizedChoices) {
-      await client.query(
-        'INSERT INTO student_choices (student_id, elective_id, preference_rank) VALUES ($1, $2, $3)',
-        [userId, choice.elective_id, choice.preference_rank]
-      );
-    }
-  });
 
   logger.info('Elective choices submitted', { userId, choicesCount: choices.length });
 
@@ -207,20 +129,11 @@ const submitChoices = asyncHandler(async (req, res) => {
  */
 const getMyChoices = asyncHandler(async (req, res) => {
   const userId = req.user.id;
-
-  const sql = `
-    SELECT sc.preference_rank, e.*
-    FROM student_choices sc
-    JOIN electives e ON sc.elective_id = e.id
-    WHERE sc.student_id = $1
-    ORDER BY sc.preference_rank ASC
-  `;
-
-  const result = await query(sql, [userId]);
+  const choices = await electiveService.getMyChoices(userId);
 
   res.json({
     success: true,
-    data: { choices: result.rows }
+    data: { choices }
   });
 });
 
@@ -230,17 +143,9 @@ const getMyChoices = asyncHandler(async (req, res) => {
  */
 const getMyAllocation = asyncHandler(async (req, res) => {
   const userId = req.user.id;
+  const allocation = await electiveService.getMyAllocation(userId);
 
-  const sql = `
-    SELECT ae.*, e.subject_name, e.description, e.department
-    FROM allocated_electives ae
-    JOIN electives e ON ae.elective_id = e.id
-    WHERE ae.student_id = $1
-  `;
-
-  const result = await query(sql, [userId]);
-
-  if (result.rows.length === 0) {
+  if (!allocation) {
     return res.json({
       success: true,
       message: 'No elective allocated yet',
@@ -250,7 +155,7 @@ const getMyAllocation = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    data: { allocation: result.rows[0] }
+    data: { allocation }
   });
 });
 
@@ -259,78 +164,7 @@ const getMyAllocation = asyncHandler(async (req, res) => {
  * POST /api/electives/allocate
  */
 const allocateElectives = asyncHandler(async (req, res) => {
-  const allocationResults = await transaction(async (client) => {
-    // Clear previous allocations
-    await client.query('DELETE FROM allocated_electives');
-
-    // Get all students with CGPA sorted (highest first)
-    const studentsResult = await client.query(
-      'SELECT id, full_name, email, cgpa FROM users WHERE role = $1 AND cgpa IS NOT NULL ORDER BY cgpa DESC',
-      ['student']
-    );
-
-    const students = studentsResult.rows;
-
-    // Get all electives with available seats
-    const electivesResult = await client.query('SELECT id, subject_name, max_students FROM electives');
-    
-    // Create a map to track available seats
-    const electiveSeats = {};
-    electivesResult.rows.forEach(e => {
-      electiveSeats[e.id] = e.max_students;
-    });
-
-    const results = [];
-
-    // Process each student in CGPA order
-    for (const student of students) {
-      // Get student's preferences in order
-      const choicesResult = await client.query(
-        'SELECT elective_id FROM student_choices WHERE student_id = $1 ORDER BY preference_rank ASC',
-        [student.id]
-      );
-
-      let allocated = false;
-
-      // Try to allocate based on preferences
-      for (const choice of choicesResult.rows) {
-        const electiveId = choice.elective_id;
-        
-        if (electiveSeats[electiveId] && electiveSeats[electiveId] > 0) {
-          // Allocate this elective
-          await client.query(
-            'INSERT INTO allocated_electives (student_id, elective_id, allocation_round) VALUES ($1, $2, $3)',
-            [student.id, electiveId, 1]
-          );
-
-          electiveSeats[electiveId]--;
-          
-          const electiveName = electivesResult.rows.find(e => e.id === electiveId).subject_name;
-          
-          results.push({
-            student_name: student.full_name,
-            cgpa: student.cgpa,
-            allocated_elective: electiveName,
-            preference_rank: choicesResult.rows.indexOf(choice) + 1
-          });
-
-          allocated = true;
-          break;
-        }
-      }
-
-      if (!allocated) {
-        results.push({
-          student_name: student.full_name,
-          cgpa: student.cgpa,
-          allocated_elective: 'None (No seat available)',
-          preference_rank: null
-        });
-      }
-    }
-
-    return results;
-  });
+  const allocationResults = await electiveService.allocateElectives();
 
   logger.info('Elective allocation completed', { 
     allocatedBy: req.user.id, 
