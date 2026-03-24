@@ -316,6 +316,174 @@ const createGroup = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Update a teacher (Admin only)
+ * PUT /api/timetable/teachers/:id
+ */
+const updateTeacher = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { teacher_code, full_name, department, email, phone } = req.body;
+
+  const sql = `
+    UPDATE teachers
+    SET teacher_code = $1, full_name = $2, department = $3, email = $4, phone = $5, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $6 AND is_active = true
+    RETURNING *
+  `;
+
+  const result = await query(sql, [teacher_code, full_name, department, email, phone, id]);
+  if (result.rowCount === 0) {
+    throw new ApiError(404, 'Teacher not found');
+  }
+
+  logger.info('Teacher updated', { teacherId: id, updatedBy: req.user.id });
+
+  res.json({
+    success: true,
+    message: 'Teacher updated successfully',
+    data: { teacher: result.rows[0] }
+  });
+});
+
+/**
+ * Update a subject (Admin only)
+ * PUT /api/timetable/subjects/:id
+ */
+const updateSubject = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { subject_code, subject_name, hours_per_week, course_type, department, semester } = req.body;
+
+  const sql = `
+    UPDATE subjects
+    SET subject_code = $1, subject_name = $2, hours_per_week = $3, course_type = $4, department = $5, semester = $6, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $7 AND is_active = true
+    RETURNING *
+  `;
+
+  const result = await query(sql, [subject_code, subject_name, hours_per_week, course_type, department, semester, id]);
+  if (result.rowCount === 0) {
+    throw new ApiError(404, 'Subject not found');
+  }
+
+  logger.info('Subject updated', { subjectId: id, updatedBy: req.user.id });
+
+  res.json({
+    success: true,
+    message: 'Subject updated successfully',
+    data: { subject: result.rows[0] }
+  });
+});
+
+/**
+ * Update a room (Admin only)
+ * PUT /api/timetable/rooms/:id
+ */
+const updateRoom = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { room_code, room_name, capacity, room_type, floor_number, building } = req.body;
+
+  const sql = `
+    UPDATE rooms
+    SET room_code = $1, room_name = $2, capacity = $3, room_type = $4, floor_number = $5, building = $6, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $7 AND is_active = true
+    RETURNING *
+  `;
+
+  const result = await query(sql, [room_code, room_name, capacity, room_type, floor_number, building, id]);
+  if (result.rowCount === 0) {
+    throw new ApiError(404, 'Room not found');
+  }
+
+  logger.info('Room updated', { roomId: id, updatedBy: req.user.id });
+
+  res.json({
+    success: true,
+    message: 'Room updated successfully',
+    data: { room: result.rows[0] }
+  });
+});
+
+/**
+ * Delete a teacher (Admin only, soft delete)
+ * DELETE /api/timetable/teachers/:id
+ */
+const deleteTeacher = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const sql = `
+    UPDATE teachers
+    SET is_active = false, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND is_active = true
+    RETURNING id
+  `;
+
+  const result = await query(sql, [id]);
+  if (result.rowCount === 0) {
+    throw new ApiError(404, 'Teacher not found');
+  }
+
+  logger.info('Teacher deleted (soft)', { teacherId: id, deletedBy: req.user.id });
+
+  res.json({
+    success: true,
+    message: 'Teacher deleted successfully'
+  });
+});
+
+/**
+ * Delete a subject (Admin only, soft delete)
+ * DELETE /api/timetable/subjects/:id
+ */
+const deleteSubject = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const sql = `
+    UPDATE subjects
+    SET is_active = false, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND is_active = true
+    RETURNING id
+  `;
+
+  const result = await query(sql, [id]);
+  if (result.rowCount === 0) {
+    throw new ApiError(404, 'Subject not found');
+  }
+
+  logger.info('Subject deleted (soft)', { subjectId: id, deletedBy: req.user.id });
+
+  res.json({
+    success: true,
+    message: 'Subject deleted successfully'
+  });
+});
+
+/**
+ * Delete a room (Admin only, soft delete)
+ * DELETE /api/timetable/rooms/:id
+ */
+const deleteRoom = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const sql = `
+    UPDATE rooms
+    SET is_active = false, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND is_active = true
+    RETURNING id
+  `;
+
+  const result = await query(sql, [id]);
+  if (result.rowCount === 0) {
+    throw new ApiError(404, 'Room not found');
+  }
+
+  logger.info('Room deleted (soft)', { roomId: id, deletedBy: req.user.id });
+
+  res.json({
+    success: true,
+    message: 'Room deleted successfully'
+  });
+});
+
+/**
  * Assign teacher to subject (Admin only)
  * POST /api/timetable/assign/teacher-subject
  */
@@ -392,7 +560,7 @@ const generateTimetable = asyncHandler(async (req, res) => {
 
   // Validate required fields
   if (!groups || !days || !periods_per_day || !academic_year || !semester_type) {
-    throw new ApiError('Missing required fields', 400);
+    throw new ApiError(400, 'Missing required fields');
   }
 
   logger.info('Starting timetable generation', { 
@@ -480,6 +648,12 @@ module.exports = {
   createSubject,
   createRoom,
   createGroup,
+  updateTeacher,
+  updateSubject,
+  updateRoom,
+  deleteTeacher,
+  deleteSubject,
+  deleteRoom,
   assignTeacherToSubject,
   assignSubjectToGroup,
   generateTimetable,

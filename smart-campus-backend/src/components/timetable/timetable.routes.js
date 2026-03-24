@@ -23,6 +23,16 @@ router.post('/subjects', verifyToken, verifyAdmin, timetableController.createSub
 router.post('/rooms', verifyToken, verifyAdmin, timetableController.createRoom);
 router.post('/groups', verifyToken, verifyAdmin, timetableController.createGroup);
 
+// Admin routes - updating resources
+router.put('/teachers/:id', verifyToken, verifyAdmin, timetableController.updateTeacher);
+router.put('/subjects/:id', verifyToken, verifyAdmin, timetableController.updateSubject);
+router.put('/rooms/:id', verifyToken, verifyAdmin, timetableController.updateRoom);
+
+// Admin routes - deleting resources (soft delete)
+router.delete('/teachers/:id', verifyToken, verifyAdmin, timetableController.deleteTeacher);
+router.delete('/subjects/:id', verifyToken, verifyAdmin, timetableController.deleteSubject);
+router.delete('/rooms/:id', verifyToken, verifyAdmin, timetableController.deleteRoom);
+
 // Admin routes - assignments
 router.post('/assign/teacher-subject', verifyToken, verifyAdmin, timetableController.assignTeacherToSubject);
 router.post('/assign/subject-group', verifyToken, verifyAdmin, timetableController.assignSubjectToGroup);

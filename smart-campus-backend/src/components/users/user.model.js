@@ -98,6 +98,42 @@ class UserModel {
   }
 
   /**
+   * Admin update of user fields
+   * @param {number} id - User ID
+   * @param {Object} updates - Admin-editable fields
+   * @returns {Promise<Object>} Updated user
+   */
+  static async updateByAdmin(id, updates) {
+    const allowedFields = ['full_name', 'email', 'role', 'department', 'cgpa', 'semester', 'is_active'];
+    const fields = [];
+    const values = [];
+    let paramCounter = 1;
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (allowedFields.includes(key) && value !== undefined) {
+        fields.push(`${key} = $${paramCounter}`);
+        values.push(value);
+        paramCounter++;
+      }
+    }
+
+    if (fields.length === 0) {
+      throw new Error('No valid fields to update');
+    }
+
+    values.push(id);
+    const sql = `
+      UPDATE users
+      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $${paramCounter}
+      RETURNING id, full_name, email, role, department, cgpa, semester, is_active, updated_at
+    `;
+
+    const result = await query(sql, values);
+    return result.rows[0] || null;
+  }
+
+  /**
    * Change user password
    * @param {number} id - User ID
    * @param {string} oldPassword - Current password

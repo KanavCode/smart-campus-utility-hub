@@ -85,7 +85,7 @@ const login = asyncHandler(async (req, res) => {
   }
 
   // Check if account is active
-  if (!user.is_active) {
+  if (user.is_active === false) {
     throw new ApiError(403, 'Account is deactivated. Please contact support.');
   }
 
@@ -215,6 +215,42 @@ const getUserById = asyncHandler(async (req, res) => {
   });
 });
 
+/* Update user (admin only) --> PUT /api/users/:id -> Protected route - Admin only */
+const updateUserByAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const targetId = parseInt(id, 10);
+
+  if (Number.isNaN(targetId)) {
+    throw new ApiError(400, 'Invalid user id');
+  }
+
+  if (req.body.role === 'student') {
+    const hasCgpa = Object.prototype.hasOwnProperty.call(req.body, 'cgpa');
+    const hasSemester = Object.prototype.hasOwnProperty.call(req.body, 'semester');
+    if (!(hasCgpa && hasSemester)) {
+      throw new ApiError(400, 'CGPA and Semester are required when role is student');
+    }
+  }
+
+  if (req.body.role === 'admin') {
+    req.body.cgpa = null;
+    req.body.semester = null;
+  }
+
+  const updatedUser = await UserModel.updateByAdmin(targetId, req.body);
+  if (!updatedUser) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  logger.info('User updated by admin', { adminId: req.user.id, targetUserId: targetId });
+
+  res.json({
+    success: true,
+    message: 'User updated successfully',
+    data: { user: updatedUser }
+  });
+});
+
 /*Deactivate user (admin only) --> PATCH /api/users/:id/deactivate -> Protected route - Admin only */
 const deactivateUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -264,6 +300,7 @@ module.exports = {
   changePassword,
   getAllUsers,
   getUserById,
+  updateUserByAdmin,
   deactivateUser,
   deleteUser
 };

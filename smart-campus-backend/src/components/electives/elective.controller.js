@@ -141,33 +141,54 @@ const deleteElective = asyncHandler(async (req, res) => {
  * POST /api/electives/choices
  */
 const submitChoices = asyncHandler(async (req, res) => {
-  const { choices } = req.body; // Array of { subject_name, preference_rank }
+  const { choices } = req.body; // Array of { elective_id|subject_name, preference_rank }
   const userId = req.user.id;
 
-  // Fetch electives from DB
-  const electivesResult = await query('SELECT id, subject_name FROM electives');
-  const subjectToId = {};
-  electivesResult.rows.forEach(e => {
-    subjectToId[e.subject_name] = e.id;
-  });
+  const allChoicesUseIds = choices.every((choice) => choice.elective_id != null);
+  let normalizedChoices = [];
 
-  // Validate submitted subjects
-  const invalidSubjects = choices.filter(c => !subjectToId[c.subject_name]);
-  if (invalidSubjects.length > 0) {
-    return res.status(400).json({
-      message: `Invalid subjects: ${invalidSubjects.map(c => c.subject_name).join(', ')}`
+  if (allChoicesUseIds) {
+    normalizedChoices = choices.map((choice) => ({
+      elective_id: parseInt(choice.elective_id, 10),
+      preference_rank: choice.preference_rank,
+      subject_name: choice.subject_name
+    }));
+  } else {
+    // Fetch electives from DB only when subject_name mapping is needed
+    const electivesResult = await query('SELECT id, subject_name FROM electives');
+    const subjectToId = {};
+    const validElectiveIds = new Set();
+    electivesResult.rows.forEach(e => {
+      subjectToId[e.subject_name] = e.id;
+      validElectiveIds.add(e.id);
     });
+
+    normalizedChoices = choices.map((choice) => {
+      const electiveId = choice.elective_id || subjectToId[choice.subject_name];
+      return {
+        elective_id: electiveId,
+        preference_rank: choice.preference_rank,
+        subject_name: choice.subject_name
+      };
+    });
+
+    const invalidChoices = normalizedChoices.filter(c => !validElectiveIds.has(c.elective_id));
+    if (invalidChoices.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid electives in choices submission'
+      });
+    }
   }
 
   // Save choices in transaction
   await transaction(async (client) => {
     await client.query('DELETE FROM student_choices WHERE student_id = $1', [userId]);
 
-    for (const choice of choices) {
-      const electiveId = subjectToId[choice.subject_name];
+    for (const choice of normalizedChoices) {
       await client.query(
         'INSERT INTO student_choices (student_id, elective_id, preference_rank) VALUES ($1, $2, $3)',
-        [userId, electiveId, choice.preference_rank]
+        [userId, choice.elective_id, choice.preference_rank]
       );
     }
   });

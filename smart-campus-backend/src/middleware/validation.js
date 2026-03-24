@@ -49,7 +49,7 @@ const validationSchemas = {
     full_name: Joi.string().min(2).max(100).required(),
     email: Joi.string().email().required(),
     password: Joi.string().min(6).required(),
-    role: Joi.string().valid('student', 'admin').required(),
+    role: Joi.string().valid('student', 'admin').default('student'),
     department: Joi.string().max(100).optional(),
     cgpa: Joi.number().min(0).max(10).precision(2).optional(),
     semester: Joi.number().integer().min(1).max(8).optional()
@@ -68,6 +68,17 @@ const validationSchemas = {
     cgpa: Joi.number().min(0).max(10).precision(2).optional(),
     semester: Joi.number().integer().min(1).max(8).optional()
   }),
+
+  // Admin update user
+  adminUpdateUser: Joi.object({
+    full_name: Joi.string().min(2).max(100).optional(),
+    email: Joi.string().email().optional(),
+    role: Joi.string().valid('student', 'admin').optional(),
+    department: Joi.string().max(100).allow('', null).optional(),
+    cgpa: Joi.number().min(0).max(10).precision(2).allow(null).optional(),
+    semester: Joi.number().integer().min(1).max(8).allow(null).optional(),
+    is_active: Joi.boolean().optional()
+  }).min(1),
 
   // Event creation
   createEvent: Joi.object({
@@ -101,13 +112,14 @@ const validationSchemas = {
 
   // Elective choices submission
   submitChoices: Joi.object({
-  choices: Joi.array().items(
-    Joi.object({
-      subject_name: Joi.string().valid(...allowedSubjects).required(),
-      preference_rank: Joi.number().integer().min(1).max(5).required()
-    })
-  ).min(1).max(5).required()
-}),
+    choices: Joi.array().items(
+      Joi.object({
+        elective_id: Joi.number().integer().positive(),
+        subject_name: Joi.string().valid(...allowedSubjects),
+        preference_rank: Joi.number().integer().min(1).max(5).required()
+      }).or('elective_id', 'subject_name')
+    ).min(1).max(5).required()
+  }),
 
 
   // UUID parameter validation

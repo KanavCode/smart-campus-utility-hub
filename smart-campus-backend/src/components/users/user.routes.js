@@ -65,6 +65,15 @@ router.get(
   userController.getUserById
 );
 
+router.put(
+  '/users/:id',
+  verifyToken,
+  verifyAdmin,
+  validate(validationSchemas.idParam, 'params'),
+  validate(validationSchemas.adminUpdateUser),
+  userController.updateUserByAdmin
+);
+
 router.patch(
   '/users/:id/deactivate',
   verifyToken,

@@ -96,6 +96,10 @@ app.get('/', (req, res) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+  const dbState = typeof isDatabaseConnected === 'function'
+    ? isDatabaseConnected()
+    : false;
+
   res.status(200).json({
     success: true,
     status: 'OK',
@@ -103,7 +107,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     environment: process.env.NODE_ENV || 'development',
-    database: isDatabaseConnected() ? 'Connected' : 'Disconnected'
+    database: dbState ? 'Connected' : 'Disconnected'
   });
 });
 
