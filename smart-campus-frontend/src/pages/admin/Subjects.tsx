@@ -63,12 +63,13 @@ export default function Subjects() {
 
   const handleEdit = (subject: Subject) => {
     setSelectedSubject(subject);
-    toast.error('Edit subject is not available yet in backend API.');
+    setIsModalOpen(true);
   };
 
   const handleDelete = async (subjectId: string) => {
     try {
       await subjectService.delete(subjectId);
+      toast.success('Subject deleted successfully');
       loadSubjects();
     } catch (error: any) {
       toast.error(error?.message || 'Failed to delete subject');

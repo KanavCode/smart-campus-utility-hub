@@ -26,22 +26,22 @@ export const UserForm = ({ onSuccess, onCancel, initialData }: UserFormProps) =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (initialData?.id) {
-        toast.error('Editing users is not available yet in backend API.');
+      if (formData.role === 'student' && (!formData.cgpa || !formData.semester)) {
+        toast.error('CGPA and Semester are required for student accounts.');
         return;
-      } else {
-        if (formData.role === 'student') {
-          if (!formData.cgpa || !formData.semester) {
-            toast.error('CGPA and Semester are required for student accounts.');
-            return;
-          }
-        }
+      }
 
-        await userService.create({
-          ...formData,
-          cgpa: formData.cgpa ? parseFloat(formData.cgpa) : undefined,
-          semester: formData.semester ? parseInt(formData.semester, 10) : undefined,
-        });
+      const payload = {
+        ...formData,
+        cgpa: formData.role === 'student' && formData.cgpa ? parseFloat(formData.cgpa) : null,
+        semester: formData.role === 'student' && formData.semester ? parseInt(formData.semester, 10) : null,
+      };
+
+      if (initialData?.id) {
+        await userService.update(initialData.id, payload);
+        toast.success('User updated successfully!');
+      } else {
+        await userService.create(payload);
         toast.success('User created successfully!');
       }
       onSuccess();
@@ -159,7 +159,7 @@ export const UserForm = ({ onSuccess, onCancel, initialData }: UserFormProps) =>
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            {initialData?.id ? 'Update Unavailable' : 'Create User'}
+            {initialData?.id ? 'Update User' : 'Create User'}
           </motion.button>
         </Button>
         <Button

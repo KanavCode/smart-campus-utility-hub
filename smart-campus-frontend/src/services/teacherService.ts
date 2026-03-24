@@ -1,6 +1,5 @@
 import { timetableService } from './timetableService';
-
-const NOT_SUPPORTED_MESSAGE = 'Teacher update/delete is not available yet in the backend API.';
+import { api } from '@/lib/axios';
 
 export const teacherService = {
   getAll: async () => {
@@ -13,11 +12,12 @@ export const teacherService = {
     return response?.data?.teacher;
   },
 
-  update: async (_id: string, _teacherData: any) => {
-    throw new Error(NOT_SUPPORTED_MESSAGE);
+  update: async (id: string, teacherData: any) => {
+    const { data } = await api.put(`/timetable/teachers/${id}`, teacherData);
+    return data?.data?.teacher;
   },
 
-  delete: async (_id: string) => {
-    throw new Error(NOT_SUPPORTED_MESSAGE);
+  delete: async (id: string) => {
+    await api.delete(`/timetable/teachers/${id}`);
   },
 };

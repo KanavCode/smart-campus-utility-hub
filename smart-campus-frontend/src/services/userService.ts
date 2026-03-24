@@ -1,7 +1,5 @@
 import { api } from '@/lib/axios';
 
-const UPDATE_NOT_SUPPORTED_MESSAGE = 'Updating arbitrary users is not supported by the current backend API.';
-
 const normalizeUser = (user: any) => ({
   ...user,
   name: user.full_name,
@@ -32,8 +30,25 @@ export const userService = {
     return normalizeUser(data?.data?.user);
   },
 
-  update: async (_id: string, _userData: any) => {
-    throw new Error(UPDATE_NOT_SUPPORTED_MESSAGE);
+  update: async (id: string, userData: any) => {
+    const payload: any = {
+      full_name: userData.full_name,
+      email: userData.email,
+      role: userData.role,
+      department: userData.department || null,
+      is_active: userData.is_active,
+    };
+
+    if (userData.role === 'student') {
+      payload.cgpa = userData.cgpa;
+      payload.semester = userData.semester;
+    } else {
+      payload.cgpa = null;
+      payload.semester = null;
+    }
+
+    const { data } = await api.put(`/users/${id}`, payload);
+    return normalizeUser(data?.data?.user);
   },
 
   delete: async (id: string) => {

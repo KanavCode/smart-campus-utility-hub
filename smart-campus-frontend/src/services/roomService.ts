@@ -1,6 +1,5 @@
 import { timetableService } from './timetableService';
-
-const NOT_SUPPORTED_MESSAGE = 'Room update/delete is not available yet in the backend API.';
+import { api } from '@/lib/axios';
 
 export const roomService = {
   getAll: async () => {
@@ -13,11 +12,12 @@ export const roomService = {
     return response?.data?.room;
   },
 
-  update: async (_id: string, _roomData: any) => {
-    throw new Error(NOT_SUPPORTED_MESSAGE);
+  update: async (id: string, roomData: any) => {
+    const { data } = await api.put(`/timetable/rooms/${id}`, roomData);
+    return data?.data?.room;
   },
 
-  delete: async (_id: string) => {
-    throw new Error(NOT_SUPPORTED_MESSAGE);
+  delete: async (id: string) => {
+    await api.delete(`/timetable/rooms/${id}`);
   },
 };

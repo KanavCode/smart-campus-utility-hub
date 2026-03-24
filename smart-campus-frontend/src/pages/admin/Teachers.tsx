@@ -147,7 +147,10 @@ export default function Teachers() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toast.error('Edit teacher is not available yet in backend API.')}
+                        onClick={() => {
+                          setEditingTeacher(teacher);
+                          setIsModalOpen(true);
+                        }}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>

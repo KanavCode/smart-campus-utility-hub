@@ -61,7 +61,7 @@ export default function Users() {
 
   const handleEdit = (user: User) => {
     setSelectedUser(user);
-    toast.error('Edit user is not available yet in backend API.');
+    setIsModalOpen(true);
   };
 
   const handleDelete = async (userId: string) => {

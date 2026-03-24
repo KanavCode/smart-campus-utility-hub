@@ -150,7 +150,10 @@ export default function Rooms() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toast.error('Edit room is not available yet in backend API.')}
+                        onClick={() => {
+                          setEditingRoom(room);
+                          setIsModalOpen(true);
+                        }}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>

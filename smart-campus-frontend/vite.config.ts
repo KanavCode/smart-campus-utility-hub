@@ -37,7 +37,30 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: "es2020",
     minify: "esbuild",
-    // Increase chunk size warning limit
-    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("react") || id.includes("react-dom") || id.includes("react-router")) {
+            return "react-core";
+          }
+          if (id.includes("@tanstack") || id.includes("axios")) {
+            return "data-layer";
+          }
+          if (id.includes("three") || id.includes("@react-three") || id.includes("@react-spring") || id.includes("maath")) {
+            return "3d-stack";
+          }
+          if (id.includes("framer-motion")) {
+            return "motion";
+          }
+          if (id.includes("@radix-ui") || id.includes("lucide-react") || id.includes("class-variance-authority") || id.includes("tailwind-merge")) {
+            return "ui-kit";
+          }
+          return "vendor";
+        },
+      },
+    },
+    // Keep warning strict enough to catch regressions early
+    chunkSizeWarningLimit: 700,
   },
 }));

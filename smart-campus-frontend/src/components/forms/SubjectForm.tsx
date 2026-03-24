@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { timetableService } from '@/services/timetableService';
+import { subjectService } from '@/services/subjectService';
 
 interface SubjectFormProps {
   onSuccess: () => void;
@@ -49,18 +49,25 @@ export const SubjectForm = ({ onSuccess, onCancel, initialData }: SubjectFormPro
         return;
       }
 
-      await timetableService.createSubject({
+      const payload = {
         subject_code: formData.subject_code.trim(),
         subject_name: formData.subject_name.trim(),
         hours_per_week: parseInt(formData.hours_per_week as any),
         course_type: (formData.course_type as any),
         department: formData.department.trim(),
         semester: parseInt(formData.semester as any),
-      });
-      toast.success('Subject created successfully!');
+      };
+
+      if (initialData?.id) {
+        await subjectService.update(initialData.id, payload);
+        toast.success('Subject updated successfully!');
+      } else {
+        await subjectService.create(payload);
+        toast.success('Subject created successfully!');
+      }
       onSuccess();
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to create subject');
+      toast.error(error?.message || 'Failed to save subject');
     } finally {
       setIsLoading(false);
     }
@@ -162,7 +169,7 @@ export const SubjectForm = ({ onSuccess, onCancel, initialData }: SubjectFormPro
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            {isLoading ? 'Creating...' : 'Create Subject'}
+            {isLoading ? 'Saving...' : initialData?.id ? 'Update Subject' : 'Create Subject'}
           </motion.button>
         </Button>
         <Button

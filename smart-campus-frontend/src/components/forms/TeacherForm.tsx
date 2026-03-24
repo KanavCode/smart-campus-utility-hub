@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { timetableService } from '@/services/timetableService';
+import { teacherService } from '@/services/teacherService';
 
 interface TeacherFormProps {
   onSuccess: () => void;
@@ -48,17 +48,24 @@ export const TeacherForm = ({ onSuccess, onCancel, initialData }: TeacherFormPro
         return;
       }
 
-      await timetableService.createTeacher({
+      const payload = {
         teacher_code: formData.teacher_code.trim(),
         full_name: formData.full_name.trim(),
         department: formData.department.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim(),
-      });
-      toast.success('Teacher created successfully!');
+      };
+
+      if (initialData?.id) {
+        await teacherService.update(initialData.id, payload);
+        toast.success('Teacher updated successfully!');
+      } else {
+        await teacherService.create(payload);
+        toast.success('Teacher created successfully!');
+      }
       onSuccess();
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to create teacher');
+      toast.error(error?.message || 'Failed to save teacher');
     } finally {
       setIsLoading(false);
     }
@@ -140,7 +147,7 @@ export const TeacherForm = ({ onSuccess, onCancel, initialData }: TeacherFormPro
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            {isLoading ? 'Creating...' : 'Create Teacher'}
+            {isLoading ? 'Saving...' : initialData?.id ? 'Update Teacher' : 'Create Teacher'}
           </motion.button>
         </Button>
         <Button

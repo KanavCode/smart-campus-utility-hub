@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { timetableService } from '@/services/timetableService';
+import { roomService } from '@/services/roomService';
 
 interface RoomFormProps {
   onSuccess: () => void;
@@ -45,18 +45,25 @@ export const RoomForm = ({ onSuccess, onCancel, initialData }: RoomFormProps) =>
         return;
       }
 
-      await timetableService.createRoom({
+      const payload = {
         room_code: formData.room_code.trim(),
         room_name: formData.room_name.trim(),
         capacity: parseInt(formData.capacity as any),
         room_type: (formData.room_type as any),
         floor_number: formData.floor_number ? parseInt(formData.floor_number as any) : undefined,
         building: formData.building.trim(),
-      });
-      toast.success('Room created successfully!');
+      };
+
+      if (initialData?.id) {
+        await roomService.update(initialData.id, payload);
+        toast.success('Room updated successfully!');
+      } else {
+        await roomService.create(payload);
+        toast.success('Room created successfully!');
+      }
       onSuccess();
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to create room');
+      toast.error(error?.message || 'Failed to save room');
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +162,7 @@ export const RoomForm = ({ onSuccess, onCancel, initialData }: RoomFormProps) =>
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            {isLoading ? 'Creating...' : 'Create Room'}
+            {isLoading ? 'Saving...' : initialData?.id ? 'Update Room' : 'Create Room'}
           </motion.button>
         </Button>
         <Button
