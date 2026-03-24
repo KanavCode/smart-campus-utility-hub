@@ -21,9 +21,15 @@ import {
 import { FormModal } from '@/components/modals/FormModal';
 import { SubjectForm } from '@/components/forms/SubjectForm';
 import { subjectService } from '@/services/subjectService';
+import { toast } from 'sonner';
 
 interface Subject {
   id: string;
+  subject_code: string;
+  subject_name: string;
+  hours_per_week: number;
+  course_type: string;
+  semester: number;
   code: string;
   name: string;
   credits: number;
@@ -41,8 +47,13 @@ export default function Subjects() {
   }, []);
 
   const loadSubjects = async () => {
-    const data = await subjectService.getAll();
-    setSubjects(data);
+    try {
+      const data = await subjectService.getAll();
+      setSubjects(data);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to load subjects');
+      setSubjects([]);
+    }
   };
 
   const handleCreate = () => {
@@ -52,18 +63,31 @@ export default function Subjects() {
 
   const handleEdit = (subject: Subject) => {
     setSelectedSubject(subject);
-    setIsModalOpen(true);
+    toast.error('Edit subject is not available yet in backend API.');
   };
 
   const handleDelete = async (subjectId: string) => {
-    await subjectService.delete(subjectId);
-    loadSubjects();
+    try {
+      await subjectService.delete(subjectId);
+      loadSubjects();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to delete subject');
+    }
   };
 
   const handleFormSuccess = () => {
     setIsModalOpen(false);
     loadSubjects();
   };
+
+  const filteredSubjects = subjects.filter((subject) => {
+    const q = search.toLowerCase();
+    return (
+      subject.code?.toLowerCase().includes(q) ||
+      subject.name?.toLowerCase().includes(q) ||
+      subject.department?.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <DashboardLayout>
@@ -117,14 +141,14 @@ export default function Subjects() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {subjects.length === 0 ? (
+                {filteredSubjects.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                       No subjects found. Create your first subject to get started.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  subjects.map((subject) => (
+                  filteredSubjects.map((subject) => (
                     <TableRow key={subject.id} className="hover:bg-accent/5">
                       <TableCell className="font-medium">{subject.code}</TableCell>
                       <TableCell>{subject.name}</TableCell>

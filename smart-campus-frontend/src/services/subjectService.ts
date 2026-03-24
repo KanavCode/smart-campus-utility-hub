@@ -1,31 +1,29 @@
-import { api } from '@/lib/axios';
+import { timetableService } from './timetableService';
+
+const NOT_SUPPORTED_MESSAGE = 'Subject update/delete is not available yet in the backend API.';
 
 export const subjectService = {
   getAll: async () => {
-    // TODO: Backend integration
-    // const { data } = await api.get('/subjects');
-    // return data;
-    console.log('Fetching all subjects');
-    return [];
+    const response = await timetableService.getSubjects();
+    const subjects = response?.data?.subjects || [];
+    return subjects.map((subject: any) => ({
+      ...subject,
+      code: subject.subject_code,
+      name: subject.subject_name,
+      credits: subject.hours_per_week,
+    }));
   },
 
   create: async (subjectData: any) => {
-    // TODO: Backend integration
-    // const { data } = await api.post('/subjects', subjectData);
-    // return data;
-    console.log('Creating subject:', subjectData);
+    const response = await timetableService.createSubject(subjectData);
+    return response?.data?.subject;
   },
 
-  update: async (id: string, subjectData: any) => {
-    // TODO: Backend integration
-    // const { data } = await api.put(`/subjects/${id}`, subjectData);
-    // return data;
-    console.log('Updating subject:', id, subjectData);
+  update: async (_id: string, _subjectData: any) => {
+    throw new Error(NOT_SUPPORTED_MESSAGE);
   },
 
-  delete: async (id: string) => {
-    // TODO: Backend integration
-    // await api.delete(`/subjects/${id}`);
-    console.log('Deleting subject:', id);
+  delete: async (_id: string) => {
+    throw new Error(NOT_SUPPORTED_MESSAGE);
   },
 };

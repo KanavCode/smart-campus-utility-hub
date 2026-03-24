@@ -21,12 +21,17 @@ import {
 import { FormModal } from '@/components/modals/FormModal';
 import { UserForm } from '@/components/forms/UserForm';
 import { userService } from '@/services/userService';
+import { toast } from 'sonner';
 
 interface User {
   id: string;
+  full_name?: string;
   name: string;
   email: string;
   role: string;
+  department?: string;
+  cgpa?: number;
+  semester?: number;
 }
 
 export default function Users() {
@@ -40,8 +45,13 @@ export default function Users() {
   }, []);
 
   const loadUsers = async () => {
-    const data = await userService.getAll();
-    setUsers(data);
+    try {
+      const data = await userService.getAll();
+      setUsers(data);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to load users');
+      setUsers([]);
+    }
   };
 
   const handleCreate = () => {
@@ -51,18 +61,32 @@ export default function Users() {
 
   const handleEdit = (user: User) => {
     setSelectedUser(user);
-    setIsModalOpen(true);
+    toast.error('Edit user is not available yet in backend API.');
   };
 
   const handleDelete = async (userId: string) => {
-    await userService.delete(userId);
-    loadUsers();
+    try {
+      await userService.delete(userId);
+      toast.success('User deleted successfully');
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to delete user');
+    }
   };
 
   const handleFormSuccess = () => {
     setIsModalOpen(false);
     loadUsers();
   };
+
+  const filteredUsers = users.filter((user) => {
+    const q = search.toLowerCase();
+    return (
+      (user.name || '').toLowerCase().includes(q) ||
+      (user.email || '').toLowerCase().includes(q) ||
+      (user.role || '').toLowerCase().includes(q)
+    );
+  });
 
   return (
     <DashboardLayout>
@@ -115,14 +139,14 @@ export default function Users() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.length === 0 ? (
+                {filteredUsers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                       No users found. Create your first user to get started.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  users.map((user) => (
+                  filteredUsers.map((user) => (
                     <TableRow key={user.id} className="hover:bg-accent/5">
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>

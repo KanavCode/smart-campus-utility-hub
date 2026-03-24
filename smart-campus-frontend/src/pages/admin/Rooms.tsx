@@ -22,8 +22,13 @@ export default function Rooms() {
   }, []);
 
   const loadRooms = async () => {
-    const data = await roomService.getAll();
-    setRooms(data);
+    try {
+      const data = await roomService.getAll();
+      setRooms(data);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to load rooms');
+      setRooms([]);
+    }
   };
 
   const handleSort = (field: string) => {
@@ -37,9 +42,13 @@ export default function Rooms() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this room?')) {
-      await roomService.delete(id);
-      toast.success('Room deleted successfully!');
-      loadRooms();
+      try {
+        await roomService.delete(id);
+        toast.success('Room deleted successfully!');
+        loadRooms();
+      } catch (error: any) {
+        toast.error(error?.message || 'Failed to delete room');
+      }
     }
   };
 
@@ -141,10 +150,7 @@ export default function Rooms() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          setEditingRoom(room);
-                          setIsModalOpen(true);
-                        }}
+                        onClick={() => toast.error('Edit room is not available yet in backend API.')}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>

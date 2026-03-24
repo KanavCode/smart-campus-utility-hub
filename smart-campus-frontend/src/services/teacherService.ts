@@ -1,31 +1,23 @@
-import { api } from '@/lib/axios';
+import { timetableService } from './timetableService';
+
+const NOT_SUPPORTED_MESSAGE = 'Teacher update/delete is not available yet in the backend API.';
 
 export const teacherService = {
   getAll: async () => {
-    // TODO: Backend integration
-    // const { data } = await api.get('/teachers');
-    // return data;
-    console.log('Fetching all teachers');
-    return [];
+    const response = await timetableService.getTeachers();
+    return response?.data?.teachers || [];
   },
 
   create: async (teacherData: any) => {
-    // TODO: Backend integration
-    // const { data } = await api.post('/teachers', teacherData);
-    // return data;
-    console.log('Creating teacher:', teacherData);
+    const response = await timetableService.createTeacher(teacherData);
+    return response?.data?.teacher;
   },
 
-  update: async (id: string, teacherData: any) => {
-    // TODO: Backend integration
-    // const { data } = await api.put(`/teachers/${id}`, teacherData);
-    // return data;
-    console.log('Updating teacher:', id, teacherData);
+  update: async (_id: string, _teacherData: any) => {
+    throw new Error(NOT_SUPPORTED_MESSAGE);
   },
 
-  delete: async (id: string) => {
-    // TODO: Backend integration
-    // await api.delete(`/teachers/${id}`);
-    console.log('Deleting teacher:', id);
+  delete: async (_id: string) => {
+    throw new Error(NOT_SUPPORTED_MESSAGE);
   },
 };

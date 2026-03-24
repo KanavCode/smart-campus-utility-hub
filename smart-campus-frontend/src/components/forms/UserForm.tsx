@@ -18,21 +18,35 @@ export const UserForm = ({ onSuccess, onCancel, initialData }: UserFormProps) =>
     email: initialData?.email || '',
     password: '',
     role: initialData?.role || 'student',
+    department: initialData?.department || '',
+    cgpa: initialData?.cgpa?.toString() || '',
+    semester: initialData?.semester?.toString() || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (initialData?.id) {
-        await userService.update(initialData.id, formData);
-        toast.success('User updated successfully!');
+        toast.error('Editing users is not available yet in backend API.');
+        return;
       } else {
-        await userService.create(formData);
+        if (formData.role === 'student') {
+          if (!formData.cgpa || !formData.semester) {
+            toast.error('CGPA and Semester are required for student accounts.');
+            return;
+          }
+        }
+
+        await userService.create({
+          ...formData,
+          cgpa: formData.cgpa ? parseFloat(formData.cgpa) : undefined,
+          semester: formData.semester ? parseInt(formData.semester, 10) : undefined,
+        });
         toast.success('User created successfully!');
       }
       onSuccess();
-    } catch (error) {
-      toast.error('Failed to save user');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to save user');
     }
   };
 
@@ -92,6 +106,52 @@ export const UserForm = ({ onSuccess, onCancel, initialData }: UserFormProps) =>
         </select>
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="department">Department</Label>
+        <Input
+          id="department"
+          name="department"
+          value={formData.department}
+          onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+          className="glass"
+        />
+      </div>
+
+      {formData.role === 'student' && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="cgpa">CGPA *</Label>
+            <Input
+              id="cgpa"
+              name="cgpa"
+              type="number"
+              step="0.01"
+              min="0"
+              max="10"
+              value={formData.cgpa}
+              onChange={(e) => setFormData({ ...formData, cgpa: e.target.value })}
+              required
+              className="glass"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="semester">Semester *</Label>
+            <Input
+              id="semester"
+              name="semester"
+              type="number"
+              min="1"
+              max="8"
+              value={formData.semester}
+              onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
+              required
+              className="glass"
+            />
+          </div>
+        </>
+      )}
+
       <div className="flex gap-3 pt-4">
         <Button
           type="submit"
@@ -99,7 +159,7 @@ export const UserForm = ({ onSuccess, onCancel, initialData }: UserFormProps) =>
           asChild
         >
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            {initialData?.id ? 'Update User' : 'Create User'}
+            {initialData?.id ? 'Update Unavailable' : 'Create User'}
           </motion.button>
         </Button>
         <Button

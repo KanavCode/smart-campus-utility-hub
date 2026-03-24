@@ -1,31 +1,42 @@
 import { api } from '@/lib/axios';
 
+const UPDATE_NOT_SUPPORTED_MESSAGE = 'Updating arbitrary users is not supported by the current backend API.';
+
+const normalizeUser = (user: any) => ({
+  ...user,
+  name: user.full_name,
+});
+
 export const userService = {
   getAll: async () => {
-    // TODO: Backend integration
-    // const { data } = await api.get('/users');
-    // return data;
-    console.log('Fetching all users');
-    return [];
+    const { data } = await api.get('/users');
+    const users = data?.data?.users || [];
+    return users.map(normalizeUser);
   },
 
   create: async (userData: any) => {
-    // TODO: Backend integration
-    // const { data } = await api.post('/users', userData);
-    // return data;
-    console.log('Creating user:', userData);
+    const payload: any = {
+      full_name: userData.full_name,
+      email: userData.email,
+      password: userData.password,
+      role: userData.role,
+      department: userData.department || undefined,
+    };
+
+    if (userData.role === 'student') {
+      payload.cgpa = userData.cgpa;
+      payload.semester = userData.semester;
+    }
+
+    const { data } = await api.post('/auth/register', payload);
+    return normalizeUser(data?.data?.user);
   },
 
-  update: async (id: string, userData: any) => {
-    // TODO: Backend integration
-    // const { data } = await api.put(`/users/${id}`, userData);
-    // return data;
-    console.log('Updating user:', id, userData);
+  update: async (_id: string, _userData: any) => {
+    throw new Error(UPDATE_NOT_SUPPORTED_MESSAGE);
   },
 
   delete: async (id: string) => {
-    // TODO: Backend integration
-    // await api.delete(`/users/${id}`);
-    console.log('Deleting user:', id);
+    await api.delete(`/users/${id}`);
   },
 };

@@ -22,8 +22,13 @@ export default function Teachers() {
   }, []);
 
   const loadTeachers = async () => {
-    const data = await teacherService.getAll();
-    setTeachers(data);
+    try {
+      const data = await teacherService.getAll();
+      setTeachers(data);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to load teachers');
+      setTeachers([]);
+    }
   };
 
   const handleSort = (field: string) => {
@@ -37,9 +42,13 @@ export default function Teachers() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this teacher?')) {
-      await teacherService.delete(id);
-      toast.success('Teacher deleted successfully!');
-      loadTeachers();
+      try {
+        await teacherService.delete(id);
+        toast.success('Teacher deleted successfully!');
+        loadTeachers();
+      } catch (error: any) {
+        toast.error(error?.message || 'Failed to delete teacher');
+      }
     }
   };
 
@@ -138,10 +147,7 @@ export default function Teachers() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          setEditingTeacher(teacher);
-                          setIsModalOpen(true);
-                        }}
+                        onClick={() => toast.error('Edit teacher is not available yet in backend API.')}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>

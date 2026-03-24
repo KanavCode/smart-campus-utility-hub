@@ -101,10 +101,6 @@ function Particles() {
       Math.cos(phi) * speed * 0.5 // Reduce Z speed slightly if desired
     );
 
-     // Reset color (in case you want it to change on reset)
-     // const i3 = i * 3;
-     // colorAttribRef.current?.setXYZ(i3, p.baseColor.r, p.baseColor.g, p.baseColor.b);
-
     // Reset size and opacity (handled in useFrame fade)
      opacityAttribRef.current?.setX(i, 1.0); // Start fully opaque
      sizeAttribRef.current?.setX(i, p.baseSize); // Start at base size

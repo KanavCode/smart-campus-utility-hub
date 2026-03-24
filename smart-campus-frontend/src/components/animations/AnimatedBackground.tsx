@@ -1,5 +1,6 @@
 import { useRef, useMemo, Suspense } from 'react'; // Added Suspense
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { MotionValue } from 'framer-motion';
 
@@ -31,7 +32,6 @@ function Particles({ scrollYProgress }: { scrollYProgress: MotionValue<number> }
   // 1. Create the orbital paths (the faint lines)
   // useMemo ensures these complex calculations only run when viewport dimensions change
   const paths = useMemo(() => {
-    console.log("Recalculating paths..."); // Debug log
     const curves = [];
     // Loop to create NUM_PATHS curves
     for (let i = 0; i < NUM_PATHS; i++) {
@@ -61,7 +61,6 @@ function Particles({ scrollYProgress }: { scrollYProgress: MotionValue<number> }
   // 2. Create the particle data (position, speed, assigned path)
   // useMemo ensures this runs only when the paths array changes
   const particleData = useMemo(() => {
-    console.log("Recalculating particle data..."); // Debug log
     const data = [];
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       const path = paths[i % NUM_PATHS]; // Assign a path to the particle (cycles through paths)
@@ -78,7 +77,6 @@ function Particles({ scrollYProgress }: { scrollYProgress: MotionValue<number> }
   // 3. Set the initial positions buffer for the particles geometry
   // useMemo ensures this runs only when particleData changes
   const initialPositions = useMemo(() => {
-    console.log("Calculating initial positions..."); // Debug log
     // Create a Float32Array to hold x, y, z for each particle
     const buffer = new Float32Array(PARTICLE_COUNT * 3);
     particleData.forEach((p, i) => {
@@ -136,11 +134,13 @@ function Particles({ scrollYProgress }: { scrollYProgress: MotionValue<number> }
       <group ref={linesGroupRef}>
         {/* Map through the calculated paths and render each as a line */}
         {paths.map((curve, index) => (
-          // The <line> component takes a geometry defining the line's points
-          <line key={index} geometry={new THREE.BufferGeometry().setFromPoints(curve.getPoints(PATH_POINTS))}>
-            {/* Material defines the appearance (color, opacity) */}
-            <lineBasicMaterial color={LINE_COLOR} transparent opacity={LINE_OPACITY} />
-          </line>
+          <Line
+            key={index}
+            points={curve.getPoints(PATH_POINTS)}
+            color={LINE_COLOR}
+            transparent
+            opacity={LINE_OPACITY}
+          />
         ))}
       </group>
 

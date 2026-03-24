@@ -6,13 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import UserManagement from './UserManagement';
 
 export default function Settings() {
   const handleSave = async () => {
     // TODO: Backend integration - api.put('/settings', data)
-    console.log('Saving settings...');
     toast.success('Settings saved successfully!');
   };
 
@@ -74,7 +73,19 @@ export default function Settings() {
           </TabsContent>
 
           <TabsContent value="users">
-            <UserManagement />
+            <Card className="glass">
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground">
+                  User account management is maintained on the dedicated admin users page.
+                </p>
+                <Button asChild className="bg-primary text-primary-foreground font-semibold">
+                  <Link to="/admin/users">Go to Admin Users</Link>
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </motion.div>

@@ -112,14 +112,17 @@ npm install
 # DB_PASSWORD=your_postgres_password_here
 ```
 
-### Step 4: Run Setup Script (Automated)
+### Step 4: Setup Database and Validate Backend
 
-```powershell
-# This will test connection, run migrations, and run tests
-.\setup.ps1
+Use one of the following options:
+
+- **Unix/macOS/Git Bash (automated from project root):**
+
+```bash
+bash scripts/setup.sh
 ```
 
-**OR Manual Setup:**
+- **Windows PowerShell (manual):**
 
 ```powershell
 # Test database connection
