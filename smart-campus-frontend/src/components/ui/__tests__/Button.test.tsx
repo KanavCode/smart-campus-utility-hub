@@ -17,7 +17,8 @@ describe('Button Component', () => {
   it('applies size classes correctly', () => {
     const { container } = render(<Button size="lg">Large Button</Button>);
     const button = container.querySelector('button');
-    expect(button?.className).toContain('lg');
+    expect(button?.className).toContain('h-11');
+    expect(button?.className).toContain('px-8');
   });
 
   it('handles disabled state', () => {

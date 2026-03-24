@@ -33,7 +33,10 @@ npm run dev
 
 - `npm run dev` - Start dev server
 - `npm run build` - Build for production
+- `npm run typecheck` - Run TypeScript type-checking
+- `npm run test` - Run unit tests with Vitest
 - `npm run lint` - Run ESLint
+- `npm run lint:fix` - Auto-fix ESLint issues where possible
 - `npm run preview` - Preview production build
 
 ### Tech Stack

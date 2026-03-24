@@ -403,7 +403,10 @@ npm run test:coverage
 cd smart-campus-frontend
 
 # TypeScript type check
-npx tsc --noEmit
+npm run typecheck
+
+# Unit tests
+npm run test
 
 # Lint
 npm run lint

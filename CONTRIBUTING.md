@@ -173,6 +173,7 @@ git commit -m "changes"
 
 - **Linter:** ESLint with `eslint:recommended` (see `.eslintrc.json`)
 - **Run:** `npm run lint` inside `smart-campus-backend/`
+- **Auto-fix:** `npm run lint:fix` inside `smart-campus-backend/`
 - Use `const`/`let`; avoid `var`
 - Single quotes for strings: `'hello'`
 - Always end statements with semicolons
@@ -195,7 +196,8 @@ const getElectives = async (req, res, next) => {
 
 - **Linter:** ESLint with `typescript-eslint` (see `eslint.config.js`)
 - **Run:** `npm run lint` inside `smart-campus-frontend/`
-- **Type-check:** `npx tsc --noEmit`
+- **Type-check:** `npm run typecheck`
+- **Unit tests:** `npm run test`
 - Use functional components with TypeScript types/interfaces
 - Prefer named exports over default exports for components
 - Co-locate component-specific styles with the component file
@@ -240,7 +242,8 @@ npm run test:coverage      # generate coverage report
 ```bash
 cd smart-campus-frontend
 npm run build              # TypeScript compilation + Vite build
-npx tsc --noEmit           # type-check only (no output files)
+npm run typecheck          # type-check only (no output files)
+npm run test               # run unit tests (Vitest)
 ```
 
 ---

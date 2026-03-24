@@ -220,6 +220,16 @@ npm run test:watch
 npm run test:coverage
 ```
 
+## 🧹 Linting
+
+```bash
+# Check lint issues
+npm run lint
+
+# Auto-fix lint issues where possible
+npm run lint:fix
+```
+
 ## � Core Features
 
 ### 1. 🧠 Timetable Generation (Backtracking Algorithm)
