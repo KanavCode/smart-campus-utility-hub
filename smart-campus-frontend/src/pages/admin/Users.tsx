@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import {
 import { FormModal } from '@/components/modals/FormModal';
 import { UserForm } from '@/components/forms/UserForm';
 import { userService } from '@/services/userService';
-import { toast } from 'sonner';
+import { useAdminCrud } from '@/hooks/useAdminCrud';
 
 interface User {
   id: string;
@@ -35,49 +35,21 @@ interface User {
 }
 
 export default function Users() {
-  const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
-    try {
-      const data = await userService.getAll();
-      setUsers(data);
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to load users');
-      setUsers([]);
-    }
-  };
-
-  const handleCreate = () => {
-    setSelectedUser(null);
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (user: User) => {
-    setSelectedUser(user);
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = async (userId: string) => {
-    try {
-      await userService.delete(userId);
-      toast.success('User deleted successfully');
-      loadUsers();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to delete user');
-    }
-  };
-
-  const handleFormSuccess = () => {
-    setIsModalOpen(false);
-    loadUsers();
-  };
+  const {
+    items: users,
+    isModalOpen,
+    selectedItem: selectedUser,
+    openCreate,
+    openEdit,
+    closeModal,
+    deleteItem,
+    handleFormSuccess,
+  } = useAdminCrud<User>({
+    getAll: userService.getAll,
+    deleteById: userService.delete,
+    entityName: 'user',
+  });
 
   const filteredUsers = users.filter((user) => {
     const q = search.toLowerCase();
@@ -101,7 +73,7 @@ export default function Users() {
             <p className="text-muted-foreground">Manage students and staff accounts</p>
           </div>
           <Button
-            onClick={handleCreate}
+            onClick={openCreate}
             className="bg-primary text-primary-foreground font-semibold glow-primary-hover"
             asChild
           >
@@ -163,11 +135,11 @@ export default function Users() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="glass">
-                            <DropdownMenuItem onClick={() => handleEdit(user)}>
+                            <DropdownMenuItem onClick={() => openEdit(user)}>
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDelete(user.id)}
+                              onClick={() => deleteItem(user.id)}
                               className="text-destructive"
                             >
                               Delete
@@ -185,12 +157,12 @@ export default function Users() {
 
         <FormModal
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={closeModal}
           title={selectedUser ? 'Edit User' : 'Create New User'}
         >
           <UserForm
             onSuccess={handleFormSuccess}
-            onCancel={() => setIsModalOpen(false)}
+            onCancel={closeModal}
             initialData={selectedUser}
           />
         </FormModal>

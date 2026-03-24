@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import {
 import { FormModal } from '@/components/modals/FormModal';
 import { SubjectForm } from '@/components/forms/SubjectForm';
 import { subjectService } from '@/services/subjectService';
-import { toast } from 'sonner';
+import { useAdminCrud } from '@/hooks/useAdminCrud';
 
 interface Subject {
   id: string;
@@ -37,49 +37,21 @@ interface Subject {
 }
 
 export default function Subjects() {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [search, setSearch] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
-
-  useEffect(() => {
-    loadSubjects();
-  }, []);
-
-  const loadSubjects = async () => {
-    try {
-      const data = await subjectService.getAll();
-      setSubjects(data);
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to load subjects');
-      setSubjects([]);
-    }
-  };
-
-  const handleCreate = () => {
-    setSelectedSubject(null);
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (subject: Subject) => {
-    setSelectedSubject(subject);
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = async (subjectId: string) => {
-    try {
-      await subjectService.delete(subjectId);
-      toast.success('Subject deleted successfully');
-      loadSubjects();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to delete subject');
-    }
-  };
-
-  const handleFormSuccess = () => {
-    setIsModalOpen(false);
-    loadSubjects();
-  };
+  const {
+    items: subjects,
+    isModalOpen,
+    selectedItem: selectedSubject,
+    openCreate,
+    openEdit,
+    closeModal,
+    deleteItem,
+    handleFormSuccess,
+  } = useAdminCrud<Subject>({
+    getAll: subjectService.getAll,
+    deleteById: subjectService.delete,
+    entityName: 'subject',
+  });
 
   const filteredSubjects = subjects.filter((subject) => {
     const q = search.toLowerCase();
@@ -103,7 +75,7 @@ export default function Subjects() {
             <p className="text-muted-foreground">Manage academic subjects and courses</p>
           </div>
           <Button
-            onClick={handleCreate}
+            onClick={openCreate}
             className="bg-primary text-primary-foreground font-semibold glow-primary-hover"
             asChild
           >
@@ -163,11 +135,11 @@ export default function Subjects() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="glass">
-                            <DropdownMenuItem onClick={() => handleEdit(subject)}>
+                            <DropdownMenuItem onClick={() => openEdit(subject)}>
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDelete(subject.id)}
+                              onClick={() => deleteItem(subject.id)}
                               className="text-destructive"
                             >
                               Delete
@@ -185,12 +157,12 @@ export default function Subjects() {
 
         <FormModal
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={closeModal}
           title={selectedSubject ? 'Edit Subject' : 'Create New Subject'}
         >
           <SubjectForm
             onSuccess={handleFormSuccess}
-            onCancel={() => setIsModalOpen(false)}
+            onCancel={closeModal}
             initialData={selectedSubject}
           />
         </FormModal>

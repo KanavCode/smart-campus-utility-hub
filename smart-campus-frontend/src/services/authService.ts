@@ -1,4 +1,5 @@
 import { api } from '@/lib/axios';
+import { withServiceError } from './serviceUtils';
 
 export interface LoginRequest {
   email: string;
@@ -150,7 +151,7 @@ export const authService = {
       const { data } = await api.get('/auth/profile');
       return data;
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to fetch profile' };
+      withServiceError(error, 'Failed to fetch profile');
     }
   },
 
@@ -170,7 +171,7 @@ export const authService = {
       
       return data;
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to update profile' };
+      withServiceError(error, 'Failed to update profile');
     }
   },
 
@@ -187,7 +188,7 @@ export const authService = {
       });
       return data;
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to change password' };
+      withServiceError(error, 'Failed to change password');
     }
   },
 
@@ -207,7 +208,7 @@ export const authService = {
       // Still clear local storage even if logout fails
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
-      throw error.response?.data || { message: 'Logout failed' };
+      withServiceError(error, 'Logout failed');
     }
   },
 

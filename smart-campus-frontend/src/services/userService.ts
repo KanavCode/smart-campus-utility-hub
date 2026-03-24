@@ -1,4 +1,5 @@
 import { api } from '@/lib/axios';
+import { getPayload, getPayloadArray } from './serviceUtils';
 
 const normalizeUser = (user: any) => ({
   ...user,
@@ -8,7 +9,7 @@ const normalizeUser = (user: any) => ({
 export const userService = {
   getAll: async () => {
     const { data } = await api.get('/users');
-    const users = data?.data?.users || [];
+    const users = getPayloadArray<any>(data, 'users');
     return users.map(normalizeUser);
   },
 
@@ -27,7 +28,7 @@ export const userService = {
     }
 
     const { data } = await api.post('/auth/register', payload);
-    return normalizeUser(data?.data?.user);
+    return normalizeUser(getPayload<any>(data, 'user'));
   },
 
   update: async (id: string, userData: any) => {
@@ -48,7 +49,7 @@ export const userService = {
     }
 
     const { data } = await api.put(`/users/${id}`, payload);
-    return normalizeUser(data?.data?.user);
+    return normalizeUser(getPayload<any>(data, 'user'));
   },
 
   delete: async (id: string) => {

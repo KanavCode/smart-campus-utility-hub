@@ -1,4 +1,5 @@
 import { api } from '@/lib/axios';
+import { asApiData, getPayload, getPayloadArray, withServiceError } from './serviceUtils';
 
 export interface Elective {
   id: number;
@@ -48,10 +49,10 @@ export const electiveService = {
       if (filters?.department) params.append('department', filters.department);
       if (filters?.semester) params.append('semester', filters.semester.toString());
       
-      const { data } = await api.get(`/electives${params.toString() ? `?${params.toString()}` : ''}`);
-      return data.data.electives;
+      const data = asApiData(await api.get(`/electives${params.toString() ? `?${params.toString()}` : ''}`));
+      return getPayloadArray<Elective>(data, 'electives');
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to fetch electives' };
+      withServiceError(error, 'Failed to fetch electives');
     }
   },
 
@@ -60,10 +61,10 @@ export const electiveService = {
    */
   getById: async (id: number): Promise<Elective> => {
     try {
-      const { data } = await api.get(`/electives/${id}`);
-      return data.data.elective;
+      const data = asApiData(await api.get(`/electives/${id}`));
+      return getPayload<Elective>(data, 'elective') as Elective;
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to fetch elective' };
+      withServiceError(error, 'Failed to fetch elective');
     }
   },
 
@@ -78,10 +79,10 @@ export const electiveService = {
     semester: number;
   }): Promise<Elective> => {
     try {
-      const { data } = await api.post('/electives', electiveData);
-      return data.data.elective;
+      const data = asApiData(await api.post('/electives', electiveData));
+      return getPayload<Elective>(data, 'elective') as Elective;
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to create elective' };
+      withServiceError(error, 'Failed to create elective');
     }
   },
 
@@ -90,10 +91,10 @@ export const electiveService = {
    */
   update: async (id: number, electiveData: Partial<Elective>): Promise<Elective> => {
     try {
-      const { data } = await api.put(`/electives/${id}`, electiveData);
-      return data.data.elective;
+      const data = asApiData(await api.put(`/electives/${id}`, electiveData));
+      return getPayload<Elective>(data, 'elective') as Elective;
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to update elective' };
+      withServiceError(error, 'Failed to update elective');
     }
   },
 
@@ -104,7 +105,7 @@ export const electiveService = {
     try {
       await api.delete(`/electives/${id}`);
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to delete elective' };
+      withServiceError(error, 'Failed to delete elective');
     }
   },
 
@@ -116,7 +117,7 @@ export const electiveService = {
     try {
       await api.post('/electives/choices', { choices });
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to submit elective choices' };
+      withServiceError(error, 'Failed to submit elective choices');
     }
   },
 
@@ -125,10 +126,10 @@ export const electiveService = {
    */
   getMyChoices: async (): Promise<StudentChoice[]> => {
     try {
-      const { data } = await api.get('/electives/my/choices');
-      return data.data.choices;
+      const data = asApiData(await api.get('/electives/my/choices'));
+      return getPayloadArray<StudentChoice>(data, 'choices');
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to fetch your choices' };
+      withServiceError(error, 'Failed to fetch your choices');
     }
   },
 
@@ -137,10 +138,10 @@ export const electiveService = {
    */
   getMyAllocation: async (): Promise<StudentAllocation | null> => {
     try {
-      const { data } = await api.get('/electives/my/allocation');
-      return data.data.allocation;
+      const data = asApiData(await api.get('/electives/my/allocation'));
+      return (getPayload<StudentAllocation | null>(data, 'allocation') ?? null) as StudentAllocation | null;
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to fetch your allocation' };
+      withServiceError(error, 'Failed to fetch your allocation');
     }
   },
 
@@ -149,10 +150,10 @@ export const electiveService = {
    */
   runAllocation: async (): Promise<AllocationResult[]> => {
     try {
-      const { data } = await api.post('/electives/allocate', {});
-      return data.data.allocationResults;
+      const data = asApiData(await api.post('/electives/allocate', {}));
+      return getPayloadArray<AllocationResult>(data, 'allocationResults');
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to run allocation' };
+      withServiceError(error, 'Failed to run allocation');
     }
   },
 };

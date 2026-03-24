@@ -1,4 +1,5 @@
 import { api } from '@/lib/axios';
+import { asApiData, withServiceError } from './serviceUtils';
 
 export interface Event {
   id: number;
@@ -88,10 +89,10 @@ export const eventsService = {
         }
       });
       const query = params.toString() ? `?${params.toString()}` : '';
-      const { data } = await api.get(`/events${query}`);
+      const data = asApiData(await api.get(`/events${query}`));
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to load events' };
+      withServiceError(error, 'Failed to load events');
     }
   },
 
@@ -100,10 +101,10 @@ export const eventsService = {
    */
   getById: async (eventId: string | number): Promise<{ data: { event: Event } }> => {
     try {
-      const { data } = await api.get(`/events/${eventId}`);
+      const data = asApiData(await api.get(`/events/${eventId}`));
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to load event' };
+      withServiceError(error, 'Failed to load event');
     }
   },
 
@@ -118,10 +119,10 @@ export const eventsService = {
         end_time: formatDatetimeForAPI(eventData.end_time),
         tags: Array.isArray(eventData.tags) ? eventData.tags : (eventData.tags ? [eventData.tags] : [])
       };
-      const { data } = await api.post('/events', payload);
+      const data = asApiData(await api.post('/events', payload));
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to create event' };
+      withServiceError(error, 'Failed to create event');
     }
   },
 
@@ -139,10 +140,10 @@ export const eventsService = {
         ...(eventData.end_time && { end_time: formatDatetimeForAPI(eventData.end_time) }),
         ...(eventData.tags && { tags: Array.isArray(eventData.tags) ? eventData.tags : [eventData.tags] })
       };
-      const { data } = await api.put(`/events/${id}`, payload);
+      const data = asApiData(await api.put(`/events/${id}`, payload));
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to update event' };
+      withServiceError(error, 'Failed to update event');
     }
   },
 
@@ -151,10 +152,10 @@ export const eventsService = {
    */
   delete: async (id: string | number): Promise<{ success: boolean }> => {
     try {
-      const { data } = await api.delete(`/events/${id}`);
+      const data = asApiData(await api.delete(`/events/${id}`));
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to delete event' };
+      withServiceError(error, 'Failed to delete event');
     }
   },
 
@@ -163,10 +164,10 @@ export const eventsService = {
    */
   save: async (eventId: string | number): Promise<{ success: boolean }> => {
     try {
-      const { data } = await api.post(`/events/${eventId}/save`);
+      const data = asApiData(await api.post(`/events/${eventId}/save`));
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to save event' };
+      withServiceError(error, 'Failed to save event');
     }
   },
 
@@ -175,10 +176,10 @@ export const eventsService = {
    */
   unsave: async (eventId: string | number): Promise<{ success: boolean }> => {
     try {
-      const { data } = await api.delete(`/events/${eventId}/save`);
+      const data = asApiData(await api.delete(`/events/${eventId}/save`));
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to unsave event' };
+      withServiceError(error, 'Failed to unsave event');
     }
   },
 
@@ -187,10 +188,10 @@ export const eventsService = {
    */
   getMySaved: async (): Promise<{ data: { events: SavedEvent[]; count: number } }> => {
     try {
-      const { data } = await api.get('/events/saved/my-events');
+      const data = asApiData(await api.get('/events/saved/my-events'));
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to load saved events' };
+      withServiceError(error, 'Failed to load saved events');
     }
   },
 };

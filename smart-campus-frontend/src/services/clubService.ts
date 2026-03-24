@@ -1,4 +1,5 @@
 import { api } from '@/lib/axios';
+import { asApiData, getPayload, getPayloadArray, withServiceError } from './serviceUtils';
 
 export interface Club {
   id: number;
@@ -27,10 +28,10 @@ export const clubService = {
       if (filters?.search) params.append('search', filters.search);
       
       const query = params.toString() ? `?${params.toString()}` : '';
-      const { data } = await api.get(`/clubs${query}`);
-      return data.data.clubs;
+      const data = asApiData(await api.get(`/clubs${query}`));
+      return getPayloadArray<Club>(data, 'clubs');
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to fetch clubs' };
+      withServiceError(error, 'Failed to fetch clubs');
     }
   },
 
@@ -41,13 +42,13 @@ export const clubService = {
    */
   getById: async (clubId: number): Promise<ClubWithEvents> => {
     try {
-      const { data } = await api.get(`/clubs/${clubId}`);
+      const data = asApiData(await api.get(`/clubs/${clubId}`));
       return {
-        ...data.data.club,
-        events: data.data.events
+        ...(getPayload<Club>(data, 'club') as Club),
+        events: getPayloadArray<any>(data, 'events')
       };
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to fetch club details' };
+      withServiceError(error, 'Failed to fetch club details');
     }
   },
 
@@ -62,10 +63,10 @@ export const clubService = {
     category: string;
   }): Promise<Club> => {
     try {
-      const { data } = await api.post('/clubs', clubData);
-      return data.data.club;
+      const data = asApiData(await api.post('/clubs', clubData));
+      return getPayload<Club>(data, 'club') as Club;
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to create club' };
+      withServiceError(error, 'Failed to create club');
     }
   },
 
@@ -75,10 +76,10 @@ export const clubService = {
    */
   update: async (id: number, clubData: Partial<Club>): Promise<Club> => {
     try {
-      const { data } = await api.put(`/clubs/${id}`, clubData);
-      return data.data.club;
+      const data = asApiData(await api.put(`/clubs/${id}`, clubData));
+      return getPayload<Club>(data, 'club') as Club;
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to update club' };
+      withServiceError(error, 'Failed to update club');
     }
   },
 
@@ -90,7 +91,7 @@ export const clubService = {
     try {
       await api.delete(`/clubs/${id}`);
     } catch (error: any) {
-      throw error.response?.data || { message: 'Failed to delete club' };
+      withServiceError(error, 'Failed to delete club');
     }
   },
 };

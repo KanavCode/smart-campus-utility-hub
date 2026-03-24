@@ -1,71 +1,43 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { teacherService } from '@/services/teacherService';
 import { FormModal } from '@/components/modals/FormModal';
 import { TeacherForm } from '@/components/forms/TeacherForm';
+import { useAdminCrud } from '@/hooks/useAdminCrud';
+import { useSortedPagination } from '@/hooks/useSortedPagination';
 
 export default function Teachers() {
-  const [teachers, setTeachers] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTeacher, setEditingTeacher] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState('full_name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const itemsPerPage = 10;
-
-  useEffect(() => {
-    loadTeachers();
-  }, []);
-
-  const loadTeachers = async () => {
-    try {
-      const data = await teacherService.getAll();
-      setTeachers(data);
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to load teachers');
-      setTeachers([]);
-    }
-  };
-
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this teacher?')) {
-      try {
-        await teacherService.delete(id);
-        toast.success('Teacher deleted successfully!');
-        loadTeachers();
-      } catch (error: any) {
-        toast.error(error?.message || 'Failed to delete teacher');
-      }
-    }
-  };
-
-  const sortedTeachers = [...teachers].sort((a: any, b: any) => {
-    const aVal = a[sortField];
-    const bVal = b[sortField];
-    return sortDirection === 'asc' 
-      ? aVal > bVal ? 1 : -1
-      : aVal < bVal ? 1 : -1;
+  const {
+    items: teachers,
+    isModalOpen,
+    selectedItem: editingTeacher,
+    openCreate,
+    openEdit,
+    closeModal,
+    deleteItem,
+    handleFormSuccess,
+  } = useAdminCrud<any>({
+    getAll: teacherService.getAll,
+    deleteById: teacherService.delete,
+    entityName: 'teacher',
+    confirmDeleteMessage: 'Are you sure you want to delete this teacher?',
+    onDeleteSuccessMessage: 'Teacher deleted successfully!',
   });
-
-  const paginatedTeachers = sortedTeachers.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const totalPages = Math.ceil(teachers.length / itemsPerPage);
+  const {
+    currentPage,
+    setCurrentPage,
+    sortField,
+    sortDirection,
+    handleSort,
+    paginatedItems: paginatedTeachers,
+    totalPages,
+  } = useSortedPagination<any>({
+    items: teachers,
+    initialSortField: 'full_name',
+    itemsPerPage: 10,
+  });
 
   return (
     <DashboardLayout>
@@ -80,10 +52,7 @@ export default function Teachers() {
             <p className="text-muted-foreground">Manage faculty members</p>
           </div>
           <Button
-            onClick={() => {
-              setEditingTeacher(null);
-              setIsModalOpen(true);
-            }}
+            onClick={openCreate}
             className="bg-primary text-primary-foreground font-semibold glow-primary-hover"
             asChild
           >
@@ -147,17 +116,14 @@ export default function Teachers() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          setEditingTeacher(teacher);
-                          setIsModalOpen(true);
-                        }}
+                        onClick={() => openEdit(teacher)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(teacher.id)}
+                        onClick={() => deleteItem(teacher.id)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -198,16 +164,13 @@ export default function Teachers() {
 
       <FormModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={closeModal}
         title={editingTeacher ? 'Edit Teacher' : 'Create New Teacher'}
       >
         <TeacherForm
           initialData={editingTeacher}
-          onSuccess={() => {
-            setIsModalOpen(false);
-            loadTeachers();
-          }}
-          onCancel={() => setIsModalOpen(false)}
+          onSuccess={handleFormSuccess}
+          onCancel={closeModal}
         />
       </FormModal>
     </DashboardLayout>

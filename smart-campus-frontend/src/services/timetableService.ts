@@ -1,4 +1,5 @@
 import { api } from '@/lib/axios';
+import { withServiceError } from './serviceUtils';
 
 // Interfaces for type safety - Matching database schema
 export interface Teacher {
@@ -68,7 +69,7 @@ export const timetableService = {
       const { data } = await api.get(`/timetable/teachers${query}`);
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to fetch teachers' };
+      withServiceError(error, 'Failed to fetch teachers');
     }
   },
 
@@ -86,7 +87,7 @@ export const timetableService = {
       const { data } = await api.get(`/timetable/subjects${query}`);
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to fetch subjects' };
+      withServiceError(error, 'Failed to fetch subjects');
     }
   },
 
@@ -101,7 +102,7 @@ export const timetableService = {
       const { data } = await api.get(`/timetable/rooms${query}`);
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to fetch rooms' };
+      withServiceError(error, 'Failed to fetch rooms');
     }
   },
 
@@ -119,7 +120,7 @@ export const timetableService = {
       const { data } = await api.get(`/timetable/groups${query}`);
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to fetch groups' };
+      withServiceError(error, 'Failed to fetch groups');
     }
   },
 
@@ -136,7 +137,7 @@ export const timetableService = {
       const { data } = await api.get(`/timetable/group/${groupId}${query}`);
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to fetch group timetable' };
+      withServiceError(error, 'Failed to fetch group timetable');
     }
   },
 
@@ -153,7 +154,7 @@ export const timetableService = {
       const { data } = await api.get(`/timetable/teacher/${teacherId}${query}`);
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to fetch teacher schedule' };
+      withServiceError(error, 'Failed to fetch teacher schedule');
     }
   },
 
@@ -166,7 +167,7 @@ export const timetableService = {
       const { data } = await api.get('/timetable/config');
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to fetch config' };
+      withServiceError(error, 'Failed to fetch config');
     }
   },
 
@@ -186,7 +187,7 @@ export const timetableService = {
       });
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to create teacher' };
+      withServiceError(error, 'Failed to create teacher');
     }
   },
 
@@ -207,7 +208,7 @@ export const timetableService = {
       });
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to create subject' };
+      withServiceError(error, 'Failed to create subject');
     }
   },
 
@@ -228,7 +229,7 @@ export const timetableService = {
       });
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to create room' };
+      withServiceError(error, 'Failed to create room');
     }
   },
 
@@ -249,7 +250,7 @@ export const timetableService = {
       });
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to create group' };
+      withServiceError(error, 'Failed to create group');
     }
   },
 
@@ -267,7 +268,7 @@ export const timetableService = {
       });
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to assign teacher to subject' };
+      withServiceError(error, 'Failed to assign teacher to subject');
     }
   },
 
@@ -284,7 +285,7 @@ export const timetableService = {
       });
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to assign subject to group' };
+      withServiceError(error, 'Failed to assign subject to group');
     }
   },
 
@@ -307,7 +308,7 @@ export const timetableService = {
       const { data } = await api.post('/timetable/generate', generationData);
       return data;
     } catch (error: any) {
-      throw error?.response?.data || { message: 'Failed to generate timetable' };
+      withServiceError(error, 'Failed to generate timetable');
     }
   },
 };

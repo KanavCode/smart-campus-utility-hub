@@ -1,71 +1,43 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { roomService } from '@/services/roomService';
 import { FormModal } from '@/components/modals/FormModal';
 import { RoomForm } from '@/components/forms/RoomForm';
+import { useAdminCrud } from '@/hooks/useAdminCrud';
+import { useSortedPagination } from '@/hooks/useSortedPagination';
 
 export default function Rooms() {
-  const [rooms, setRooms] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRoom, setEditingRoom] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState('room_code');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const itemsPerPage = 10;
-
-  useEffect(() => {
-    loadRooms();
-  }, []);
-
-  const loadRooms = async () => {
-    try {
-      const data = await roomService.getAll();
-      setRooms(data);
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to load rooms');
-      setRooms([]);
-    }
-  };
-
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this room?')) {
-      try {
-        await roomService.delete(id);
-        toast.success('Room deleted successfully!');
-        loadRooms();
-      } catch (error: any) {
-        toast.error(error?.message || 'Failed to delete room');
-      }
-    }
-  };
-
-  const sortedRooms = [...rooms].sort((a: any, b: any) => {
-    const aVal = a[sortField];
-    const bVal = b[sortField];
-    return sortDirection === 'asc' 
-      ? aVal > bVal ? 1 : -1
-      : aVal < bVal ? 1 : -1;
+  const {
+    items: rooms,
+    isModalOpen,
+    selectedItem: editingRoom,
+    openCreate,
+    openEdit,
+    closeModal,
+    deleteItem,
+    handleFormSuccess,
+  } = useAdminCrud<any>({
+    getAll: roomService.getAll,
+    deleteById: roomService.delete,
+    entityName: 'room',
+    confirmDeleteMessage: 'Are you sure you want to delete this room?',
+    onDeleteSuccessMessage: 'Room deleted successfully!',
   });
-
-  const paginatedRooms = sortedRooms.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const totalPages = Math.ceil(rooms.length / itemsPerPage);
+  const {
+    currentPage,
+    setCurrentPage,
+    sortField,
+    sortDirection,
+    handleSort,
+    paginatedItems: paginatedRooms,
+    totalPages,
+  } = useSortedPagination<any>({
+    items: rooms,
+    initialSortField: 'room_code',
+    itemsPerPage: 10,
+  });
 
   return (
     <DashboardLayout>
@@ -80,10 +52,7 @@ export default function Rooms() {
             <p className="text-muted-foreground">Manage campus rooms and facilities</p>
           </div>
           <Button
-            onClick={() => {
-              setEditingRoom(null);
-              setIsModalOpen(true);
-            }}
+            onClick={openCreate}
             className="bg-primary text-primary-foreground font-semibold glow-primary-hover"
             asChild
           >
@@ -150,17 +119,14 @@ export default function Rooms() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          setEditingRoom(room);
-                          setIsModalOpen(true);
-                        }}
+                        onClick={() => openEdit(room)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(room.id)}
+                        onClick={() => deleteItem(room.id)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -201,16 +167,13 @@ export default function Rooms() {
 
       <FormModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={closeModal}
         title={editingRoom ? 'Edit Room' : 'Create New Room'}
       >
         <RoomForm
           initialData={editingRoom}
-          onSuccess={() => {
-            setIsModalOpen(false);
-            loadRooms();
-          }}
-          onCancel={() => setIsModalOpen(false)}
+          onSuccess={handleFormSuccess}
+          onCancel={closeModal}
         />
       </FormModal>
     </DashboardLayout>

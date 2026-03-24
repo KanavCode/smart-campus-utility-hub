@@ -1,5 +1,6 @@
 import { timetableService } from './timetableService';
 import { api } from '@/lib/axios';
+import { getPayload, getPayloadArray } from './serviceUtils';
 
 const normalizeSubject = (subject: any) => ({
   ...subject,
@@ -11,13 +12,13 @@ const normalizeSubject = (subject: any) => ({
 export const subjectService = {
   getAll: async () => {
     const response = await timetableService.getSubjects();
-    const subjects = response?.data?.subjects || [];
+    const subjects = getPayloadArray<any>(response, 'subjects');
     return subjects.map(normalizeSubject);
   },
 
   create: async (subjectData: any) => {
     const response = await timetableService.createSubject(subjectData);
-    return response?.data?.subject;
+    return getPayload<any>(response, 'subject');
   },
 
   update: async (id: string, subjectData: any) => {
@@ -30,7 +31,7 @@ export const subjectService = {
       semester: subjectData.semester,
     };
     const { data } = await api.put(`/timetable/subjects/${id}`, payload);
-    return normalizeSubject(data?.data?.subject);
+    return normalizeSubject(getPayload<any>(data, 'subject'));
   },
 
   delete: async (id: string) => {
