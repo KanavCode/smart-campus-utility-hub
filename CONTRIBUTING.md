@@ -251,7 +251,7 @@ npm run test               # run unit tests (Vitest)
 ## Submitting a Pull Request
 
 1. Ensure all linting and tests pass locally before pushing.
-2. Fill in the [Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md) completely.
+2. Use a clear PR description (summary, testing done, and related issue).
 3. Keep your PR **focused** — one feature or fix per PR.
 4. Reference the related issue with `Closes #<issue-number>` in the PR description.
 5. Request a review from a maintainer. Do not merge your own PR.

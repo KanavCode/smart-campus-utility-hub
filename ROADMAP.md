@@ -25,7 +25,7 @@ The goal of Phase 1 is to harden the existing codebase, reduce tech debt, and ma
 - [x] Create `.env.example` for backend and frontend
 - [x] Add `CONTRIBUTING.md` with Conventional Commits guide
 - [x] Add `ROADMAP.md`
-- [x] Add `PULL_REQUEST_TEMPLATE.md` and issue templates
+- [x] Add issue templates
 - [x] Set up GitHub Actions lint workflow (ESLint + TypeScript check + Jest)
 - [x] Add `docker-compose.yml` for one-command local setup
 - [ ] Add `CODE_OF_CONDUCT.md`

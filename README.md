@@ -162,8 +162,7 @@ smart-campus-utility-hub/
 ├── .github/                          # GitHub configuration
 │   ├── workflows/
 │   │   └── lint.yml                  # CI: lint + type-check + tests
-│   ├── ISSUE_TEMPLATE/               # Issue templates (bug, feature, good-first-issue)
-│   └── PULL_REQUEST_TEMPLATE.md
+│   └── ISSUE_TEMPLATE/               # Issue templates (bug, feature)
 │
 ├── smart-campus-backend/             # Node.js / Express API
 │   ├── src/
