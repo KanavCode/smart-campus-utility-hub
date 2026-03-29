@@ -31,7 +31,12 @@ jobs:
           cache-dependency-path: smart-campus-backend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Run ESLint
         run: npm run lint
@@ -60,7 +65,12 @@ jobs:
           cache-dependency-path: smart-campus-frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Run ESLint
         run: npm run lint
@@ -118,7 +128,12 @@ jobs:
           cache-dependency-path: smart-campus-backend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Run tests
         run: npm run test -- --forceExit
