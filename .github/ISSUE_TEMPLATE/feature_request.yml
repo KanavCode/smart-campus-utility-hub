@@ -8,6 +8,10 @@ body:
       value: |
         Thanks for suggesting a new feature! Please describe it clearly so the maintainers and community can evaluate and prioritise it.
 
+        NSoC reminder:
+        - If this issue is accepted under NSoC, maintainers must add `nsoc-2026` and exactly one level label (`level1` 3 pts / `level2` 5 pts / `level3` 10 pts).
+        - Contributors must be assigned before their PR is accepted.
+
   - type: textarea
     id: problem
     attributes:
@@ -59,3 +63,26 @@ body:
         - Advanced
     validations:
       required: true
+
+  - type: dropdown
+    id: nsoc-tracking
+    attributes:
+      label: NSoC Classification
+      description: Select the intended NSoC level for this issue.
+      options:
+        - Not for NSoC
+        - level1 (3 pts)
+        - level2 (5 pts)
+        - level3 (10 pts)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: maintainer-policy
+    attributes:
+      label: Maintainer Policy Checklist
+      options:
+        - label: If this issue is for NSoC, I will add nsoc-2026 and exactly one level label
+          required: false
+        - label: I will assign the issue before accepting a PR
+          required: false

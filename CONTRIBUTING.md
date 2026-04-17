@@ -14,8 +14,9 @@ This project is part of **Nexus Spring of Code (NSoC) 2026** and we want to make
 5. [Coding Style](#coding-style)
 6. [Running Tests](#running-tests)
 7. [Submitting a Pull Request](#submitting-a-pull-request)
-8. [Issue Labels](#issue-labels)
-9. [Getting Help](#getting-help)
+8. [NSoC 2026 Rules](#nsoc-2026-rules)
+9. [Issue Labels](#issue-labels)
+10. [Getting Help](#getting-help)
 
 ---
 
@@ -253,9 +254,10 @@ npm run test               # run unit tests (Vitest)
 1. Ensure all linting and tests pass locally before pushing.
 2. Use a clear PR description (summary, testing done, and related issue).
 3. Keep your PR **focused** — one feature or fix per PR.
-4. Reference the related issue with `Closes #<issue-number>` in the PR description.
-5. Request a review from a maintainer. Do not merge your own PR.
-6. Be responsive to review comments; address them within **7 days** or the PR may be closed.
+4. Reference the related issue with `Closes #<issue-number>` in the PR description and ensure the issue is assigned to you before opening the PR.
+5. For NSoC contributions, include `#NSoC2026` in the PR description.
+6. Request a review from a maintainer. Do not merge your own PR.
+7. Be responsive to review comments; address them within **7 days** or the PR may be closed.
 
 ### PR Size Guidelines
 
@@ -269,6 +271,46 @@ npm run test               # run unit tests (Vitest)
 
 ---
 
+## NSoC 2026 Rules
+
+### Assignment and PR Validity
+
+1. Always get an issue assigned before starting work for NSoC.
+2. PRs opened without prior issue assignment are invalid for NSoC tracking and will be closed.
+3. The PR author should match one of the assignees on the linked issue.
+4. PRs without a linked issue reference (`Closes #<issue-number>`) are invalid for NSoC tracking.
+
+### Inactivity Handling
+
+- If a contributor is inactive for **7 days** after assignment, maintainers will unassign the issue.
+- PRs with no contributor response for **7 days** will be closed after a maintainer reminder.
+
+### Communication Expectations
+
+- Maintainers should acknowledge contributor queries promptly and provide actionable feedback.
+- Avoid unnecessary review delays; if blocked, clearly communicate what is needed next.
+- Keep review comments specific, respectful, and decision-oriented.
+
+### Quality Gate (Maintainers)
+
+Do not merge low-quality PRs. Before merging, verify:
+
+- The solution works and actually resolves the issue.
+- Relevant tests and lint checks pass.
+- Documentation is updated when behavior or setup changes.
+- The PR description is clear and links the correct issue.
+
+### Fair Usage and Anti-Abuse
+
+- Fake, spam, or very low-effort PRs are not accepted.
+- Project admins/maintainers must not create issues and resolve them themselves for NSoC points in their own repository.
+- Project admins/maintainers must not self-assign issues to claim NSoC points from their own repository.
+- Merging fake/spam/very low-quality contributions can lead to NSoC point deductions and stricter penalties.
+- Extended Project Kernel inactivity (7+ days without valid reason) can lead to NSoC point deductions as per program policy.
+- Repeated abuse can lead to PR rejection, disqualification from NSoC tracking, or stricter repository moderation.
+
+---
+
 ## Issue Labels
 
 See [`docs/LABELS.md`](docs/LABELS.md) for the full list of labels and their meanings.
@@ -279,10 +321,15 @@ Quick guide for contributors:
 |-------|---------|
 | `good first issue` | Great for newcomers |
 | `help wanted` | Maintainers need community help |
+| `level1` | NSoC issue worth 3 points |
+| `level2` | NSoC issue worth 5 points |
+| `level3` | NSoC issue worth 10 points |
 | `bug` | Something is broken |
 | `enhancement` | New feature or improvement |
 | `documentation` | Docs-only change |
 | `nsoc-2026` | Counts towards NSoC contribution |
+
+For NSoC, each issue should include `nsoc-2026` and exactly one of `level1`, `level2`, `level3`.
 
 ---
 

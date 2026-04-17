@@ -205,8 +205,7 @@ smart-campus-utility-hub/
 │   └── package.json
 │
 ├── docs/
-│   ├── ISSUES.md                     # 20 pre-written NSoC GitHub issues
-│   └── LABELS.md                     # GitHub label strategy
+│   └── LABELS.md                     # GitHub label and NSoC points strategy
 │
 ├── scripts/
 │   └── setup.sh                      # One-command local setup script
@@ -469,9 +468,17 @@ See [ROADMAP.md](ROADMAP.md) for the full project roadmap across three phases:
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Whether it's bug fixes, feature additions, or documentation improvements. This project participates in **NSoC 2026**.
+We welcome contributions from the community! Whether it's bug fixes, feature additions, or documentation improvements. This project participates in **Nexus Spring of Code (NSoC) 2026**.
 
 👉 Read the full contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+👉 Label and points policy: [docs/LABELS.md](docs/LABELS.md)
+
+### NSoC Quick Rules
+
+- Include `#NSoC2026` in the PR description for NSoC submissions.
+- Work only on issues assigned to you before opening a PR.
+- Use one NSoC level label per issue: `level1` (3 pts), `level2` (5 pts), `level3` (10 pts).
+- PRs without assignment/linked issue are invalid for NSoC tracking.
 
 ### How to Contribute
 
@@ -491,7 +498,7 @@ We welcome contributions from the community! Whether it's bug fixes, feature add
 
 ### Good First Issues
 
-Looking for a place to start? Check out issues labelled [`good first issue`](https://github.com/KanavCode/smart-campus-utility-hub/labels/good%20first%20issue) or browse the pre-written issues in [`docs/ISSUES.md`](docs/ISSUES.md).
+Looking for a place to start? Check out issues labelled [`good first issue`](https://github.com/KanavCode/smart-campus-utility-hub/labels/good%20first%20issue), [`nsoc-2026`](https://github.com/KanavCode/smart-campus-utility-hub/labels/nsoc-2026), and [`level1`](https://github.com/KanavCode/smart-campus-utility-hub/labels/level1).
 
 ---
 

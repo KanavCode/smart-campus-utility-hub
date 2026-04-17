@@ -8,6 +8,10 @@ body:
       value: |
         Thanks for taking the time to fill out this bug report! Please be as detailed as possible so we can reproduce and fix the issue quickly.
 
+        NSoC reminder for maintainers:
+        - If this issue is tracked for NSoC, add `nsoc-2026` and exactly one level label (`level1` 3 pts / `level2` 5 pts / `level3` 10 pts).
+        - Assign the issue before accepting a contribution PR.
+
   - type: textarea
     id: description
     attributes:
@@ -72,3 +76,26 @@ body:
     attributes:
       label: Browser (for UI bugs)
       placeholder: e.g. Chrome 124
+
+  - type: dropdown
+    id: nsoc-tracking
+    attributes:
+      label: NSoC Classification
+      description: Select the intended NSoC level for this issue.
+      options:
+        - Not for NSoC
+        - level1 (3 pts)
+        - level2 (5 pts)
+        - level3 (10 pts)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: maintainer-policy
+    attributes:
+      label: Maintainer Policy Checklist
+      options:
+        - label: If this issue is for NSoC, I will add nsoc-2026 and exactly one level label
+          required: false
+        - label: I will assign the issue before accepting a PR
+          required: false

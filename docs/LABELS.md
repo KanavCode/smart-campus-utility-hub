@@ -10,7 +10,19 @@ Go to **https://github.com/KanavCode/smart-campus-utility-hub/labels** and click
 
 ---
 
-## 🌱 Contributor Level
+## 🏆 NSoC 2026 Difficulty + Points (Required)
+
+Every NSoC issue must include exactly one of these labels.
+
+| Label | Color | Points | Description |
+|-------|-------|--------|-------------|
+| `level1` | `#0e8a16` | `3 pts` | Beginner-friendly task with clear scope |
+| `level2` | `#fbca04` | `5 pts` | Intermediate task requiring codebase familiarity |
+| `level3` | `#b60205` | `10 pts` | Advanced task requiring deeper design or architecture work |
+
+---
+
+## 🌱 Contributor Level (Helper Labels)
 
 These labels help contributors quickly find work suited to their skill level.
 
@@ -81,7 +93,7 @@ These labels help contributors quickly find work suited to their skill level.
 ## Usage Guidelines
 
 1. **Every issue must have** at least one *Type* label and one *Area* label.
-2. New issues automatically get `needs-triage` — remove it once reviewed.
-3. All NSoC tasks get `nsoc-2026`.
-4. Beginner tasks get both `good first issue` and `help wanted`.
+2. **Every NSoC issue must have** `nsoc-2026` and exactly one of `level1`, `level2`, `level3`.
+3. New issues automatically get `needs-triage` — remove it once reviewed.
+4. Beginner tasks should include both `good first issue` and `help wanted`.
 5. Security-related issues get `security` and should **not** include details that could be exploited — use the private security reporting feature for vulnerabilities.
