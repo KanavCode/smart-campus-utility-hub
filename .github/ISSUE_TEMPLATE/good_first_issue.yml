@@ -1,7 +1,7 @@
 name: 🌱 Good First Issue
 description: A beginner-friendly task to help new contributors get started
 title: "chore: <short description of the task>"
-labels: ["good first issue", "help wanted", "level1", "nsoc-2026", "needs-triage"]
+labels: ["good first issue", "help wanted", "level1", "NSOC'26", "needs-triage"]
 body:
   - type: markdown
     attributes:

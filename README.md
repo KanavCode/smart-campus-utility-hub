@@ -498,7 +498,7 @@ We welcome contributions from the community! Whether it's bug fixes, feature add
 
 ### Good First Issues
 
-Looking for a place to start? Check out issues labelled [`good first issue`](https://github.com/KanavCode/smart-campus-utility-hub/labels/good%20first%20issue), [`nsoc-2026`](https://github.com/KanavCode/smart-campus-utility-hub/labels/nsoc-2026), and [`level1`](https://github.com/KanavCode/smart-campus-utility-hub/labels/level1).
+Looking for a place to start? Check out issues labelled [`good first issue`](https://github.com/KanavCode/smart-campus-utility-hub/labels/good%20first%20issue), [`NSOC'26`](https://github.com/KanavCode/smart-campus-utility-hub/labels/NSOC%2726), and [`level1`](https://github.com/KanavCode/smart-campus-utility-hub/labels/level1).
 
 ---
 

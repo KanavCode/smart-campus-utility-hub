@@ -327,9 +327,9 @@ Quick guide for contributors:
 | `bug` | Something is broken |
 | `enhancement` | New feature or improvement |
 | `documentation` | Docs-only change |
-| `nsoc-2026` | Counts towards NSoC contribution |
+| `NSOC'26` | Counts towards NSoC contribution |
 
-For NSoC, each issue should include `nsoc-2026` and exactly one of `level1`, `level2`, `level3`.
+For NSoC, each issue should include `NSOC'26` and exactly one of `level1`, `level2`, `level3`.
 
 ---
 

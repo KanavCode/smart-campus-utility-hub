@@ -85,7 +85,7 @@ These labels help contributors quickly find work suited to their skill level.
 
 | Label | Color | Description |
 |-------|-------|-------------|
-| `nsoc-2026` | `#ff6b35` | Counts towards Nexus Spring of Code 2026 contribution |
+| `NSOC'26` | `#ff6b35` | Counts towards Nexus Spring of Code 2026 contribution |
 | `hacktoberfest` | `#ff7518` | Valid Hacktoberfest contribution |
 
 ---
@@ -93,7 +93,7 @@ These labels help contributors quickly find work suited to their skill level.
 ## Usage Guidelines
 
 1. **Every issue must have** at least one *Type* label and one *Area* label.
-2. **Every NSoC issue must have** `nsoc-2026` and exactly one of `level1`, `level2`, `level3`.
+2. **Every NSoC issue must have** `NSOC'26` and exactly one of `level1`, `level2`, `level3`.
 3. New issues automatically get `needs-triage` — remove it once reviewed.
 4. Beginner tasks should include both `good first issue` and `help wanted`.
 5. Security-related issues get `security` and should **not** include details that could be exploited — use the private security reporting feature for vulnerabilities.

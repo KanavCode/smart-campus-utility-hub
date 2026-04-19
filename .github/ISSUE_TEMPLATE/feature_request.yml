@@ -1,7 +1,7 @@
 name: ✨ Feature Request
 description: Suggest a new feature or enhancement
 title: "feat: <short description of the feature>"
-labels: ["enhancement", "needs-triage"]
+labels: ["enhancement", "needs-triage", "NSOC'26"]
 body:
   - type: markdown
     attributes:
@@ -9,7 +9,7 @@ body:
         Thanks for suggesting a new feature! Please describe it clearly so the maintainers and community can evaluate and prioritise it.
 
         NSoC reminder:
-        - If this issue is accepted under NSoC, maintainers must add `nsoc-2026` and exactly one level label (`level1` 3 pts / `level2` 5 pts / `level3` 10 pts).
+        - If this issue is accepted under NSoC, maintainers must add `NSOC'26` and exactly one level label (`level1` 3 pts / `level2` 5 pts / `level3` 10 pts).
         - Contributors must be assigned before their PR is accepted.
 
   - type: textarea
@@ -82,7 +82,7 @@ body:
     attributes:
       label: Maintainer Policy Checklist
       options:
-        - label: If this issue is for NSoC, I will add nsoc-2026 and exactly one level label
+        - label: If this issue is for NSoC, I will add NSOC'26 and exactly one level label
           required: false
         - label: I will assign the issue before accepting a PR
           required: false

@@ -132,7 +132,7 @@ Phase 3 prepares the platform for real institutional deployment.
 
 ## How to Get Involved
 
-All Phase 1 issues are tagged `nsoc-2026` and are available on the [Issues](https://github.com/KanavCode/smart-campus-utility-hub/issues) page.  
+All Phase 1 issues are tagged `NSOC'26` and are available on the [Issues](https://github.com/KanavCode/smart-campus-utility-hub/issues) page.  
 Beginner tasks are additionally labelled `good first issue`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
