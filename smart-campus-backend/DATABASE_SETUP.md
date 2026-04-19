@@ -97,7 +97,19 @@ node sql/migrate.js
 
 ---
 
-## Step 5: Update .env File
+## Step 5: Seed Database with Sample Data
+
+Now populate the database with realistic sample data for development and testing:
+
+```powershell
+# Navigate to backend directory (if not already there)
+cd smart-campus-backend
+
+# Run the seed script
+npm run db:seed
+```
+
+## Step 6: Update .env File
 
 Open `.env` and update the database credentials:
 
@@ -114,7 +126,7 @@ DB_PASSWORD=YOUR_ACTUAL_PASSWORD_HERE  # ⚠️ Change this to your postgres pas
 
 ---
 
-## Step 6: Test Database Connection
+## Step 7: Test Database Connection
 
 Run the database connection test:
 
