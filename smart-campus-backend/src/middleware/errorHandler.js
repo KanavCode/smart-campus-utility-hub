@@ -71,16 +71,14 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Send error response
-  const response = {
-    success: false,
-    message: message,
-    error: process.env.NODE_ENV === 'development' ? {
-      stack: err.stack,
-      details: err.details || null
-    } : undefined
-  };
-
-  res.status(statusCode).json(response);
+ res.status(statusCode).json({
+     success: false,
+     message,
+     data: null,
+     ...(process.env.NODE_ENV === 'development' && {
+       error: { stack: err.stack, details: err.details || null }
+     })
+   });
 };
 
 /**

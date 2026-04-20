@@ -60,6 +60,7 @@ const getProfile = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
+    message: 'Profile fetched successfully',
     data: { user }
   });
 });
@@ -94,7 +95,8 @@ const changePassword = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Password changed successfully'
+    message: 'Password changed successfully',
+    data: null
   });
 });
 
@@ -105,6 +107,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
+    message: 'Users fetched successfully',
     data: {
       users: result.users,
       pagination: result.pagination
@@ -119,6 +122,7 @@ const getUserById = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
+    message: 'User fetched successfully',
     data: { user }
   });
 });
@@ -149,7 +153,8 @@ const deactivateUser = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'User deactivated successfully'
+    message: 'User deactivated successfully',
+    data: null
   });
 });
 
@@ -162,7 +167,8 @@ const deleteUser = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'User deleted successfully'
+    message: 'User deleted successfully',
+    data: null
   });
 });
 

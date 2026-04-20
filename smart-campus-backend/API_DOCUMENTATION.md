@@ -80,6 +80,7 @@ Authorization: Bearer <your_jwt_token>
 ```json
 {
   "success": true,
+  "message": "Profile fetched successfully",
   "data": {
     "user": {
       "id": 1,
@@ -636,6 +637,7 @@ All error responses follow this format:
 {
   "success": false,
   "message": "Error description",
+  "data": null,
   "error": {
     "stack": "Error stack trace (development only)",
     "details": "Additional error details"
@@ -721,5 +723,15 @@ curl -X POST \
 
 ---
 
-**Last Updated:** October 8, 2025  
+## 📦 Standard Response Envelope
+
+All endpoints return `{ success, message, data }`.
+
+- Success: `data` contains the payload
+- Delete/action endpoints: `data` is `null`
+- Errors: `data` is `null`
+
+---
+
+**Last Updated:** April 20, 2026 
 **API Version:** 1.0.0

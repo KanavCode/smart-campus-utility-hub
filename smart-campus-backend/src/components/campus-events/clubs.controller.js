@@ -61,6 +61,7 @@ const getAllClubs = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
+    message: 'Clubs fetched successfully',
     data: { clubs: result.rows, count: result.rows.length }
   });
 });
@@ -88,6 +89,7 @@ const getClubById = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
+    message: 'Club fetched successfully',
     data: {
       club: clubResult.rows[0],
       events: eventsResult.rows
@@ -142,7 +144,8 @@ const deleteClub = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Club deleted successfully'
+    message: 'Club deleted successfully',
+    data: null
   });
 });
 

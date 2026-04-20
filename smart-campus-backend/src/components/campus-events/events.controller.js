@@ -88,6 +88,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
+    message: 'Events fetched successfully',
     data: { events: result.rows, count: result.rows.length }
   });
 });
@@ -115,6 +116,7 @@ const getEventById = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
+    message: 'Event fetched successfully',
     data: { event: result.rows[0] }
   });
 });
@@ -168,7 +170,8 @@ const deleteEvent = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Event deleted successfully'
+    message: 'Event deleted successfully',
+    data: null
   });
 });
 
@@ -206,7 +209,8 @@ const saveEvent = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Event saved successfully'
+    message: 'Event saved successfully',
+    data: null
   });
 });
 
@@ -231,7 +235,8 @@ const unsaveEvent = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Event removed from saved list'
+    message: 'Event removed from saved list',
+    data: null
   });
 });
 
@@ -255,6 +260,7 @@ const getSavedEvents = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
+    message: 'Saved events fetched successfully',
     data: { events: result.rows, count: result.rows.length }
   });
 });
