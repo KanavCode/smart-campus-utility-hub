@@ -69,6 +69,17 @@ Authorization: Bearer <your_jwt_token>
 
 **Response:** `200 OK`
 
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": { "id": 1, "full_name": "John Doe", "email": "john@example.com", "role": "student" },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
 ### 3. Get Profile
 
 **GET** `/auth/profile` 🔒
@@ -80,6 +91,7 @@ Authorization: Bearer <your_jwt_token>
 ```json
 {
   "success": true,
+  "message": "Profile fetched successfully",
   "data": {
     "user": {
       "id": 1,
@@ -107,6 +119,16 @@ Authorization: Bearer <your_jwt_token>
 }
 ```
 
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Profile updated successfully",
+  "data": { "user": { "id": 1, "full_name": "John Updated", "cgpa": 9.0 } }
+}
+```
+
 ### 5. Change Password
 
 **POST** `/auth/change-password` 🔒
@@ -117,6 +139,16 @@ Authorization: Bearer <your_jwt_token>
 {
   "oldPassword": "password123",
   "newPassword": "newpassword456"
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Password changed successfully",
+  "data": null
 }
 ```
 
@@ -140,6 +172,7 @@ Authorization: Bearer <your_jwt_token>
 ```json
 {
   "success": true,
+  "message": "Users fetched successfully",
   "data": {
     "users": [...],
     "pagination": {
@@ -155,13 +188,35 @@ Authorization: Bearer <your_jwt_token>
 
 **GET** `/users/:id` 🔒👨‍💼
 
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "User fetched successfully",
+  "data": { "user": { "id": 2, "full_name": "Jane Doe", "email": "jane@example.com", "role": "student" } }
+}
+```
+
 ### 8. Deactivate User
 
 **PATCH** `/users/:id/deactivate` 🔒👨‍💼
 
+**Response:** `200 OK`
+
+```json
+{ "success": true, "message": "User deactivated successfully", "data": null }
+```
+
 ### 9. Delete User
 
 **DELETE** `/users/:id` 🔒👨‍💼
+
+**Response:** `200 OK`
+
+```json
+{ "success": true, "message": "User deleted successfully", "data": null }
+```
 
 ---
 
@@ -185,6 +240,7 @@ Authorization: Bearer <your_jwt_token>
 ```json
 {
   "success": true,
+  "message": "Events fetched successfully",
   "data": {
     "events": [
       {
@@ -210,6 +266,16 @@ Authorization: Bearer <your_jwt_token>
 
 **GET** `/events/:id`
 
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Event fetched successfully",
+  "data": { "event": { "id": 1, "title": "Tech Conference 2024", "location": "Main Auditorium" } }
+}
+```
+
 ### 12. Create Event
 
 **POST** `/events` 🔒👨‍💼
@@ -234,9 +300,29 @@ Authorization: Bearer <your_jwt_token>
 
 **PUT** `/events/:id` 🔒👨‍💼
 
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Event updated successfully",
+  "data": { "event": { "id": 1, "title": "Updated Title" } }
+}
+```
+
 ### 14. Delete Event
 
 **DELETE** `/events/:id` 🔒👨‍💼
+
+**Response:** `200 OK`
+
+```json
+{ 
+  "success": true, 
+  "message": "Event deleted successfully", 
+  "data": null 
+}
+```
 
 ### 15. Save Event
 
@@ -244,9 +330,29 @@ Authorization: Bearer <your_jwt_token>
 
 Allows students to save events to their personal list.
 
+**Response:** `200 OK`
+
+```json
+{ 
+  "success": true, 
+  "message": "Event saved successfully", 
+  "data": null 
+}
+```
+
 ### 16. Unsave Event
 
 **DELETE** `/events/:id/save` 🔒
+
+**Response:** `200 OK`
+
+```json
+{ 
+  "success": true, 
+  "message": "Event removed from saved list", 
+  "data": null 
+}
+```
 
 ### 17. Get My Saved Events
 
@@ -270,6 +376,7 @@ Allows students to save events to their personal list.
 ```json
 {
   "success": true,
+  "message": "Clubs fetched successfully",
   "data": {
     "clubs": [
       {
@@ -291,6 +398,16 @@ Allows students to save events to their personal list.
 
 Returns club details with all its events.
 
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Club fetched successfully",
+  "data": { "club": { "id": 1, "name": "Tech Club" }, "events": [] }
+}
+```
+
 ### 20. Create Club
 
 **POST** `/clubs` 🔒👨‍💼
@@ -310,9 +427,29 @@ Returns club details with all its events.
 
 **PUT** `/clubs/:id` 🔒👨‍💼
 
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Club updated successfully",
+  "data": { "club": { "id": 1, "name": "Updated Club Name" } }
+}
+```
+
 ### 22. Delete Club
 
 **DELETE** `/clubs/:id` 🔒👨‍💼
+
+**Response:** `200 OK`
+
+```json
+{ 
+  "success": true, 
+  "message": "Club deleted successfully", 
+  "data": null 
+}
+```
 
 ---
 
@@ -636,6 +773,7 @@ All error responses follow this format:
 {
   "success": false,
   "message": "Error description",
+  "data": null,
   "error": {
     "stack": "Error stack trace (development only)",
     "details": "Additional error details"
@@ -721,5 +859,15 @@ curl -X POST \
 
 ---
 
-**Last Updated:** October 8, 2025  
+## 📦 Standard Response Envelope
+
+All endpoints return `{ success, message, data }`.
+
+- Success: `data` contains the payload
+- Delete/action endpoints: `data` is `null`
+- Errors: `data` is `null`
+
+---
+
+**Last Updated:** April 20, 2026 
 **API Version:** 1.0.0

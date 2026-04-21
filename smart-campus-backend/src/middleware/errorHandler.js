@@ -1,3 +1,4 @@
+const { sendError } = require('../utils/response');
 const { logger } = require('../config/db');
 
 /**
@@ -71,16 +72,14 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Send error response
-  const response = {
-    success: false,
-    message: message,
-    error: process.env.NODE_ENV === 'development' ? {
-      stack: err.stack,
-      details: err.details || null
-    } : undefined
-  };
-
-  res.status(statusCode).json(response);
+ sendError(
+    res,
+    statusCode,
+    message,
+    process.env.NODE_ENV === 'development'
+      ? { stack: err.stack, details: err.details || null }
+      : null
+  );
 };
 
 /**

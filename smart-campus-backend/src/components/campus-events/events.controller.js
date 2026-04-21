@@ -1,3 +1,4 @@
+const { sendSuccess } = require('../../utils/response');
 const { query } = require('../../config/db');
 const { asyncHandler, ApiError } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
@@ -25,11 +26,7 @@ const createEvent = asyncHandler(async (req, res) => {
 
   logger.info('Event created', { eventId: result.rows[0].id, createdBy: req.user.id });
 
-  res.status(201).json({
-    success: true,
-    message: 'Event created successfully',
-    data: { event: result.rows[0] }
-  });
+  sendSuccess(res, 201, 'Event created successfully', { event: result.rows[0] });
 });
 
 /**
@@ -86,9 +83,9 @@ const getAllEvents = asyncHandler(async (req, res) => {
 
   const result = await query(sql, values);
 
-  res.json({
-    success: true,
-    data: { events: result.rows, count: result.rows.length }
+  sendSuccess(res, 200, 'Events fetched successfully', { 
+    events: result.rows, 
+    count: result.rows.length 
   });
 });
 
@@ -113,10 +110,7 @@ const getEventById = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Event not found');
   }
 
-  res.json({
-    success: true,
-    data: { event: result.rows[0] }
-  });
+  sendSuccess(res, 200, 'Event fetched successfully', { event: result.rows[0] });
 });
 
 /**
@@ -144,11 +138,7 @@ const updateEvent = asyncHandler(async (req, res) => {
 
   logger.info('Event updated', { eventId: id, updatedBy: req.user.id });
 
-  res.json({
-    success: true,
-    message: 'Event updated successfully',
-    data: { event: result.rows[0] }
-  });
+  sendSuccess(res, 200, 'Event updated successfully', { event: result.rows[0] });
 });
 
 /**
@@ -166,10 +156,7 @@ const deleteEvent = asyncHandler(async (req, res) => {
 
   logger.info('Event deleted', { eventId: id, deletedBy: req.user.id });
 
-  res.json({
-    success: true,
-    message: 'Event deleted successfully'
-  });
+  sendSuccess(res, 200, 'Event deleted successfully');
 });
 
 /**
@@ -204,10 +191,7 @@ const saveEvent = asyncHandler(async (req, res) => {
 
   logger.info('Event saved', { eventId: id, userId });
 
-  res.json({
-    success: true,
-    message: 'Event saved successfully'
-  });
+  sendSuccess(res, 200, 'Event saved successfully');
 });
 
 /**
@@ -229,10 +213,7 @@ const unsaveEvent = asyncHandler(async (req, res) => {
 
   logger.info('Event unsaved', { eventId: id, userId });
 
-  res.json({
-    success: true,
-    message: 'Event removed from saved list'
-  });
+  sendSuccess(res, 200, 'Event removed from saved list');
 });
 
 /**
@@ -253,9 +234,9 @@ const getSavedEvents = asyncHandler(async (req, res) => {
 
   const result = await query(sql, [userId]);
 
-  res.json({
-    success: true,
-    data: { events: result.rows, count: result.rows.length }
+  sendSuccess(res, 200, 'Saved events fetched successfully', { 
+    events: result.rows, 
+    count: result.rows.length 
   });
 });
 

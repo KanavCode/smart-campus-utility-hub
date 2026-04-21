@@ -1,3 +1,4 @@
+const { sendSuccess } = require('../../utils/response');
 const { query } = require('../../config/db');
 const { asyncHandler, ApiError } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
@@ -24,11 +25,7 @@ const { logger } = require('../../config/db');
 
   logger.info('Club created', { clubId: result.rows[0].id, createdBy: req.user.id });
 
-  res.status(201).json({
-    success: true,
-    message: 'Club created successfully',
-    data: { club: result.rows[0] }
-  });
+  sendSuccess(res, 201, 'Club created successfully', { club: result.rows[0] });
 });
 
 /**
@@ -59,10 +56,7 @@ const getAllClubs = asyncHandler(async (req, res) => {
 
   const result = await query(sql, values);
 
-  res.json({
-    success: true,
-    data: { clubs: result.rows, count: result.rows.length }
-  });
+  sendSuccess(res, 200, 'Clubs fetched successfully', { clubs: result.rows, count: result.rows.length });
 });
 
 /**
@@ -86,12 +80,9 @@ const getClubById = asyncHandler(async (req, res) => {
     [parseInt(id)]
   );
 
-  res.json({
-    success: true,
-    data: {
-      club: clubResult.rows[0],
-      events: eventsResult.rows
-    }
+  sendSuccess(res, 200, 'Club fetched successfully', { 
+    club: clubResult.rows[0], 
+    events: eventsResult.rows 
   });
 });
 
@@ -118,11 +109,7 @@ const updateClub = asyncHandler(async (req, res) => {
 
   logger.info('Club updated', { clubId: id, updatedBy: req.user.id });
 
-  res.json({
-    success: true,
-    message: 'Club updated successfully',
-    data: { club: result.rows[0] }
-  });
+  sendSuccess(res, 200, 'Club updated successfully', { club: result.rows[0] });
 });
 
 /**
@@ -140,10 +127,7 @@ const deleteClub = asyncHandler(async (req, res) => {
 
   logger.info('Club deleted', { clubId: id, deletedBy: req.user.id });
 
-  res.json({
-    success: true,
-    message: 'Club deleted successfully'
-  });
+  sendSuccess(res, 200, 'Club deleted successfully');
 });
 
 module.exports = {
