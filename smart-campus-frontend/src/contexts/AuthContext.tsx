@@ -1,17 +1,9 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { authService, RegisterRequest } from '@/services/authService';
+import { User, ApiError } from '@/types';
+import { AxiosError } from 'axios';
 
-interface User {
-  id: number;
-  full_name: string;
-  email: string;
-  role: 'student' | 'admin';
-  department?: string;
-  cgpa?: number;
-  semester?: number;
-  is_active: boolean;
-  created_at: string;
-}
+// User interface is now imported from @/types
 
 interface AuthContextType {
   user: User | null;
@@ -19,7 +11,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<User>;
   register: (userData: RegisterRequest) => Promise<User>;
   logout: () => Promise<void>;
-  updateProfile: (updates: any) => Promise<User>;
+  updateProfile: (updates: { full_name?: string; department?: string; cgpa?: number; semester?: number }) => Promise<User>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -67,11 +59,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('user', JSON.stringify(userData));
       
       return userData as User;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login error:', error);
-      // Ensure error has a message property
-      const errorMessage = error?.message || 'Login failed. Please try again.';
-      throw { message: errorMessage };
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || 'Login failed. Please try again.';
+      throw { message: errorMessage } as ApiError;
     } finally {
       setIsLoading(false);
     }
@@ -91,11 +83,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('user', JSON.stringify(newUser));
       
       return newUser as User;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Registration error:', error);
-      // Ensure error has a message property
-      const errorMessage = error?.message || 'Registration failed. Please try again.';
-      throw { message: errorMessage };
+      const apiError = error as ApiError;
+      const errorMessage = apiError.message || 'Registration failed. Please try again.';
+      throw { message: errorMessage } as ApiError;
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateProfile = async (updates: any): Promise<User> => {
+  const updateProfile = async (updates: { full_name?: string; department?: string; cgpa?: number; semester?: number }): Promise<User> => {
     try {
       setIsLoading(true);
       const response = await authService.updateProfile(updates);
@@ -127,7 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return updatedUser as User;
     } catch (error) {
       console.error('Update profile error:', error);
-      throw error;
+      throw error as ApiError;
     } finally {
       setIsLoading(false);
     }

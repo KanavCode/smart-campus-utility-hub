@@ -1,22 +1,6 @@
 import { api } from '@/lib/axios';
 import { asApiData, withServiceError } from './serviceUtils';
-
-export interface Event {
-  id: number;
-  title: string;
-  description: string;
-  location: string;
-  start_time: string;
-  end_time: string;
-  club_id?: number;
-  club_name?: string;
-  club_description?: string;
-  target_department?: string;
-  is_featured: boolean;
-  tags?: string[];
-  created_at: string;
-  updated_at: string;
-}
+import { CampusEvent as Event, ApiResponse } from '@/types';
 
 export interface SavedEvent extends Event {
   saved_at: string;
@@ -91,7 +75,7 @@ export const eventsService = {
       const query = params.toString() ? `?${params.toString()}` : '';
       const data = asApiData(await api.get(`/events${query}`));
       return data;
-    } catch (error: any) {
+    } catch (error) {
       withServiceError(error, 'Failed to load events');
     }
   },
@@ -99,11 +83,11 @@ export const eventsService = {
   /**
    * Get single event by ID with club and events details
    */
-  getById: async (eventId: string | number): Promise<{ data: { event: Event } }> => {
+  getById: async (eventId: string | number): Promise<ApiResponse<{ event: Event }>> => {
     try {
       const data = asApiData(await api.get(`/events/${eventId}`));
       return data;
-    } catch (error: any) {
+    } catch (error) {
       withServiceError(error, 'Failed to load event');
     }
   },
@@ -111,7 +95,7 @@ export const eventsService = {
   /**
    * Create a new event (Admin only)
    */
-  create: async (eventData: CreateEventData): Promise<{ data: { event: Event } }> => {
+  create: async (eventData: CreateEventData): Promise<ApiResponse<{ event: Event }>> => {
     try {
       const payload = {
         ...eventData,
@@ -121,7 +105,7 @@ export const eventsService = {
       };
       const data = asApiData(await api.post('/events', payload));
       return data;
-    } catch (error: any) {
+    } catch (error) {
       withServiceError(error, 'Failed to create event');
     }
   },
@@ -132,7 +116,7 @@ export const eventsService = {
   update: async (
     id: string | number,
     eventData: Partial<CreateEventData>
-  ): Promise<{ data: { event: Event } }> => {
+  ): Promise<ApiResponse<{ event: Event }>> => {
     try {
       const payload = {
         ...eventData,
@@ -142,7 +126,7 @@ export const eventsService = {
       };
       const data = asApiData(await api.put(`/events/${id}`, payload));
       return data;
-    } catch (error: any) {
+    } catch (error) {
       withServiceError(error, 'Failed to update event');
     }
   },
@@ -154,7 +138,7 @@ export const eventsService = {
     try {
       const data = asApiData(await api.delete(`/events/${id}`));
       return data;
-    } catch (error: any) {
+    } catch (error) {
       withServiceError(error, 'Failed to delete event');
     }
   },
@@ -166,7 +150,7 @@ export const eventsService = {
     try {
       const data = asApiData(await api.post(`/events/${eventId}/save`));
       return data;
-    } catch (error: any) {
+    } catch (error) {
       withServiceError(error, 'Failed to save event');
     }
   },
@@ -178,7 +162,7 @@ export const eventsService = {
     try {
       const data = asApiData(await api.delete(`/events/${eventId}/save`));
       return data;
-    } catch (error: any) {
+    } catch (error) {
       withServiceError(error, 'Failed to unsave event');
     }
   },
@@ -190,7 +174,7 @@ export const eventsService = {
     try {
       const data = asApiData(await api.get('/events/saved/my-events'));
       return data;
-    } catch (error: any) {
+    } catch (error) {
       withServiceError(error, 'Failed to load saved events');
     }
   },
