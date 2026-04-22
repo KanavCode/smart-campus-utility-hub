@@ -1,5 +1,7 @@
 import { api } from '@/lib/axios';
 import { withServiceError } from './serviceUtils';
+import { User, ApiResponse, ApiError, UserRole } from '@/types';
+import { AxiosError } from 'axios';
 
 export interface LoginRequest {
   email: string;
@@ -17,23 +19,16 @@ export interface RegisterRequest {
   cgpa?: number;
 }
 
-export interface AuthResponse {
-  success: boolean;
-  message: string;
-  data: {
-    user: {
-      id: number;
-      full_name: string;
-      email: string;
-      role: string;
-      department?: string;
-      cgpa?: number;
-      semester?: number;
-      is_active: boolean;
-      created_at: string;
-    };
-    token: string;
-  };
+export type AuthResponse = ApiResponse<{
+  user: User;
+  token: string;
+}>;
+
+export interface ProfileUpdate {
+  full_name?: string;
+  department?: string;
+  cgpa?: number;
+  semester?: number;
 }
 
 export const authService = {
@@ -43,7 +38,7 @@ export const authService = {
    */
   login: async (email: string, password: string): Promise<AuthResponse> => {
     try {
-      const { data } = await api.post('/auth/login', { email, password });
+      const { data } = await api.post<AuthResponse>('/auth/login', { email, password });
       
       // Store token in localStorage
       if (data.data.token) {
@@ -52,22 +47,23 @@ export const authService = {
       }
       
       return data;
-    } catch (error: any) {
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiError>;
       // Extract error message from various possible error formats
       const errorMessage = 
-        error.response?.data?.message || 
-        error.response?.data?.error || 
-        error.message || 
+        axiosError.response?.data?.message || 
+        axiosError.response?.data?.error || 
+        axiosError.message || 
         'Login failed. Please check your credentials and try again.';
       
       // Check if backend is reachable
-      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+      if (axiosError.code === 'ECONNREFUSED' || axiosError.code === 'ERR_NETWORK') {
         throw { 
           message: 'Cannot connect to server. Please ensure the backend server is running.' 
-        };
+        } as ApiError;
       }
       
-      throw { message: errorMessage };
+      throw { message: errorMessage } as ApiError;
     }
   },
 
@@ -82,22 +78,22 @@ export const authService = {
       // Validate role-specific fields
       if (userData.role === 'student') {
         if (!userData.cgpa || !userData.semester) {
-          throw new Error('CGPA and Semester are required for students');
+          throw { message: 'CGPA and Semester are required for students' } as ApiError;
         }
         if (userData.cgpa < 0 || userData.cgpa > 10) {
-          throw new Error('CGPA must be between 0 and 10');
+          throw { message: 'CGPA must be between 0 and 10' } as ApiError;
         }
         if (userData.semester < 1 || userData.semester > 8) {
-          throw new Error('Semester must be between 1 and 8');
+          throw { message: 'Semester must be between 1 and 8' } as ApiError;
         }
       }
 
-      const payload: any = {
+      const payload: Partial<RegisterRequest> = {
         full_name: userData.full_name,
         email: userData.email,
         password: userData.password,
         role: userData.role,
-        department: userData.department || null
+        department: userData.department || undefined
       };
 
       // Only add cgpa and semester for students
@@ -106,7 +102,7 @@ export const authService = {
         payload.cgpa = userData.cgpa;
       }
 
-      const { data } = await api.post('/auth/register', payload);
+      const { data } = await api.post<AuthResponse>('/auth/register', payload);
       
       // Store token in localStorage
       if (data.data.token) {
@@ -115,30 +111,37 @@ export const authService = {
       }
       
       return data;
-    } catch (error: any) {
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiError>;
+      
+      // If it's the specific validation errors we just threw
+      if (!(axiosError instanceof AxiosError) && (axiosError as ApiError).message) {
+        throw axiosError;
+      }
+
       // Extract error message from various possible error formats
       const errorMessage = 
-        error.response?.data?.message || 
-        error.response?.data?.error || 
-        error.message || 
+        axiosError.response?.data?.message || 
+        axiosError.response?.data?.error || 
+        axiosError.message || 
         'Registration failed. Please check your information and try again.';
       
       // Check if backend is reachable
-      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+      if (axiosError.code === 'ECONNREFUSED' || axiosError.code === 'ERR_NETWORK') {
         throw { 
           message: 'Cannot connect to server. Please ensure the backend server is running.' 
-        };
+        } as ApiError;
       }
       
       // Handle validation errors
-      if (error.response?.status === 400) {
-        const validationErrors = error.response?.data?.errors;
+      if (axiosError.response?.status === 400) {
+        const validationErrors = axiosError.response?.data?.errors;
         if (validationErrors && Array.isArray(validationErrors)) {
-          throw { message: validationErrors.join(', ') };
+          throw { message: validationErrors.join(', ') } as ApiError;
         }
       }
       
-      throw { message: errorMessage };
+      throw { message: errorMessage } as ApiError;
     }
   },
 
@@ -146,11 +149,11 @@ export const authService = {
    * Get current authenticated user profile
    * Protected route - requires valid JWT token
    */
-  getProfile: async (): Promise<{ success: boolean; data: { user: any } }> => {
+  getProfile: async (): Promise<ApiResponse<{ user: User }>> => {
     try {
-      const { data } = await api.get('/auth/profile');
+      const { data } = await api.get<ApiResponse<{ user: User }>>('/auth/profile');
       return data;
-    } catch (error: any) {
+    } catch (error) {
       withServiceError(error, 'Failed to fetch profile');
     }
   },
@@ -160,9 +163,9 @@ export const authService = {
    * Can update: full_name, department, cgpa (for students), semester (for students)
    * Protected route - requires valid JWT token
    */
-  updateProfile: async (updates: any): Promise<{ success: boolean; message: string; data: { user: any } }> => {
+  updateProfile: async (updates: ProfileUpdate): Promise<ApiResponse<{ user: User }>> => {
     try {
-      const { data } = await api.put('/auth/profile', updates);
+      const { data } = await api.put<ApiResponse<{ user: User }>>('/auth/profile', updates);
       
       // Update localStorage user
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -170,7 +173,7 @@ export const authService = {
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
       return data;
-    } catch (error: any) {
+    } catch (error) {
       withServiceError(error, 'Failed to update profile');
     }
   },
@@ -180,14 +183,14 @@ export const authService = {
    * Requires old and new password
    * Protected route - requires valid JWT token
    */
-  changePassword: async (oldPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+  changePassword: async (oldPassword: string, newPassword: string): Promise<ApiResponse<null>> => {
     try {
-      const { data } = await api.post('/auth/change-password', {
+      const { data } = await api.post<ApiResponse<null>>('/auth/change-password', {
         oldPassword,
         newPassword
       });
       return data;
-    } catch (error: any) {
+    } catch (error) {
       withServiceError(error, 'Failed to change password');
     }
   },
@@ -204,7 +207,7 @@ export const authService = {
       // Clear localStorage
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
-    } catch (error: any) {
+    } catch (error) {
       // Still clear local storage even if logout fails
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
@@ -215,9 +218,9 @@ export const authService = {
   /**
    * Get stored user from localStorage
    */
-  getStoredUser: () => {
+  getStoredUser: (): User | null => {
     const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    return user ? JSON.parse(user) as User : null;
   },
 
   /**
