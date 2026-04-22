@@ -34,7 +34,15 @@ const { logger } = require('../../config/db');
  * Public route
  */
 const getAllClubs = asyncHandler(async (req, res) => {
-  const { category, search } = req.query;
+  const { category, search, page = 1, limit = 10, sort = 'name', order = 'ASC' } = req.query;
+
+  const pageNum = parseInt(page);
+  const limitNum = parseInt(limit);
+  const offset = (pageNum - 1) * limitNum;
+  const allowedSortFields = ['name', 'category', 'created_at'];
+  const allowedOrders = ['ASC', 'DESC'];
+  const sortField = allowedSortFields.includes(sort) ? sort : 'name';
+  const sortOrder = allowedOrders.includes(order.toUpperCase()) ? order.toUpperCase() : 'ASC';
   
   let sql = 'SELECT * FROM clubs WHERE 1=1';
   const values = [];
@@ -52,11 +60,20 @@ const getAllClubs = asyncHandler(async (req, res) => {
     paramCounter++;
   }
 
-  sql += ' ORDER BY name ASC';
+  const countSql = `SELECT COUNT(*) FROM clubs WHERE 1=1${sql.split('WHERE 1=1')[1]}`;
+  const countResult = await query(countSql, values);
+  const total = parseInt(countResult.rows[0].count);
+
+  sql += ` ORDER BY ${sortField} ${sortOrder}`;
+  sql += ` LIMIT $${paramCounter} OFFSET $${paramCounter + 1}`;
+  values.push(limitNum, offset);
 
   const result = await query(sql, values);
 
-  sendSuccess(res, 200, 'Clubs fetched successfully', { clubs: result.rows, count: result.rows.length });
+  sendSuccess(res, 200, 'Clubs fetched successfully', {
+    clubs: result.rows,
+    pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) }
+  });
 });
 
 /**
