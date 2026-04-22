@@ -21,10 +21,26 @@ const verifyToken = (req, res, next) => {
     // Verify token
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
       if (err) {
-        logger.warn('Invalid token attempt', { error: err.message });
-        return res.status(403).json({ 
+        if (err.name === 'TokenExpiredError') {
+          logger.warn('Expired token attempt', {
+            errorName: err.name,
+            expiredAt: err.expiredAt,
+          });
+          return res.status(401).json({
+            success: false,
+            code: 'TOKEN_EXPIRED',
+            message: 'Unauthorized: Token has expired. Please sign in again.',
+          });
+        }
+
+        logger.warn('Invalid token attempt', {
+          errorName: err.name,
+          error: err.message,
+        });
+        return res.status(401).json({
           success: false,
-          message: 'Forbidden: Invalid or expired token.' 
+          code: 'TOKEN_INVALID',
+          message: 'Unauthorized: Invalid token.',
         });
       }
 

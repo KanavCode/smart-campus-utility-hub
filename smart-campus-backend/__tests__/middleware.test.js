@@ -67,6 +67,43 @@ describe('Middleware Tests', () => {
       expect(next).not.toHaveBeenCalled();
       done();
     });
+
+    test('should return 401 TOKEN_EXPIRED for an expired token', (done) => {
+      const payload = { id: 1, email: 'test@example.com', role: 'student' };
+      const expired = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: -1 });
+
+      const req = { headers: { authorization: `Bearer ${expired}` } };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockImplementation(() => {
+          expect(res.status).toHaveBeenCalledWith(401);
+          expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({ success: false, code: 'TOKEN_EXPIRED' })
+          );
+          done();
+        })
+      };
+      const next = jest.fn();
+
+      verifyToken(req, res, next);
+    });
+
+    test('should return 401 TOKEN_INVALID for a tampered token', (done) => {
+      const req = { headers: { authorization: 'Bearer not-a-real-jwt' } };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockImplementation(() => {
+          expect(res.status).toHaveBeenCalledWith(401);
+          expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({ success: false, code: 'TOKEN_INVALID' })
+          );
+          done();
+        })
+      };
+      const next = jest.fn();
+
+      verifyToken(req, res, next);
+    });
   });
 
   describe('Validation Middleware', () => {
