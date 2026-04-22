@@ -3,6 +3,7 @@ const router = express.Router();
 const userController = require('./user.controller');
 const { verifyToken, verifyAdmin } = require('../../middleware/auth.middleware');
 const { validate, validationSchemas } = require('../../middleware/validation');
+const { authLimiter } = require('../../middleware/rateLimiter.middleware');
 
 /**
  * User Routes
@@ -12,12 +13,14 @@ const { validate, validationSchemas } = require('../../middleware/validation');
 // Public routes (no authentication required)
 router.post(
   '/register',
+  authLimiter,
   validate(validationSchemas.register),
   userController.register
 );
 
 router.post(
   '/login',
+  authLimiter,
   validate(validationSchemas.login),
   userController.login
 );
