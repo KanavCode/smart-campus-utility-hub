@@ -44,7 +44,7 @@ const getAllClubs = asyncHandler(async (req, res) => {
   const sortField = allowedSortFields.includes(sort) ? sort : 'name';
   const sortOrder = allowedOrders.includes(order.toUpperCase()) ? order.toUpperCase() : 'ASC';
   
-  let sql = 'SELECT * FROM clubs WHERE 1=1';
+  let sql = 'SELECT *, COUNT(*) OVER() as total_count FROM clubs WHERE 1=1';
   const values = [];
   let paramCounter = 1;
 
@@ -60,15 +60,12 @@ const getAllClubs = asyncHandler(async (req, res) => {
     paramCounter++;
   }
 
-  const countSql = `SELECT COUNT(*) FROM clubs WHERE 1=1${sql.split('WHERE 1=1')[1]}`;
-  const countResult = await query(countSql, values);
-  const total = parseInt(countResult.rows[0].count);
-
   sql += ` ORDER BY ${sortField} ${sortOrder}`;
   sql += ` LIMIT $${paramCounter} OFFSET $${paramCounter + 1}`;
   values.push(limitNum, offset);
 
   const result = await query(sql, values);
+  const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
 
   sendSuccess(res, 200, 'Clubs fetched successfully', {
     clubs: result.rows,
