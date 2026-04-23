@@ -35,9 +35,18 @@ const createEvent = asyncHandler(async (req, res) => {
  * Public route
  */
 const getAllEvents = asyncHandler(async (req, res) => {
-  const { search, tag, club_id, department, is_featured, upcoming } = req.query;
+  const { search, tag, club_id, department, is_featured, upcoming, page = 1, limit = 10, sort = 'start_time', order = 'ASC' } = req.query;
+
+  const pageNum = parseInt(page);
+  const limitNum = parseInt(limit);
+  const offset = (pageNum - 1) * limitNum;
+
+  const allowedSortFields = ['start_time', 'title', 'created_at'];
+  const allowedOrders = ['ASC', 'DESC'];
+  const sortField = allowedSortFields.includes(sort) ? sort : 'start_time';
+  const sortOrder = allowedOrders.includes(order.toUpperCase()) ? order.toUpperCase() : 'ASC';
   
-  let sql = 'SELECT e.*, c.name as club_name FROM events e LEFT JOIN clubs c ON e.club_id = c.id WHERE 1=1';
+  let sql = 'SELECT e.*, c.name as club_name, COUNT(*) OVER() as total_count FROM events e LEFT JOIN clubs c ON e.club_id = c.id WHERE 1=1';
   const values = [];
   let paramCounter = 1;
 
@@ -79,13 +88,16 @@ const getAllEvents = asyncHandler(async (req, res) => {
     sql += ' AND e.start_time > NOW()';
   }
 
-  sql += ' ORDER BY e.start_time ASC';
+  sql += ` ORDER BY e.${sortField} ${sortOrder}`;
+  sql += ` LIMIT $${paramCounter} OFFSET $${paramCounter + 1}`;
+  values.push(limitNum, offset);
 
   const result = await query(sql, values);
-
-  sendSuccess(res, 200, 'Events fetched successfully', { 
-    events: result.rows, 
-    count: result.rows.length 
+  const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+  
+  sendSuccess(res, 200, 'Events fetched successfully', {
+    events: result.rows,
+    pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) }
   });
 });
 
