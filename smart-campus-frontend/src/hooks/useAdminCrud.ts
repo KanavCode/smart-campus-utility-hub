@@ -10,6 +10,8 @@ interface UseAdminCrudOptions<T extends { id: string }> {
   onDeleteErrorMessage?: string;
   onDeleteSuccessMessage?: string;
   autoLoad?: boolean;
+  /** When provided, called after delete/form-success instead of the internal loadItems. */
+  onRefresh?: () => void;
 }
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
@@ -23,6 +25,7 @@ export function useAdminCrud<T extends { id: string }>({
   onDeleteErrorMessage,
   onDeleteSuccessMessage,
   autoLoad = true,
+  onRefresh,
 }: UseAdminCrudOptions<T>) {
   const [items, setItems] = useState<T[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -68,7 +71,7 @@ export function useAdminCrud<T extends { id: string }>({
     try {
       await deleteById(id);
       toast.success(onDeleteSuccessMessage || `${entityNameTitle} deleted successfully`);
-      loadItems();
+      onRefresh ? onRefresh() : loadItems();
     } catch (error: any) {
       toast.error(onDeleteErrorMessage || error?.message || `Failed to delete ${entityName}`);
     }
@@ -76,7 +79,7 @@ export function useAdminCrud<T extends { id: string }>({
 
   const handleFormSuccess = () => {
     setIsModalOpen(false);
-    loadItems();
+    onRefresh ? onRefresh() : loadItems();
   };
 
   return {

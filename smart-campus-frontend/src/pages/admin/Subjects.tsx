@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import { FormModal } from '@/components/modals/FormModal';
 import { SubjectForm } from '@/components/forms/SubjectForm';
 import { subjectService } from '@/services/subjectService';
 import { useAdminCrud } from '@/hooks/useAdminCrud';
+import { toast } from 'sonner';
 
 interface Subject {
   id: string;
@@ -36,10 +37,47 @@ interface Subject {
   department: string;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export default function Subjects() {
   const [search, setSearch] = useState('');
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useState('subject_name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const loadSubjects = useCallback(async () => {
+    try {
+      const result = await subjectService.list({
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+        sort: sortField,
+        order: sortDirection,
+      });
+      setSubjects(result.items as Subject[]);
+      setTotal(result.total);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to load subjects');
+      setSubjects([]);
+    }
+  }, [currentPage, sortField, sortDirection]);
+
+  useEffect(() => {
+    loadSubjects();
+  }, [loadSubjects]);
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
   const {
-    items: subjects,
     isModalOpen,
     selectedItem: selectedSubject,
     openCreate,
@@ -51,6 +89,8 @@ export default function Subjects() {
     getAll: subjectService.getAll,
     deleteById: subjectService.delete,
     entityName: 'subject',
+    autoLoad: false,
+    onRefresh: loadSubjects,
   });
 
   const filteredSubjects = subjects.filter((subject) => {
@@ -61,6 +101,8 @@ export default function Subjects() {
       subject.department?.toLowerCase().includes(q)
     );
   });
+
+  const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
   return (
     <DashboardLayout>
@@ -106,10 +148,25 @@ export default function Subjects() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-accent/5">
-                  <TableHead>Code</TableHead>
-                  <TableHead>Name</TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-accent/20"
+                    onClick={() => handleSort('subject_code')}
+                  >
+                    Code {sortField === 'subject_code' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-accent/20"
+                    onClick={() => handleSort('subject_name')}
+                  >
+                    Name {sortField === 'subject_name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </TableHead>
                   <TableHead>Credits</TableHead>
-                  <TableHead>Department</TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-accent/20"
+                    onClick={() => handleSort('department')}
+                  >
+                    Department {sortField === 'department' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -152,6 +209,34 @@ export default function Subjects() {
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-muted-foreground">
+              {total > 0
+                ? `Showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, total)} of ${total}`
+                : 'No subjects found'}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 

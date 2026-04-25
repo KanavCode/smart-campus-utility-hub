@@ -12,71 +12,135 @@ const DAY_ORDER_SQL = `
   END
 `;
 
-const buildActiveEntityQuery = ({ table, orderBy, filters = [] }) => {
-  const values = [];
-  let sql = `SELECT * FROM ${table} WHERE is_active = true`;
+/**
+ * Whitelisted sort columns per table.
+ * Used by the controller to validate the `sort` query parameter.
+ */
+const ALLOWED_SORT = {
+  teachers: ['full_name', 'department', 'teacher_code', 'created_at'],
+  subjects: ['subject_name', 'subject_code', 'department', 'semester', 'created_at'],
+  rooms: ['room_name', 'room_code', 'room_type', 'capacity', 'created_at'],
+  student_groups: ['group_name', 'group_code', 'department', 'semester', 'created_at'],
+};
+
+/**
+ * Builds data and count SQL queries for an active-entity listing.
+ * Returns separate value arrays for the count and data queries.
+ *
+ * @param {object} opts
+ * @param {string}   opts.table          - Table name
+ * @param {string}   opts.defaultOrderBy - Column used when no `sort` is supplied
+ * @param {Array}    opts.filters        - [{ column, value, transform? }]
+ * @param {string}   [opts.sort]         - Pre-validated sort column
+ * @param {string}   [opts.order]        - 'asc' | 'desc'
+ * @param {number}   opts.limit
+ * @param {number}   opts.offset
+ */
+const buildActiveEntityQuery = ({ table, defaultOrderBy, filters = [], sort, order, limit, offset }) => {
+  const filterValues = [];
+  let conditions = `WHERE is_active = true`;
 
   filters.forEach((filter) => {
     const value = filter.transform ? filter.transform(filter.value) : filter.value;
     if (value != null && value !== '') {
-      values.push(value);
-      sql += ` AND ${filter.column} = $${values.length}`;
+      filterValues.push(value);
+      conditions += ` AND ${filter.column} = $${filterValues.length}`;
     }
   });
 
-  sql += ` ORDER BY ${orderBy} ASC`;
+  const sortField = sort || defaultOrderBy;
+  const sortOrder = order === 'desc' ? 'DESC' : 'ASC';
 
-  return { sql, values };
+  const countSql = `SELECT COUNT(*) FROM ${table} ${conditions}`;
+
+  const limitIdx = filterValues.length + 1;
+  const offsetIdx = filterValues.length + 2;
+  const dataSql = `SELECT * FROM ${table} ${conditions} ORDER BY ${sortField} ${sortOrder} LIMIT $${limitIdx} OFFSET $${offsetIdx}`;
+  const dataValues = [...filterValues, limit, offset];
+
+  return { dataSql, countSql, filterValues, dataValues };
 };
 
-const listTeachers = async ({ department }) => {
-  const { sql, values } = buildActiveEntityQuery({
+const listTeachers = async ({ department, sort, order, limit, offset }) => {
+  const { dataSql, countSql, filterValues, dataValues } = buildActiveEntityQuery({
     table: 'teachers',
-    orderBy: 'full_name',
-    filters: [{ column: 'department', value: department }]
+    defaultOrderBy: 'full_name',
+    filters: [{ column: 'department', value: department }],
+    sort,
+    order,
+    limit,
+    offset,
   });
 
-  const result = await query(sql, values);
-  return result.rows;
+  const [dataResult, countResult] = await Promise.all([
+    query(dataSql, dataValues),
+    query(countSql, filterValues),
+  ]);
+
+  return { rows: dataResult.rows, total: parseInt(countResult.rows[0].count, 10) };
 };
 
-const listSubjects = async ({ department, semester }) => {
-  const { sql, values } = buildActiveEntityQuery({
+const listSubjects = async ({ department, semester, sort, order, limit, offset }) => {
+  const { dataSql, countSql, filterValues, dataValues } = buildActiveEntityQuery({
     table: 'subjects',
-    orderBy: 'subject_name',
+    defaultOrderBy: 'subject_name',
     filters: [
       { column: 'department', value: department },
-      { column: 'semester', value: semester, transform: parseInteger }
-    ]
+      { column: 'semester', value: semester, transform: parseInteger },
+    ],
+    sort,
+    order,
+    limit,
+    offset,
   });
 
-  const result = await query(sql, values);
-  return result.rows;
+  const [dataResult, countResult] = await Promise.all([
+    query(dataSql, dataValues),
+    query(countSql, filterValues),
+  ]);
+
+  return { rows: dataResult.rows, total: parseInt(countResult.rows[0].count, 10) };
 };
 
-const listRooms = async ({ room_type }) => {
-  const { sql, values } = buildActiveEntityQuery({
+const listRooms = async ({ room_type, sort, order, limit, offset }) => {
+  const { dataSql, countSql, filterValues, dataValues } = buildActiveEntityQuery({
     table: 'rooms',
-    orderBy: 'room_name',
-    filters: [{ column: 'room_type', value: room_type }]
+    defaultOrderBy: 'room_name',
+    filters: [{ column: 'room_type', value: room_type }],
+    sort,
+    order,
+    limit,
+    offset,
   });
 
-  const result = await query(sql, values);
-  return result.rows;
+  const [dataResult, countResult] = await Promise.all([
+    query(dataSql, dataValues),
+    query(countSql, filterValues),
+  ]);
+
+  return { rows: dataResult.rows, total: parseInt(countResult.rows[0].count, 10) };
 };
 
-const listGroups = async ({ department, semester }) => {
-  const { sql, values } = buildActiveEntityQuery({
+const listGroups = async ({ department, semester, sort, order, limit, offset }) => {
+  const { dataSql, countSql, filterValues, dataValues } = buildActiveEntityQuery({
     table: 'student_groups',
-    orderBy: 'group_name',
+    defaultOrderBy: 'group_name',
     filters: [
       { column: 'department', value: department },
-      { column: 'semester', value: semester, transform: parseInteger }
-    ]
+      { column: 'semester', value: semester, transform: parseInteger },
+    ],
+    sort,
+    order,
+    limit,
+    offset,
   });
 
-  const result = await query(sql, values);
-  return result.rows;
+  const [dataResult, countResult] = await Promise.all([
+    query(dataSql, dataValues),
+    query(countSql, filterValues),
+  ]);
+
+  return { rows: dataResult.rows, total: parseInt(countResult.rows[0].count, 10) };
 };
 
 const getGroupTimetable = async ({ groupId, academic_year, semester_type }) => {
@@ -151,6 +215,7 @@ const getConfigData = async () => {
 };
 
 module.exports = {
+  ALLOWED_SORT,
   listTeachers,
   listSubjects,
   listRooms,

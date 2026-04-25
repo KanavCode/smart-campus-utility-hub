@@ -1,4 +1,4 @@
-import { timetableService } from './timetableService';
+import { timetableService, PaginationSortParams } from './timetableService';
 import { api } from '@/lib/axios';
 import { getPayload, getPayloadArray } from './serviceUtils';
 
@@ -14,6 +14,17 @@ export const subjectService = {
     const response = await timetableService.getSubjects();
     const subjects = getPayloadArray<any>(response, 'subjects');
     return subjects.map(normalizeSubject);
+  },
+
+  list: async (params: PaginationSortParams) => {
+    const response = await timetableService.getSubjects({}, params);
+    const subjects = getPayloadArray<any>(response, 'subjects');
+    return {
+      items: subjects.map(normalizeSubject),
+      total: (response?.data?.total as number) ?? 0,
+      page: (response?.data?.page as number) ?? (params.page ?? 1),
+      limit: (response?.data?.limit as number) ?? (params.limit ?? 20),
+    };
   },
 
   create: async (subjectData: any) => {
