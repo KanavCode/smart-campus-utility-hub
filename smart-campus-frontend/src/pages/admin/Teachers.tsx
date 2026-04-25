@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -6,11 +7,48 @@ import { teacherService } from '@/services/teacherService';
 import { FormModal } from '@/components/modals/FormModal';
 import { TeacherForm } from '@/components/forms/TeacherForm';
 import { useAdminCrud } from '@/hooks/useAdminCrud';
-import { useSortedPagination } from '@/hooks/useSortedPagination';
+import { toast } from 'sonner';
+
+const ITEMS_PER_PAGE = 10;
 
 export default function Teachers() {
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useState('full_name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const loadTeachers = useCallback(async () => {
+    try {
+      const result = await teacherService.list({
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+        sort: sortField,
+        order: sortDirection,
+      });
+      setTeachers(result.items);
+      setTotal(result.total);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to load teachers');
+      setTeachers([]);
+    }
+  }, [currentPage, sortField, sortDirection]);
+
+  useEffect(() => {
+    loadTeachers();
+  }, [loadTeachers]);
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
   const {
-    items: teachers,
     isModalOpen,
     selectedItem: editingTeacher,
     openCreate,
@@ -24,20 +62,11 @@ export default function Teachers() {
     entityName: 'teacher',
     confirmDeleteMessage: 'Are you sure you want to delete this teacher?',
     onDeleteSuccessMessage: 'Teacher deleted successfully!',
+    autoLoad: false,
+    onRefresh: loadTeachers,
   });
-  const {
-    currentPage,
-    setCurrentPage,
-    sortField,
-    sortDirection,
-    handleSort,
-    paginatedItems: paginatedTeachers,
-    totalPages,
-  } = useSortedPagination<any>({
-    items: teachers,
-    initialSortField: 'full_name',
-    itemsPerPage: 10,
-  });
+
+  const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
   return (
     <DashboardLayout>
@@ -98,7 +127,7 @@ export default function Teachers() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {paginatedTeachers.map((teacher: any) => (
+                {teachers.map((teacher: any) => (
                   <motion.tr
                     key={teacher.id}
                     initial={{ opacity: 0 }}
@@ -134,16 +163,18 @@ export default function Teachers() {
             </table>
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-border/50">
-              <div className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </div>
+          <div className="flex items-center justify-between px-6 py-4 border-t border-border/50">
+            <div className="text-sm text-muted-foreground">
+              {total > 0
+                ? `Showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, total)} of ${total}`
+                : 'No teachers found'}
+            </div>
+            {totalPages > 1 && (
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                 >
                   Previous
@@ -151,14 +182,14 @@ export default function Teachers() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                 >
                   Next
                 </Button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </motion.div>
 
