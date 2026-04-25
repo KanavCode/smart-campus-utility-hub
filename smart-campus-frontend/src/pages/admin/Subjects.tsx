@@ -160,12 +160,7 @@ export default function Subjects() {
                   >
                     Name {sortField === 'subject_name' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:bg-accent/20"
-                    onClick={() => handleSort('semester')}
-                  >
-                    Credits {sortField === 'semester' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </TableHead>
+                  <TableHead>Credits</TableHead>
                   <TableHead
                     className="cursor-pointer hover:bg-accent/20"
                     onClick={() => handleSort('department')}
