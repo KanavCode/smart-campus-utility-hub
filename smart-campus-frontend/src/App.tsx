@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import Unauthorized from "./pages/Unauthorized";
 
 const StudentDashboard = lazy(() => import("./pages/student/Dashboard"));
 const Timetable = lazy(() => import("./pages/student/Timetable"));
@@ -75,6 +76,7 @@ const App = () => (
                 {/* Public Routes */}
                 <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/unauthorized" element={<Unauthorized />} />
 
                 {/* Student Routes */}
                 <Route
