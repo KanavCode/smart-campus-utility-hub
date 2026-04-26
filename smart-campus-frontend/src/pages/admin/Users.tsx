@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { FormModal } from '@/components/modals/FormModal';
 import { UserForm } from '@/components/forms/UserForm';
+import { TableDataStateRenderer, SkeletonTableRow } from '@/components/ui/DataStateDisplay';
 import { userService } from '@/services/userService';
 import { useAdminCrud } from '@/hooks/useAdminCrud';
 
@@ -40,11 +41,14 @@ export default function Users() {
     items: users,
     isModalOpen,
     selectedItem: selectedUser,
+    isLoading,
+    error,
     openCreate,
     openEdit,
     closeModal,
     deleteItem,
     handleFormSuccess,
+    retryLoad,
   } = useAdminCrud<User>({
     getAll: userService.getAll,
     deleteById: userService.delete,
@@ -111,13 +115,45 @@ export default function Users() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.length === 0 ? (
+                {/* Loading state */}
+                {isLoading && (
+                  <>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <SkeletonTableRow key={i} columns={4} />
+                    ))}
+                  </>
+                )}
+
+                {/* Error state */}
+                {error && !isLoading && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                      No users found. Create your first user to get started.
+                    <TableCell colSpan={4} className="text-center">
+                      <div className="py-8 text-center">
+                        <p className="text-destructive font-medium mb-3">{error}</p>
+                        <Button onClick={retryLoad} variant="outline" size="sm">
+                          Try Again
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
+                )}
+
+                {/* Empty state - only show when not loading, no error, and no items */}
+                {!isLoading && !error && filteredUsers.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      {search ? (
+                        <span>No users found matching "{search}"</span>
+                      ) : (
+                        <span>No users found. Create your first user to get started.</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {/* Data rows */}
+                {!isLoading &&
+                  !error &&
                   filteredUsers.map((user) => (
                     <TableRow key={user.id} className="hover:bg-accent/5">
                       <TableCell className="font-medium">{user.name}</TableCell>
@@ -148,8 +184,7 @@ export default function Users() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  ))}
               </TableBody>
             </Table>
           </div>

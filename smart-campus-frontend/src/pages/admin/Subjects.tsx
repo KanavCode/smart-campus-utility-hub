@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { FormModal } from '@/components/modals/FormModal';
 import { SubjectForm } from '@/components/forms/SubjectForm';
+import { SkeletonTableRow, ErrorStateCard } from '@/components/ui/DataStateDisplay';
 import { subjectService } from '@/services/subjectService';
 import { useAdminCrud } from '@/hooks/useAdminCrud';
 
@@ -42,11 +43,14 @@ export default function Subjects() {
     items: subjects,
     isModalOpen,
     selectedItem: selectedSubject,
+    isLoading,
+    error,
     openCreate,
     openEdit,
     closeModal,
     deleteItem,
     handleFormSuccess,
+    retryLoad,
   } = useAdminCrud<Subject>({
     getAll: subjectService.getAll,
     deleteById: subjectService.delete,
@@ -114,13 +118,45 @@ export default function Subjects() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSubjects.length === 0 ? (
+                {/* Loading state */}
+                {isLoading && (
+                  <>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <SkeletonTableRow key={i} columns={5} />
+                    ))}
+                  </>
+                )}
+
+                {/* Error state */}
+                {error && !isLoading && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No subjects found. Create your first subject to get started.
+                    <TableCell colSpan={5} className="text-center">
+                      <div className="py-8">
+                        <ErrorStateCard
+                          description={error}
+                          onRetry={retryLoad}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
+                )}
+
+                {/* Empty state */}
+                {!isLoading && !error && filteredSubjects.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      {search ? (
+                        <span>No subjects found matching "{search}"</span>
+                      ) : (
+                        <span>No subjects found. Create your first subject to get started.</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {/* Data rows */}
+                {!isLoading &&
+                  !error &&
                   filteredSubjects.map((subject) => (
                     <TableRow key={subject.id} className="hover:bg-accent/5">
                       <TableCell className="font-medium">{subject.code}</TableCell>
@@ -148,6 +184,27 @@ export default function Subjects() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        <FormModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          title={selectedSubject ? 'Edit Subject' : 'Create New Subject'}
+        >
+          <SubjectForm
+            onSuccess={handleFormSuccess}
+            onCancel={closeModal}
+            initialData={selectedSubject}
+          />
+        </FormModal>
+      </motion.div>
+    </DashboardLayout>
+  );
+}
                   ))
                 )}
               </TableBody>
