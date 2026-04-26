@@ -29,16 +29,16 @@ const validate = (schema, property = 'body') => {
 };
 // Core elective subjects
 const allowedSubjects = [
-  "Artificial Intelligence",
-  "Statistics in Data Science",
-  "Data Warehousing & Data Mining",
-  "Distributed Systems",
-  "Network Security",
-  "Big Data Analytics",
-  "Cloud Computing",
-  "Machine Learning",
-  "Mobile Computing",
-  "Computer Vision & Applications",
+  'Artificial Intelligence',
+  'Statistics in Data Science',
+  'Data Warehousing & Data Mining',
+  'Distributed Systems',
+  'Network Security',
+  'Big Data Analytics',
+  'Cloud Computing',
+  'Machine Learning',
+  'Mobile Computing',
+  'Computer Vision & Applications',
 ];
 
 
