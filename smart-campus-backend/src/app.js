@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const { testConnection, logger, isDatabaseConnected } = require('./config/db');
@@ -31,7 +30,7 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", 'data:', 'https:'],
     },
   },
 }));
@@ -145,14 +144,14 @@ const startServer = async () => {
     // Start listening
     app.listen(PORT, () => {
       logger.info('='.repeat(60));
-      logger.info(`🚀 Smart Campus Backend Server Started`);
+      logger.info('🚀 Smart Campus Backend Server Started');
       logger.info('='.repeat(60));
       logger.info(`📍 Server running on: http://localhost:${PORT}`);
       logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`🗄️  Database: ${dbConnected ? 'Connected' : 'Not Connected (features limited)'}`);
       logger.info(`📅 Started at: ${new Date().toISOString()}`);
       logger.info('='.repeat(60));
-      logger.info(`\n📚 API Documentation:`);
+      logger.info('\n📚 API Documentation:');
       logger.info(`   Health Check: http://localhost:${PORT}/health`);
       logger.info(`   Auth API: http://localhost:${PORT}/api/auth`);
       logger.info('='.repeat(60));
