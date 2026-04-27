@@ -10,12 +10,12 @@ const { validate, validationSchemas } = require('../../middleware/validation');
  */
 
 // Public/Protected routes - viewing timetables
-router.get('/teachers', timetableController.getAllTeachers);
-router.get('/subjects', timetableController.getAllSubjects);
-router.get('/rooms', timetableController.getAllRooms);
-router.get('/groups', timetableController.getAllGroups);
-router.get('/group/:groupId', validate(validationSchemas.groupIdParam, 'params'), timetableController.getTimetableByGroup);
-router.get('/teacher/:teacherId', validate(validationSchemas.teacherIdParam, 'params'), timetableController.getTimetableByTeacher);
+router.get('/teachers', validate(validationSchemas.timetableQuery, 'query'), timetableController.getAllTeachers);
+router.get('/subjects', validate(validationSchemas.timetableQuery, 'query'), timetableController.getAllSubjects);
+router.get('/rooms', validate(validationSchemas.timetableQuery, 'query'), timetableController.getAllRooms);
+router.get('/groups', validate(validationSchemas.timetableQuery, 'query'), timetableController.getAllGroups);
+router.get('/group/:groupId', validate(validationSchemas.groupIdParam, 'params'), validate(validationSchemas.timetableQuery, 'query'), timetableController.getTimetableByGroup);
+router.get('/teacher/:teacherId', validate(validationSchemas.teacherIdParam, 'params'), validate(validationSchemas.timetableQuery, 'query'), timetableController.getTimetableByTeacher);
 router.get('/config', timetableController.getTimetableConfig);
 
 // Admin routes - creating resources

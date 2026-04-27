@@ -397,13 +397,12 @@ describe('Complete Timetable Generation System Tests', () => {
     });
 
     test('Should handle UUID format in routes', async () => {
-      query.mockResolvedValueOnce({ rows: [] });
-
       const invalidId = 'invalid-uuid';
       const response = await request(app).get(`/api/timetable/group/${invalidId}`);
 
-      // Should still reach controller (database will validate UUID)
-      expect(response.status).toBeGreaterThanOrEqual(200);
+      // Should be blocked by validation middleware with 400 status
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
     });
   });
 });

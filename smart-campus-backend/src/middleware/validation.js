@@ -29,16 +29,16 @@ const validate = (schema, property = 'body') => {
 };
 // Core elective subjects
 const allowedSubjects = [
-  "Artificial Intelligence",
-  "Statistics in Data Science",
-  "Data Warehousing & Data Mining",
-  "Distributed Systems",
-  "Network Security",
-  "Big Data Analytics",
-  "Cloud Computing",
-  "Machine Learning",
-  "Mobile Computing",
-  "Computer Vision & Applications",
+  'Artificial Intelligence',
+  'Statistics in Data Science',
+  'Data Warehousing & Data Mining',
+  'Distributed Systems',
+  'Network Security',
+  'Big Data Analytics',
+  'Cloud Computing',
+  'Machine Learning',
+  'Mobile Computing',
+  'Computer Vision & Applications',
 ];
 
 
@@ -191,10 +191,19 @@ const validationSchemas = {
     groups: Joi.array().items(Joi.string().uuid()).min(1).required(),
     days: Joi.array().items(Joi.string()).min(1).required(),
     periods_per_day: Joi.number().integer().min(1).required(),
-    lunch_break_period: Joi.number().integer().min(1).optional(),
-    academic_year: Joi.string().pattern(/^\d{4}-\d{2,4}$/).optional(),
-    semester_type: Joi.string().valid('odd', 'even').optional(),
+    lunch_break_period: Joi.number().integer().min(1).max(Joi.ref('periods_per_day')).optional(),
+    academic_year: Joi.string().pattern(/^\d{4}-\d{2,4}$/).required(),
+    semester_type: Joi.string().valid('odd', 'even').required(),
     preferences: Joi.object().optional()
+  }),
+
+  // Timetable Query Parameters
+  timetableQuery: Joi.object({
+    department: Joi.string().max(100).optional(),
+    semester: Joi.number().integer().min(1).max(8).optional(),
+    room_type: Joi.string().optional(),
+    academic_year: Joi.string().pattern(/^\d{4}-\d{2,4}$/).optional(),
+    semester_type: Joi.string().valid('odd', 'even').optional()
   }),
 
   teacherIdParam: Joi.object({
