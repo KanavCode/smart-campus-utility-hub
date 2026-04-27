@@ -13,6 +13,7 @@ const apiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
 });
 
 /**
@@ -28,6 +29,7 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   // We want to limit both failed and successful attempts to prevent account enumeration 
   // and brute-force even if they manage to get a correct password eventually
   skipSuccessfulRequests: false, 

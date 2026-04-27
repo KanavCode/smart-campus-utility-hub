@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { logger } = require('../config/db');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key';
+
 /**
  * Middleware to verify JWT token
  * Attaches decoded user info to req.user
@@ -12,19 +14,19 @@ const verifyToken = (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1]; // Format: "Bearer TOKEN"
 
     if (!token) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Unauthorized: No token provided.' 
+        message: 'Unauthorized: No token provided.'
       });
     }
 
     // Verify token
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
       if (err) {
         logger.warn('Invalid token attempt', { error: err.message });
-        return res.status(403).json({ 
+        return res.status(403).json({
           success: false,
-          message: 'Forbidden: Invalid or expired token.' 
+          message: 'Forbidden: Invalid or expired token.'
         });
       }
 
@@ -35,9 +37,9 @@ const verifyToken = (req, res, next) => {
     });
   } catch (error) {
     logger.error('Token verification error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: 'Internal server error during authentication.' 
+      message: 'Internal server error during authentication.'
     });
   }
 };
@@ -48,22 +50,23 @@ const verifyToken = (req, res, next) => {
  */
 const verifyAdmin = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       success: false,
-      message: 'Unauthorized: Authentication required.' 
+      message: 'Unauthorized: Authentication required.'
     });
   }
 
   if (req.user.role === 'admin') {
     next();
   } else {
-    logger.warn('Non-admin access attempt', { 
-      userId: req.user.id, 
-      role: req.user.role 
+    logger.warn('Non-admin access attempt', {
+      userId: req.user.id,
+      role: req.user.role
     });
-    return res.status(403).json({ 
+
+    return res.status(403).json({
       success: false,
-      message: 'Forbidden: Requires admin privileges.' 
+      message: 'Forbidden: Requires admin privileges.'
     });
   }
 };
@@ -74,18 +77,18 @@ const verifyAdmin = (req, res, next) => {
  */
 const verifyStudent = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       success: false,
-      message: 'Unauthorized: Authentication required.' 
+      message: 'Unauthorized: Authentication required.'
     });
   }
 
   if (req.user.role === 'student' || req.user.role === 'admin') {
     next();
   } else {
-    return res.status(403).json({ 
+    return res.status(403).json({
       success: false,
-      message: 'Forbidden: Requires student privileges.' 
+      message: 'Forbidden: Requires student privileges.'
     });
   }
 };
@@ -96,18 +99,18 @@ const verifyStudent = (req, res, next) => {
  */
 const verifyFaculty = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       success: false,
-      message: 'Unauthorized: Authentication required.' 
+      message: 'Unauthorized: Authentication required.'
     });
   }
 
   if (req.user.role === 'faculty' || req.user.role === 'admin') {
     next();
   } else {
-    return res.status(403).json({ 
+    return res.status(403).json({
       success: false,
-      message: 'Forbidden: Requires faculty privileges.' 
+      message: 'Forbidden: Requires faculty privileges.'
     });
   }
 };
@@ -118,8 +121,11 @@ const verifyFaculty = (req, res, next) => {
  * @param {string} expiresIn - Token expiration time
  * @returns {string} JWT token
  */
-const generateToken = (payload, expiresIn = process.env.JWT_EXPIRES_IN || '7d') => {
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
+const generateToken = (
+  payload,
+  expiresIn = process.env.JWT_EXPIRES_IN || '7d'
+) => {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn });
 };
 
 /**
@@ -135,12 +141,13 @@ const optionalAuth = (req, res, next) => {
     return next();
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
       req.user = null;
     } else {
       req.user = decoded;
     }
+
     next();
   });
 };
