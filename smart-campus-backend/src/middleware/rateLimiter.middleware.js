@@ -1,5 +1,8 @@
 const rateLimit = require('express-rate-limit');
 
+// Helper to check if we should skip rate limiting
+const skipRateLimit = () => process.env.NODE_ENV === 'test';
+
 /**
  * General API Rate Limiter
  * Applied to all /api routes by default
@@ -13,6 +16,7 @@ const apiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipRateLimit,
 });
 
 /**
@@ -28,9 +32,8 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  // We want to limit both failed and successful attempts to prevent account enumeration 
-  // and brute-force even if they manage to get a correct password eventually
   skipSuccessfulRequests: false, 
+  skip: skipRateLimit,
 });
 
 module.exports = {
