@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
  * Applied to all /api routes by default
  */
 const apiLimiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes 
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   skip: () => process.env.NODE_ENV === 'test',
   message: {
