@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const { testConnection, logger, isDatabaseConnected } = require('./config/db');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+const { apiLimiter } = require('./middleware/rateLimiter.middleware');
 
 // Import routes
 const userRoutes = require('./components/users/user.routes');
@@ -47,6 +48,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Rate limiting
+<<<<<<< fix/issue-39-clean
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
@@ -59,6 +61,9 @@ const limiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test',
 });
 app.use('/api/', limiter);
+=======
+app.use('/api/', apiLimiter);
+>>>>>>> main
 
 // Compression middleware
 app.use(compression());

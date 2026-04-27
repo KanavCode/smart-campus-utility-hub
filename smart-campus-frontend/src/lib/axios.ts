@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+import { ApiError } from '@/types';
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
@@ -20,27 +21,31 @@ api.interceptors.request.use((config) => {
 // Response interceptor for better error handling
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  (error: AxiosError<ApiError>) => {
     // Handle network errors
     if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
       console.error('Network error:', error.message);
-      return Promise.reject({
+      const networkError: ApiError = {
         message: 'Cannot connect to server. Please ensure the backend server is running.',
         code: error.code,
-      });
+      };
+      return Promise.reject(networkError);
     }
     
     // Handle timeout errors
     if (error.code === 'ECONNABORTED') {
-      return Promise.reject({
+      const timeoutError: ApiError = {
         message: 'Request timeout. Please try again.',
         code: error.code,
-      });
+      };
+      return Promise.reject(timeoutError);
     }
     
-    // Pass through other errors
-    return Promise.reject(error);
+    // Pass through other errors, structured by types
+    return Promise.reject(error.response?.data || { message: error.message });
   }
 );
+
+export default api;
 
 export default api;
