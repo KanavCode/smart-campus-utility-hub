@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ReactNode } from 'react';
 import { findRouteByPath } from '@/config/routes';
-import { hasPermission, hasAnyPermission } from '@/utils/permissions';
+import { hasPermission } from '@/utils/permissions';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -41,8 +41,8 @@ export const ProtectedRoute = ({
   const routeMetadata = findRouteByPath(location.pathname);
 
   // Determine required permissions
-  let permissionsToCheck = requiredPermissions || routeMetadata?.requiredPermissions || [];
-  let anyPermissionsToCheck = requiredAnyPermissions || routeMetadata?.requiredAnyPermissions;
+  const permissionsToCheck = requiredPermissions || routeMetadata?.requiredPermissions || [];
+  const anyPermissionsToCheck = requiredAnyPermissions || routeMetadata?.requiredAnyPermissions;
 
   // Check if user has all required permissions
   if (permissionsToCheck.length > 0) {

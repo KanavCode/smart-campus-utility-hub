@@ -205,25 +205,3 @@ export default function Subjects() {
     </DashboardLayout>
   );
 }
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-
-        <FormModal
-          isOpen={isModalOpen}
-          onClose={closeModal}
-          title={selectedSubject ? 'Edit Subject' : 'Create New Subject'}
-        >
-          <SubjectForm
-            onSuccess={handleFormSuccess}
-            onCancel={closeModal}
-            initialData={selectedSubject}
-          />
-        </FormModal>
-      </motion.div>
-    </DashboardLayout>
-  );
-}
