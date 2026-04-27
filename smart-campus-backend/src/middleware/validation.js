@@ -137,7 +137,37 @@ const validationSchemas = {
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
     sort: Joi.string().optional(),
-    order: Joi.string().valid('asc', 'desc').default('asc')
+    order: Joi.string().valid('asc', 'desc', 'ASC', 'DESC').default('asc')
+  }),
+
+  // Event list query validation
+  eventQuery: Joi.object({
+    search: Joi.string().max(100).optional(),
+    tag: Joi.string().max(50).optional(),
+    club_id: Joi.number().integer().positive().optional(),
+    department: Joi.string().max(100).optional(),
+    is_featured: Joi.string().valid('true', 'false').optional(),
+    upcoming: Joi.string().valid('true', 'false').optional(),
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(10),
+    sort: Joi.string().valid('start_time', 'title', 'created_at').default('start_time'),
+    order: Joi.string().valid('asc', 'desc', 'ASC', 'DESC').default('ASC')
+  }),
+
+  // Club list query validation
+  clubQuery: Joi.object({
+    category: Joi.string().max(50).optional(),
+    search: Joi.string().max(100).optional(),
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(10),
+    sort: Joi.string().valid('name', 'category', 'created_at').default('name'),
+    order: Joi.string().valid('asc', 'desc', 'ASC', 'DESC').default('ASC')
+  }),
+
+  // Elective list query validation
+  electiveQuery: Joi.object({
+    department: Joi.string().max(100).optional(),
+    semester: Joi.number().integer().min(1).max(8).optional()
   })
 };
 

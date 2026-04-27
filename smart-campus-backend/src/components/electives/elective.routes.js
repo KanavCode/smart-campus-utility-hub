@@ -10,7 +10,7 @@ const { validate, validationSchemas } = require('../../middleware/validation');
  */
 
 // Public routes
-router.get('/', electiveController.getAllElectives);
+router.get('/', validate(validationSchemas.electiveQuery, 'query'), electiveController.getAllElectives);
 
 // 👇 Move all '/my/...' student routes BEFORE '/:id'
 router.post('/choices', verifyToken, verifyStudent, validate(validationSchemas.submitChoices), electiveController.submitChoices);
