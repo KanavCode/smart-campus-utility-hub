@@ -74,7 +74,6 @@ export const CanAccess = ({
     return <>{fallback}</>;
   }
 
-  // Single permission check
   if (permission) {
     if (!auth.hasPermission(permission)) {
       return <>{fallback}</>;
@@ -82,7 +81,6 @@ export const CanAccess = ({
     return <>{children}</>;
   }
 
-  // Multiple permissions check
   if (permissions && permissions.length > 0) {
     const hasAccess = allRequired
       ? auth.hasAllPermissions(permissions)
@@ -94,7 +92,6 @@ export const CanAccess = ({
     return <>{children}</>;
   }
 
-  // No permissions specified, render children
   return <>{children}</>;
 };
 
