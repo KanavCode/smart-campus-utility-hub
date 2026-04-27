@@ -71,7 +71,7 @@ export function useAdminCrud<T extends { id: string }>({
     try {
       await deleteById(id);
       toast.success(onDeleteSuccessMessage || `${entityNameTitle} deleted successfully`);
-      onRefresh ? onRefresh() : loadItems();
+      if (onRefresh) { onRefresh(); } else { loadItems(); }
     } catch (error: any) {
       toast.error(onDeleteErrorMessage || error?.message || `Failed to delete ${entityName}`);
     }
@@ -79,7 +79,7 @@ export function useAdminCrud<T extends { id: string }>({
 
   const handleFormSuccess = () => {
     setIsModalOpen(false);
-    onRefresh ? onRefresh() : loadItems();
+    if (onRefresh) { onRefresh(); } else { loadItems(); }
   };
 
   return {
