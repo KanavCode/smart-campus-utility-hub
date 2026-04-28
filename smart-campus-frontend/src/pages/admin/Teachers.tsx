@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { teacherService } from '@/services/teacherService';
 import { FormModal } from '@/components/modals/FormModal';
 import { TeacherForm } from '@/components/forms/TeacherForm';
+import { SkeletonTableRow, ErrorStateCard } from '@/components/ui/DataStateDisplay';
 import { useAdminCrud } from '@/hooks/useAdminCrud';
 import { toast } from 'sonner';
 
@@ -51,11 +52,14 @@ export default function Teachers() {
   const {
     isModalOpen,
     selectedItem: editingTeacher,
+    isLoading,
+    error,
     openCreate,
     openEdit,
     closeModal,
     deleteItem,
     handleFormSuccess,
+    retryLoad,
   } = useAdminCrud<any>({
     getAll: teacherService.getAll,
     deleteById: teacherService.delete,
@@ -141,24 +145,53 @@ export default function Teachers() {
                       <div>{teacher.email}</div>
                       <div className="text-xs">{teacher.phone}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEdit(teacher)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteItem(teacher.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                  </tr>
+                )}
+
+                {/* Empty state */}
+                {!isLoading && !error && teachers.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="text-center text-muted-foreground py-8">
+                      No teachers found. Create your first teacher to get started.
                     </td>
-                  </motion.tr>
-                ))}
+                  </tr>
+                )}
+
+                {/* Data rows */}
+                {!isLoading &&
+                  !error &&
+                  paginatedTeachers.map((teacher: any) => (
+                    <motion.tr
+                      key={teacher.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="hover:bg-accent/5"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap font-medium">{teacher.teacher_code}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{teacher.full_name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{teacher.department}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
+                        <div>{teacher.email}</div>
+                        <div className="text-xs">{teacher.phone}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEdit(teacher)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteItem(teacher.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </td>
+                    </motion.tr>
+                  ))}
               </tbody>
             </table>
           </div>
