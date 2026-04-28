@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -6,11 +7,48 @@ import { roomService } from '@/services/roomService';
 import { FormModal } from '@/components/modals/FormModal';
 import { RoomForm } from '@/components/forms/RoomForm';
 import { useAdminCrud } from '@/hooks/useAdminCrud';
-import { useSortedPagination } from '@/hooks/useSortedPagination';
+import { toast } from 'sonner';
+
+const ITEMS_PER_PAGE = 10;
 
 export default function Rooms() {
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useState('room_code');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const loadRooms = useCallback(async () => {
+    try {
+      const result = await roomService.list({
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+        sort: sortField,
+        order: sortDirection,
+      });
+      setRooms(result.items);
+      setTotal(result.total);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to load rooms');
+      setRooms([]);
+    }
+  }, [currentPage, sortField, sortDirection]);
+
+  useEffect(() => {
+    loadRooms();
+  }, [loadRooms]);
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
   const {
-    items: rooms,
     isModalOpen,
     selectedItem: editingRoom,
     openCreate,
@@ -24,20 +62,11 @@ export default function Rooms() {
     entityName: 'room',
     confirmDeleteMessage: 'Are you sure you want to delete this room?',
     onDeleteSuccessMessage: 'Room deleted successfully!',
+    autoLoad: false,
+    onRefresh: loadRooms,
   });
-  const {
-    currentPage,
-    setCurrentPage,
-    sortField,
-    sortDirection,
-    handleSort,
-    paginatedItems: paginatedRooms,
-    totalPages,
-  } = useSortedPagination<any>({
-    items: rooms,
-    initialSortField: 'room_code',
-    itemsPerPage: 10,
-  });
+
+  const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
   return (
     <DashboardLayout>
@@ -89,8 +118,11 @@ export default function Rooms() {
                   >
                     Type {sortField === 'room_type' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Capacity
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-accent/20"
+                    onClick={() => handleSort('capacity')}
+                  >
+                    Capacity {sortField === 'capacity' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Location
@@ -101,7 +133,7 @@ export default function Rooms() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {paginatedRooms.map((room: any) => (
+                {rooms.map((room: any) => (
                   <motion.tr
                     key={room.id}
                     initial={{ opacity: 0 }}
@@ -137,16 +169,18 @@ export default function Rooms() {
             </table>
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-border/50">
-              <div className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </div>
+          <div className="flex items-center justify-between px-6 py-4 border-t border-border/50">
+            <div className="text-sm text-muted-foreground">
+              {total > 0
+                ? `Showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, total)} of ${total}`
+                : 'No rooms found'}
+            </div>
+            {totalPages > 1 && (
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                 >
                   Previous
@@ -154,14 +188,14 @@ export default function Rooms() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                 >
                   Next
                 </Button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </motion.div>
 

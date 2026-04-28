@@ -204,6 +204,7 @@ describe('Complete Timetable Generation System Tests', () => {
   describe('3. Timetable Viewing Tests', () => {
     
     test('GET /api/timetable/teachers - List all teachers', async () => {
+      // data query
       query.mockResolvedValueOnce({
         rows: [
           {
@@ -214,6 +215,8 @@ describe('Complete Timetable Generation System Tests', () => {
           }
         ]
       });
+      // count query
+      query.mockResolvedValueOnce({ rows: [{ count: '1' }] });
 
       const response = await request(app).get('/api/timetable/teachers');
 
@@ -221,9 +224,13 @@ describe('Complete Timetable Generation System Tests', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.teachers).toBeInstanceOf(Array);
       expect(response.body.data.count).toBe(1);
+      expect(response.body.data.total).toBe(1);
+      expect(response.body.data.page).toBe(1);
+      expect(response.body.data.limit).toBe(20);
     });
 
     test('GET /api/timetable/subjects - List all subjects', async () => {
+      // data query
       query.mockResolvedValueOnce({
         rows: [
           {
@@ -234,12 +241,15 @@ describe('Complete Timetable Generation System Tests', () => {
           }
         ]
       });
+      // count query
+      query.mockResolvedValueOnce({ rows: [{ count: '1' }] });
 
       const response = await request(app).get('/api/timetable/subjects');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.subjects).toBeInstanceOf(Array);
+      expect(response.body.data.total).toBeDefined();
     });
 
     test('GET /api/timetable/config - Get configuration', async () => {
@@ -344,7 +354,8 @@ describe('Complete Timetable Generation System Tests', () => {
     });
 
     test('Should filter teachers by department', async () => {
-      query.mockResolvedValueOnce({ rows: [] });
+      query.mockResolvedValueOnce({ rows: [] }); // data query
+      query.mockResolvedValueOnce({ rows: [{ count: '0' }] }); // count query
 
       const response = await request(app)
         .get('/api/timetable/teachers')
@@ -353,7 +364,7 @@ describe('Complete Timetable Generation System Tests', () => {
       expect(response.status).toBe(200);
       expect(query).toHaveBeenCalledWith(
         expect.stringContaining('department'),
-        ['Computer Science']
+        expect.arrayContaining(['Computer Science'])
       );
     });
   });
@@ -385,25 +396,27 @@ describe('Complete Timetable Generation System Tests', () => {
   describe('7. Edge Cases', () => {
     
     test('Should handle empty results gracefully', async () => {
-      // Clear all previous mocks
-      jest.clearAllMocks();
-      query.mockResolvedValueOnce({ rows: [] });
+      // Reset mock queue to clear any leftover mocks from previous tests
+      query.mockReset();
+      query.mockResolvedValueOnce({ rows: [] }); // data query
+      query.mockResolvedValueOnce({ rows: [{ count: '0' }] }); // count query
 
       const response = await request(app).get('/api/timetable/teachers');
 
       expect(response.status).toBe(200);
       expect(response.body.data.teachers).toBeInstanceOf(Array);
       expect(response.body.data).toHaveProperty('count');
+      expect(response.body.data).toHaveProperty('total');
+      expect(response.body.data.total).toBe(0);
     });
 
     test('Should handle UUID format in routes', async () => {
-      query.mockResolvedValueOnce({ rows: [] });
-
       const invalidId = 'invalid-uuid';
       const response = await request(app).get(`/api/timetable/group/${invalidId}`);
 
-      // Should still reach controller (database will validate UUID)
-      expect(response.status).toBeGreaterThanOrEqual(200);
+      // Should be blocked by validation middleware with 400 status
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
     });
   });
 });
