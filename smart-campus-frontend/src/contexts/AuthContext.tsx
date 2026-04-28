@@ -2,6 +2,12 @@ import { createContext, useContext, useState, ReactNode, useEffect } from 'react
 import { authService, RegisterRequest } from '@/services/authService';
 import { User, ApiError } from '@/types';
 import { AxiosError } from 'axios';
+import { 
+  hasPermission, 
+  hasAllPermissions, 
+  hasAnyPermission,
+  PERMISSIONS 
+} from '@/utils/permissions';
 
 // User interface is now imported from @/types
 
@@ -17,6 +23,10 @@ interface AuthContextType {
   isAdmin: boolean;
   isStudent: boolean;
   isLoading: boolean;
+  // Permission checking methods
+  hasPermission: (permission: typeof PERMISSIONS[keyof typeof PERMISSIONS]) => boolean;
+  hasAllPermissions: (permissions: typeof PERMISSIONS[keyof typeof PERMISSIONS][]) => boolean;
+  hasAnyPermission: (permissions: typeof PERMISSIONS[keyof typeof PERMISSIONS][]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -151,7 +161,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isAuthenticated: !!user && !!token,
     isAdmin: user?.role === 'admin',
     isStudent: user?.role === 'student',
-    isLoading
+    isLoading,
+    // Permission checking methods
+    hasPermission: (permission) => hasPermission(user?.role, permission),
+    hasAllPermissions: (permissions) => hasAllPermissions(user?.role, permissions),
+    hasAnyPermission: (permissions) => hasAnyPermission(user?.role, permissions),
   };
 
   return (

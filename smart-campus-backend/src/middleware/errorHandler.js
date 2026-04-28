@@ -5,7 +5,7 @@ const { logger } = require('../config/db');
  * Global error handling middleware
  * This should be the last middleware in the chain
  */
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, _next) => {
   // Log error details
   logger.error('Error occurred:', {
     message: err.message,

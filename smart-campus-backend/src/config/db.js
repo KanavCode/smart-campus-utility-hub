@@ -50,18 +50,18 @@ const pool = new Pool(poolConfig);
 let isDbConnected = false;
 
 // Pool error handling
-pool.on('error', (err, client) => {
+pool.on('error', (err, _client) => {
   logger.error('Unexpected error on idle client', err);
   isDbConnected = false;
   // Don't exit the process, allow graceful degradation
 });
 
-pool.on('connect', (client) => {
+pool.on('connect', (_client) => {
   logger.debug('New client connected to database');
   isDbConnected = true;
 });
 
-pool.on('remove', (client) => {
+pool.on('remove', (_client) => {
   logger.debug('Client removed from pool');
 });
 

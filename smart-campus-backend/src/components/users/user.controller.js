@@ -1,6 +1,5 @@
 const { sendSuccess } = require('../../utils/response');
 
-const UserModel = require('./user.model');
 const userAuthService = require('./user.auth.service');
 const userAdminService = require('./user.admin.service');
 const { asyncHandler } = require('../../middleware/errorHandler');
