@@ -139,11 +139,9 @@ class TimetableSolver {
     }
 
     // Check if total required hours can fit in available slots
-    let totalRequiredHours = 0;
     for (const groupId of groups) {
       const subjects = await StudentGroup.getGroupSubjects(groupId);
       const groupHours = subjects.reduce((sum, subject) => sum + subject.hours_per_week, 0);
-      totalRequiredHours += groupHours;
       
       // Check if single group's hours fit in a week
       const availableSlotsPerGroup = days.length * periods_per_day - (lunch_break_period ? days.length : 0);
@@ -229,7 +227,7 @@ class TimetableSolver {
     const { day, period } = currentSlot;
 
     // Try to schedule each unfinished subject in current slot
-    for (const [key, counter] of Object.entries(this.subjectHourCounters)) {
+    for (const counter of Object.values(this.subjectHourCounters)) {
       if (counter.scheduled >= counter.required) {
         continue; // Subject already fully scheduled
       }
@@ -434,7 +432,7 @@ class TimetableSolver {
    * @returns {Boolean} True if all subjects have been scheduled for required hours
    */
   areAllSubjectsScheduled() {
-    for (const [key, counter] of Object.entries(this.subjectHourCounters)) {
+    for (const counter of Object.values(this.subjectHourCounters)) {
       if (counter.scheduled < counter.required) {
         return false;
       }

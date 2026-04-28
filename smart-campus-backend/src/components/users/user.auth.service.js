@@ -38,7 +38,8 @@ const registerUser = async ({ full_name, email, password, role, department, cgpa
     role: user.role,
   });
 
-  const { password_hash, ...userData } = user;
+  const userData = { ...user };
+  delete userData.password_hash;
 
   return {
     user: userData,

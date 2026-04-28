@@ -1,6 +1,18 @@
 const jwt = require('jsonwebtoken');
 const { logger } = require('../config/db');
 
+const getJwtSecret = () => {
+  if (process.env.JWT_SECRET) {
+    return process.env.JWT_SECRET;
+  }
+
+  if (process.env.NODE_ENV === 'test') {
+    return 'test-jwt-secret';
+  }
+
+  throw new Error('JWT_SECRET is not configured');
+};
+
 /**
  * Middleware to verify JWT token
  * Attaches decoded user info to req.user
@@ -19,7 +31,7 @@ const verifyToken = (req, res, next) => {
     }
 
     // Verify token
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, getJwtSecret(), (err, decoded) => {
       if (err) {
         logger.warn('Invalid token attempt', { error: err.message });
         return res.status(403).json({ 
@@ -119,7 +131,7 @@ const verifyFaculty = (req, res, next) => {
  * @returns {string} JWT token
  */
 const generateToken = (payload, expiresIn = process.env.JWT_EXPIRES_IN || '7d') => {
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn });
 };
 
 /**
@@ -135,7 +147,7 @@ const optionalAuth = (req, res, next) => {
     return next();
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, getJwtSecret(), (err, decoded) => {
     if (err) {
       req.user = null;
     } else {
