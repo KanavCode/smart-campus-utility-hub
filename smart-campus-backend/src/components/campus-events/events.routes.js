@@ -10,7 +10,7 @@ const { validate, validationSchemas } = require('../../middleware/validation');
  */
 
 // Public routes
-router.get('/', eventsController.getAllEvents);
+router.get('/', validate(validationSchemas.eventQuery, 'query'), eventsController.getAllEvents);
 router.get('/:id', validate(validationSchemas.idParam, 'params'), eventsController.getEventById);
 
 // Protected routes (authentication required)

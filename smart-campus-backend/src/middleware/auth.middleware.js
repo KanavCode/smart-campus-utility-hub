@@ -24,9 +24,9 @@ const verifyToken = (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1]; // Format: "Bearer TOKEN"
 
     if (!token) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Unauthorized: No token provided.' 
+        message: 'Unauthorized: No token provided.'
       });
     }
 
@@ -34,9 +34,9 @@ const verifyToken = (req, res, next) => {
     jwt.verify(token, getJwtSecret(), (err, decoded) => {
       if (err) {
         logger.warn('Invalid token attempt', { error: err.message });
-        return res.status(403).json({ 
+        return res.status(403).json({
           success: false,
-          message: 'Forbidden: Invalid or expired token.' 
+          message: 'Forbidden: Invalid or expired token.'
         });
       }
 
@@ -47,9 +47,9 @@ const verifyToken = (req, res, next) => {
     });
   } catch (error) {
     logger.error('Token verification error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: 'Internal server error during authentication.' 
+      message: 'Internal server error during authentication.'
     });
   }
 };
@@ -60,22 +60,23 @@ const verifyToken = (req, res, next) => {
  */
 const verifyAdmin = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       success: false,
-      message: 'Unauthorized: Authentication required.' 
+      message: 'Unauthorized: Authentication required.'
     });
   }
 
   if (req.user.role === 'admin') {
     next();
   } else {
-    logger.warn('Non-admin access attempt', { 
-      userId: req.user.id, 
-      role: req.user.role 
+    logger.warn('Non-admin access attempt', {
+      userId: req.user.id,
+      role: req.user.role
     });
-    return res.status(403).json({ 
+
+    return res.status(403).json({
       success: false,
-      message: 'Forbidden: Requires admin privileges.' 
+      message: 'Forbidden: Requires admin privileges.'
     });
   }
 };
@@ -86,18 +87,18 @@ const verifyAdmin = (req, res, next) => {
  */
 const verifyStudent = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       success: false,
-      message: 'Unauthorized: Authentication required.' 
+      message: 'Unauthorized: Authentication required.'
     });
   }
 
   if (req.user.role === 'student' || req.user.role === 'admin') {
     next();
   } else {
-    return res.status(403).json({ 
+    return res.status(403).json({
       success: false,
-      message: 'Forbidden: Requires student privileges.' 
+      message: 'Forbidden: Requires student privileges.'
     });
   }
 };
@@ -108,18 +109,18 @@ const verifyStudent = (req, res, next) => {
  */
 const verifyFaculty = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       success: false,
-      message: 'Unauthorized: Authentication required.' 
+      message: 'Unauthorized: Authentication required.'
     });
   }
 
   if (req.user.role === 'faculty' || req.user.role === 'admin') {
     next();
   } else {
-    return res.status(403).json({ 
+    return res.status(403).json({
       success: false,
-      message: 'Forbidden: Requires faculty privileges.' 
+      message: 'Forbidden: Requires faculty privileges.'
     });
   }
 };
@@ -153,6 +154,7 @@ const optionalAuth = (req, res, next) => {
     } else {
       req.user = decoded;
     }
+
     next();
   });
 };
