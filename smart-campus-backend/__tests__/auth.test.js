@@ -231,8 +231,9 @@ describe('Authentication API Tests', () => {
         .get('/api/auth/profile')
         .set('Authorization', 'Bearer invalid_token');
 
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(401);
       expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Unauthorized: Invalid token.');
     });
   });
 
