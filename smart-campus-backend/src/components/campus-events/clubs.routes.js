@@ -10,7 +10,7 @@ const { validate, validationSchemas } = require('../../middleware/validation');
  */
 
 // Public routes
-router.get('/', clubsController.getAllClubs);
+router.get('/', validate(validationSchemas.clubQuery, 'query'), clubsController.getAllClubs);
 router.get('/:id', validate(validationSchemas.idParam, 'params'), clubsController.getClubById);
 
 // Admin-only routes
