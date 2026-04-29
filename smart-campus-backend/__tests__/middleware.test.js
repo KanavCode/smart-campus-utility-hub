@@ -4,8 +4,18 @@
  */
 
 const jwt = require('jsonwebtoken');
+jest.mock('../src/config/db', () => ({
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn()
+  }
+}));
+
 const { verifyToken, generateToken } = require('../src/middleware/auth.middleware');
 const { validate, validationSchemas } = require('../src/middleware/validation');
+const { logger } = require('../src/config/db');
 
 // Mock environment variables
 process.env.JWT_SECRET = 'test-secret-key';
@@ -62,6 +72,87 @@ describe('Middleware Tests', () => {
         expect.objectContaining({
           success: false,
           message: expect.stringContaining('No token provided')
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+      done();
+    });
+
+    test('should reject request with invalid token', (done) => {
+      const req = {
+        headers: {
+          authorization: 'Bearer invalid_token'
+        },
+        originalUrl: '/api/auth/profile',
+        method: 'GET',
+        ip: '127.0.0.1'
+      };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn()
+      };
+      const next = jest.fn();
+
+      verifyToken(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          message: 'Unauthorized: Invalid token.'
+        })
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        'JWT verification failed',
+        expect.objectContaining({
+          errorType: 'JsonWebTokenError',
+          message: expect.any(String),
+          url: '/api/auth/profile',
+          method: 'GET',
+          ip: '127.0.0.1'
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+      done();
+    });
+
+    test('should reject request with expired token', (done) => {
+      const expiredToken = jwt.sign(
+        { id: 1, email: 'test@example.com', role: 'student', exp: Math.floor(Date.now() / 1000) - 10 },
+        process.env.JWT_SECRET
+      );
+
+      const req = {
+        headers: {
+          authorization: `Bearer ${expiredToken}`
+        },
+        originalUrl: '/api/auth/profile',
+        method: 'GET',
+        ip: '127.0.0.1'
+      };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn()
+      };
+      const next = jest.fn();
+
+      verifyToken(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          message: 'Unauthorized: Token has expired.'
+        })
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        'JWT verification failed',
+        expect.objectContaining({
+          errorType: 'TokenExpiredError',
+          message: expect.stringContaining('jwt expired'),
+          url: '/api/auth/profile',
+          method: 'GET',
+          ip: '127.0.0.1'
         })
       );
       expect(next).not.toHaveBeenCalled();
