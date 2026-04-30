@@ -1,7 +1,7 @@
-const { sendSuccess } = require('../../utils/response');
-const { query } = require('../../config/db');
-const { asyncHandler, ApiError } = require('../../middleware/errorHandler');
-const { logger } = require('../../config/db');
+const { sendSuccess } = require("../../utils/response");
+const { query } = require("../../config/db");
+const { asyncHandler, ApiError } = require("../../middleware/errorHandler");
+const { logger } = require("../../config/db");
 
 /**
  * Events Controller
@@ -13,7 +13,17 @@ const { logger } = require('../../config/db');
  * POST /api/events
  */
 const createEvent = asyncHandler(async (req, res) => {
-  const { title, description, location, start_time, end_time, club_id, target_department, is_featured, tags } = req.body;
+  const {
+    title,
+    description,
+    location,
+    start_time,
+    end_time,
+    club_id,
+    target_department,
+    is_featured,
+    tags,
+  } = req.body;
 
   const sql = `
     INSERT INTO events (title, description, location, start_time, end_time, club_id, target_department, is_featured, tags)
@@ -21,12 +31,31 @@ const createEvent = asyncHandler(async (req, res) => {
     RETURNING *
   `;
 
-  const values = [title, description, location, start_time, end_time, club_id, target_department, is_featured || false, tags];
+  const values = [
+    title,
+    description,
+    location,
+    start_time,
+    end_time,
+    club_id,
+    target_department,
+    is_featured || false,
+    tags,
+  ];
   const result = await query(sql, values);
 
-  logger.info('Event created', { eventId: result.rows[0].id, createdBy: req.user.id });
+  if (!result.rows || result.rows.length === 0) {
+    throw new ApiError(500, "Failed to create event");
+  }
 
-  sendSuccess(res, 201, 'Event created successfully', { event: result.rows[0] });
+  logger.info("Event created", {
+    eventId: result.rows[0].id,
+    createdBy: req.user.id,
+  });
+
+  sendSuccess(res, 201, "Event created successfully", {
+    event: result.rows[0],
+  });
 });
 
 /**
@@ -35,18 +64,41 @@ const createEvent = asyncHandler(async (req, res) => {
  * Public route
  */
 const getAllEvents = asyncHandler(async (req, res) => {
-  const { search, tag, club_id, department, is_featured, upcoming, page = 1, limit = 10, sort = 'start_time', order = 'ASC' } = req.query;
+  const {
+    search,
+    tag,
+    club_id,
+    department,
+    is_featured,
+    upcoming,
+    page = 1,
+    limit = 10,
+    sort = "start_time",
+    order = "ASC",
+  } = req.query;
 
   const pageNum = parseInt(page);
   const limitNum = parseInt(limit);
+
+  // Validate parsed integers
+  if (isNaN(pageNum) || pageNum < 1) {
+    throw new ApiError(400, "Invalid page number");
+  }
+  if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+    throw new ApiError(400, "Invalid limit. Must be between 1 and 100");
+  }
+
   const offset = (pageNum - 1) * limitNum;
 
-  const allowedSortFields = ['start_time', 'title', 'created_at'];
-  const allowedOrders = ['ASC', 'DESC'];
-  const sortField = allowedSortFields.includes(sort) ? sort : 'start_time';
-  const sortOrder = allowedOrders.includes(order.toUpperCase()) ? order.toUpperCase() : 'ASC';
-  
-  let sql = 'SELECT e.*, c.name as club_name, COUNT(*) OVER() as total_count FROM events e LEFT JOIN clubs c ON e.club_id = c.id WHERE 1=1';
+  const allowedSortFields = ["start_time", "title", "created_at"];
+  const allowedOrders = ["ASC", "DESC"];
+  const sortField = allowedSortFields.includes(sort) ? sort : "start_time";
+  const sortOrder = allowedOrders.includes(order.toUpperCase())
+    ? order.toUpperCase()
+    : "ASC";
+
+  let sql =
+    "SELECT e.*, c.name as club_name, COUNT(*) OVER() as total_count FROM events e LEFT JOIN clubs c ON e.club_id = c.id WHERE 1=1";
   const values = [];
   let paramCounter = 1;
 
@@ -66,8 +118,12 @@ const getAllEvents = asyncHandler(async (req, res) => {
 
   // Filter by club
   if (club_id) {
+    const clubIdNum = parseInt(club_id);
+    if (isNaN(clubIdNum) || clubIdNum < 1) {
+      throw new ApiError(400, "Invalid club ID");
+    }
     sql += ` AND e.club_id = $${paramCounter}`;
-    values.push(parseInt(club_id));
+    values.push(clubIdNum);
     paramCounter++;
   }
 
@@ -97,7 +153,12 @@ const getAllEvents = asyncHandler(async (req, res) => {
   
   sendSuccess(res, 200, 'Events fetched successfully', {
     events: result.rows,
-    pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) }
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    },
   });
 });
 
@@ -109,6 +170,11 @@ const getAllEvents = asyncHandler(async (req, res) => {
 const getEventById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
+  const eventId = parseInt(id);
+  if (isNaN(eventId) || eventId < 1) {
+    throw new ApiError(400, "Invalid event ID");
+  }
+
   const sql = `
     SELECT e.*, c.name as club_name, c.description as club_description
     FROM events e
@@ -116,13 +182,15 @@ const getEventById = asyncHandler(async (req, res) => {
     WHERE e.id = $1
   `;
 
-  const result = await query(sql, [parseInt(id)]);
+  const result = await query(sql, [eventId]);
 
   if (result.rows.length === 0) {
-    throw new ApiError(404, 'Event not found');
+    throw new ApiError(404, "Event not found");
   }
 
-  sendSuccess(res, 200, 'Event fetched successfully', { event: result.rows[0] });
+  sendSuccess(res, 200, "Event fetched successfully", {
+    event: result.rows[0],
+  });
 });
 
 /**
@@ -131,7 +199,22 @@ const getEventById = asyncHandler(async (req, res) => {
  */
 const updateEvent = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { title, description, location, start_time, end_time, club_id, target_department, is_featured, tags } = req.body;
+  const {
+    title,
+    description,
+    location,
+    start_time,
+    end_time,
+    club_id,
+    target_department,
+    is_featured,
+    tags,
+  } = req.body;
+
+  const eventId = parseInt(id);
+  if (isNaN(eventId) || eventId < 1) {
+    throw new ApiError(400, "Invalid event ID");
+  }
 
   const sql = `
     UPDATE events
@@ -141,16 +224,29 @@ const updateEvent = asyncHandler(async (req, res) => {
     RETURNING *
   `;
 
-  const values = [title, description, location, start_time, end_time, club_id, target_department, is_featured, tags, parseInt(id)];
+  const values = [
+    title,
+    description,
+    location,
+    start_time,
+    end_time,
+    club_id,
+    target_department,
+    is_featured,
+    tags,
+    eventId,
+  ];
   const result = await query(sql, values);
 
   if (result.rows.length === 0) {
-    throw new ApiError(404, 'Event not found');
+    throw new ApiError(404, "Event not found");
   }
 
-  logger.info('Event updated', { eventId: id, updatedBy: req.user.id });
+  logger.info("Event updated", { eventId: id, updatedBy: req.user.id });
 
-  sendSuccess(res, 200, 'Event updated successfully', { event: result.rows[0] });
+  sendSuccess(res, 200, "Event updated successfully", {
+    event: result.rows[0],
+  });
 });
 
 /**
@@ -160,15 +256,22 @@ const updateEvent = asyncHandler(async (req, res) => {
 const deleteEvent = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const result = await query('DELETE FROM events WHERE id = $1 RETURNING *', [parseInt(id)]);
-
-  if (result.rowCount === 0) {
-    throw new ApiError(404, 'Event not found');
+  const eventId = parseInt(id);
+  if (isNaN(eventId) || eventId < 1) {
+    throw new ApiError(400, "Invalid event ID");
   }
 
-  logger.info('Event deleted', { eventId: id, deletedBy: req.user.id });
+  const result = await query("DELETE FROM events WHERE id = $1 RETURNING *", [
+    eventId,
+  ]);
 
-  sendSuccess(res, 200, 'Event deleted successfully');
+  if (result.rowCount === 0) {
+    throw new ApiError(404, "Event not found");
+  }
+
+  logger.info("Event deleted", { eventId: id, deletedBy: req.user.id });
+
+  sendSuccess(res, 200, "Event deleted successfully");
 });
 
 /**
@@ -179,31 +282,38 @@ const saveEvent = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id;
 
+  const eventId = parseInt(id);
+  if (isNaN(eventId) || eventId < 1) {
+    throw new ApiError(400, "Invalid event ID");
+  }
+
   // Check if event exists
-  const eventCheck = await query('SELECT id FROM events WHERE id = $1', [parseInt(id)]);
+  const eventCheck = await query("SELECT id FROM events WHERE id = $1", [
+    eventId,
+  ]);
   if (eventCheck.rows.length === 0) {
-    throw new ApiError(404, 'Event not found');
+    throw new ApiError(404, "Event not found");
   }
 
   // Check if already saved
   const existingCheck = await query(
-    'SELECT * FROM saved_events WHERE user_id = $1 AND event_id = $2',
-    [userId, parseInt(id)]
+    "SELECT * FROM saved_events WHERE user_id = $1 AND event_id = $2",
+    [userId, eventId],
   );
 
   if (existingCheck.rows.length > 0) {
-    throw new ApiError(400, 'Event already saved');
+    throw new ApiError(400, "Event already saved");
   }
 
   // Save the event
-  await query(
-    'INSERT INTO saved_events (user_id, event_id) VALUES ($1, $2)',
-    [userId, parseInt(id)]
-  );
+  await query("INSERT INTO saved_events (user_id, event_id) VALUES ($1, $2)", [
+    userId,
+    eventId,
+  ]);
 
-  logger.info('Event saved', { eventId: id, userId });
+  logger.info("Event saved", { eventId: id, userId });
 
-  sendSuccess(res, 200, 'Event saved successfully');
+  sendSuccess(res, 200, "Event saved successfully");
 });
 
 /**
@@ -214,18 +324,23 @@ const unsaveEvent = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id;
 
+  const eventId = parseInt(id);
+  if (isNaN(eventId) || eventId < 1) {
+    throw new ApiError(400, "Invalid event ID");
+  }
+
   const result = await query(
-    'DELETE FROM saved_events WHERE user_id = $1 AND event_id = $2 RETURNING *',
-    [userId, parseInt(id)]
+    "DELETE FROM saved_events WHERE user_id = $1 AND event_id = $2 RETURNING *",
+    [userId, eventId],
   );
 
   if (result.rowCount === 0) {
-    throw new ApiError(404, 'Event not in saved list');
+    throw new ApiError(404, "Event not in saved list");
   }
 
-  logger.info('Event unsaved', { eventId: id, userId });
+  logger.info("Event unsaved", { eventId: id, userId });
 
-  sendSuccess(res, 200, 'Event removed from saved list');
+  sendSuccess(res, 200, "Event removed from saved list");
 });
 
 /**
@@ -246,9 +361,9 @@ const getSavedEvents = asyncHandler(async (req, res) => {
 
   const result = await query(sql, [userId]);
 
-  sendSuccess(res, 200, 'Saved events fetched successfully', { 
-    events: result.rows, 
-    count: result.rows.length 
+  sendSuccess(res, 200, "Saved events fetched successfully", {
+    events: result.rows,
+    count: result.rows.length,
   });
 });
 
@@ -260,5 +375,5 @@ module.exports = {
   deleteEvent,
   saveEvent,
   unsaveEvent,
-  getSavedEvents
+  getSavedEvents,
 };
