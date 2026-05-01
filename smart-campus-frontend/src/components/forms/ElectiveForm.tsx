@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { electiveService, Elective } from '@/services/electiveService';
+import { ApiError } from '@/types';
 
 interface ElectiveFormProps {
   onSuccess: () => void;
@@ -64,9 +65,10 @@ export const ElectiveForm = ({ onSuccess, onCancel, initialData }: ElectiveFormP
         toast.success('Elective created successfully!');
       }
       onSuccess();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to save elective');
-      console.error(error);
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      toast.error(err?.message || 'Failed to save elective');
+      console.error(err);
     } finally {
       setSubmitting(false);
     }

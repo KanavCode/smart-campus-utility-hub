@@ -53,8 +53,9 @@ export default function Clubs() {
       setError(null);
       const data = await clubService.getAll();
       setClubs(data);
-    } catch (err: any) {
-      const errorMsg = err?.message || 'Failed to load clubs';
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      const errorMsg = e?.message || 'Failed to load clubs';
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -67,8 +68,9 @@ export default function Clubs() {
       setIsLoadingDetails(true);
       const clubData = await clubService.getById(clubId);
       setSelectedClub(clubData);
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to load club details');
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      toast.error(e?.message || 'Failed to load club details');
     } finally {
       setIsLoadingDetails(false);
     }

@@ -6,11 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { clubService } from '@/services/clubService';
+import { ApiError, ClubFormData } from '@/types';
 
 interface ClubFormProps {
   onSuccess: () => void;
   onCancel: () => void;
-  initialData?: any;
+  initialData?: ClubFormData;
 }
 
 export const ClubForm = ({ onSuccess, onCancel, initialData }: ClubFormProps) => {
@@ -32,8 +33,9 @@ export const ClubForm = ({ onSuccess, onCancel, initialData }: ClubFormProps) =>
         toast.success('Club created successfully!');
       }
       onSuccess();
-    } catch (error) {
-      toast.error('Failed to save club');
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      toast.error(err?.message || 'Failed to save club');
     }
   };
 

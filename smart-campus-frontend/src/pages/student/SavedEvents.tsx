@@ -23,8 +23,9 @@ export default function SavedEvents() {
       setError(null);
       const response = await eventsService.getMySaved();
       setSavedEvents(response.data?.events || []);
-    } catch (error: any) {
-      const errorMsg = error?.message || 'Failed to load saved events';
+    } catch (error: unknown) {
+      const e = error as { message?: string };
+      const errorMsg = e?.message || 'Failed to load saved events';
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -38,8 +39,9 @@ export default function SavedEvents() {
       await eventsService.unsave(eventId);
       setSavedEvents(prev => prev.filter(e => e.id !== eventId));
       toast.success('Event removed from saved');
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to unsave event');
+    } catch (error: unknown) {
+      const e = error as { message?: string };
+      toast.error(e?.message || 'Failed to unsave event');
     } finally {
       setIsRemoving(prev => {
         const newSet = new Set(prev);

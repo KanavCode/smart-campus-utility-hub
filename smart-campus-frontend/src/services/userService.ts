@@ -1,13 +1,10 @@
 import { api } from '@/lib/axios';
 import { getPayload, getPayloadArray } from './serviceUtils';
-import { User, ApiResponse } from '@/types';
+import { User, ApiResponse, UserFormData } from '@/types';
 
-// We might want a type for user forms/creation that differs slightly from the base User
-type UserFormData = Partial<User> & { password?: string };
-
-const normalizeUser = (user: any): User & { name: string } => ({
-  ...user,
-  name: user.full_name,
+const normalizeUser = (user: Partial<User>): User & { name: string } => ({
+  ...(user as User),
+  name: (user as User).full_name,
 });
 
 export const userService = {
@@ -32,7 +29,7 @@ export const userService = {
     }
 
     const { data } = await api.post<ApiResponse<{ user: User }>>('/auth/register', payload);
-    return normalizeUser(getPayload<User>(data.data as any, 'user'));
+    return normalizeUser(getPayload<User>(data.data as any, 'user') || {});
   },
 
   update: async (id: string | number, userData: UserFormData): Promise<User & { name: string }> => {
@@ -53,7 +50,7 @@ export const userService = {
     }
 
     const { data } = await api.put<ApiResponse<{ user: User }>>(`/users/${id}`, payload);
-    return normalizeUser(getPayload<User>(data.data as any, 'user'));
+    return normalizeUser(getPayload<User>(data.data as any, 'user') || {});
   },
 
   delete: async (id: string | number): Promise<void> => {

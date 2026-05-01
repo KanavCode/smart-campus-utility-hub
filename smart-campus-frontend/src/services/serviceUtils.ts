@@ -1,15 +1,15 @@
 import { ApiResponse, ApiError } from '@/types';
 
-export const getPayload = <T = unknown>(data: ApiResponse<any>, key: string): T | undefined => {
-  return (data?.data as any)?.[key] as T | undefined;
+export const getPayload = <T = unknown>(data: ApiResponse<unknown>, key: string): T | undefined => {
+  return ((data?.data as Record<string, unknown>)?.[key] as T) || undefined;
 };
 
-export const getPayloadArray = <T = unknown>(data: ApiResponse<any>, key: string): T[] => {
-  return ((data?.data as any)?.[key] as T[]) || [];
+export const getPayloadArray = <T = unknown>(data: ApiResponse<unknown>, key: string): T[] => {
+  return ((data?.data as Record<string, unknown>)?.[key] as T[]) || [];
 };
 
-export const withServiceError = (error: any, fallbackMessage: string): never => {
-  const apiError = error?.response?.data as ApiError | undefined;
+export const withServiceError = (error: unknown, fallbackMessage: string): never => {
+  const apiError = (error as { response?: { data?: ApiError } })?.response?.data;
   throw apiError || { message: fallbackMessage };
 };
 

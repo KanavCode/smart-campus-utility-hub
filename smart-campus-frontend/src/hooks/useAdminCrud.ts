@@ -62,8 +62,9 @@ export function useAdminCrud<T extends { id: string }>({
       const data = await getAll();
       setItems(data);
       setError(null);
-    } catch (err: any) {
-      const errorMessage = onLoadErrorMessage || err?.message || `Failed to load ${entityName}s`;
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      const errorMessage = onLoadErrorMessage || e?.message || `Failed to load ${entityName}s`;
       setError(errorMessage);
       toast.error(errorMessage);
       // Keep items instead of clearing - maintain state on error
@@ -103,8 +104,9 @@ export function useAdminCrud<T extends { id: string }>({
       toast.success(onDeleteSuccessMessage || `${entityNameTitle} deleted successfully`);
       setError(null);
       await loadItems();
-    } catch (err: any) {
-      const errorMessage = onDeleteErrorMessage || err?.message || `Failed to delete ${entityName}`;
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      const errorMessage = onDeleteErrorMessage || e?.message || `Failed to delete ${entityName}`;
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

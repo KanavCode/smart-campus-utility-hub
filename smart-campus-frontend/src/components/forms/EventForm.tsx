@@ -7,11 +7,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { eventsService } from '@/services/eventService';
 import { clubService, Club } from '@/services/clubService';
+import { ApiError, EventFormData } from '@/types';
 
 interface EventFormProps {
   onSuccess: () => void;
   onCancel: () => void;
-  initialData?: any;
+  initialData?: EventFormData;
 }
 
 export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) => {
@@ -66,8 +67,9 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
         toast.success('Event created successfully!');
       }
       onSuccess();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to save event');
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      toast.error(err?.message || 'Failed to save event');
     }
   };
 
