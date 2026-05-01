@@ -10,6 +10,8 @@ interface UseAdminCrudOptions<T extends { id: string }> {
   onDeleteErrorMessage?: string;
   onDeleteSuccessMessage?: string;
   autoLoad?: boolean;
+  /** When provided, called after delete/form-success instead of the internal loadItems. */
+  onRefresh?: () => void;
 }
 
 interface UseAdminCrudReturn<T extends { id: string }> {
@@ -45,7 +47,8 @@ export function useAdminCrud<T extends { id: string }>({
   onDeleteErrorMessage,
   onDeleteSuccessMessage,
   autoLoad = true,
-}: UseAdminCrudOptions<T>): UseAdminCrudReturn<T> {
+  onRefresh,
+}: UseAdminCrudOptions<T>) {
   const [items, setItems] = useState<T[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<T | null>(null);
@@ -102,22 +105,15 @@ export function useAdminCrud<T extends { id: string }>({
     try {
       await deleteById(id);
       toast.success(onDeleteSuccessMessage || `${entityNameTitle} deleted successfully`);
-      setError(null);
-      await loadItems();
-    } catch (err: unknown) {
-      const e = err as { message?: string };
-      const errorMessage = onDeleteErrorMessage || e?.message || `Failed to delete ${entityName}`;
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsDeleting(false);
+      if (onRefresh) { onRefresh(); } else { loadItems(); }
+    } catch (error: any) {
+      toast.error(onDeleteErrorMessage || error?.message || `Failed to delete ${entityName}`);
     }
   };
 
   const handleFormSuccess = () => {
     setIsModalOpen(false);
-    setError(null);
-    loadItems();
+    if (onRefresh) { onRefresh(); } else { loadItems(); }
   };
 
   const clearError = () => {
