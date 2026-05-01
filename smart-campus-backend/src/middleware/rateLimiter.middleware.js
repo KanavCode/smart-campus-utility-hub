@@ -1,6 +1,7 @@
 const rateLimit = require('express-rate-limit');
 
-// Keep rate limiting active in non-test environments, but avoid test flakiness.
+// Rate limiting interferes with sequential auth tests that intentionally perform
+// multiple failed login attempts. Keep production behavior unchanged.
 const isTestEnv = process.env.NODE_ENV === 'test';
 
 /**

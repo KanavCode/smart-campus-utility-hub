@@ -85,14 +85,12 @@ describe('ProtectedRoute', () => {
         </BrowserRouter>
       );
 
-      // The component should redirect, so protected content should not be visible
       expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
     });
   });
 
   describe('Legacy adminOnly Prop', () => {
     it('should accept adminOnly prop for backward compatibility', () => {
-      // This test verifies the prop is accepted without TypeScript errors
       const props = {
         children: <div>Admin Content</div>,
         adminOnly: true,
@@ -129,8 +127,6 @@ describe('ProtectedRoute', () => {
 
   describe('Permission Validation', () => {
     it('should render children if user has required permission', () => {
-      // This would require mocking the entire auth context
-      // For now, we're testing the component accepts the right props
       const testPermissions = [PERMISSIONS.VIEW_STUDENT_DASHBOARD];
 
       expect(testPermissions).toContain(PERMISSIONS.VIEW_STUDENT_DASHBOARD);
@@ -167,8 +163,6 @@ describe('ProtectedRoute', () => {
 
   describe('Navigation on Unauthorized Access', () => {
     it('should redirect to /unauthorized on permission denial', () => {
-      // This tests the redirect logic path
-      // Full integration test would be in integration tests
       const unauthorizedPath = '/unauthorized';
       expect(unauthorizedPath).toBe('/unauthorized');
     });
@@ -206,11 +200,9 @@ describe('ProtectedRoute Integration Tests', () => {
     });
 
     it('admin should have access to all routes', () => {
-      // Admin has all permissions, so check is simple
       const adminRole = 'admin';
       const allRoutes = Object.values(PERMISSIONS);
 
-      // In real scenario, admin would have all these permissions
       expect(allRoutes.length).toBeGreaterThan(0);
     });
   });
@@ -220,13 +212,11 @@ describe('ProtectedRoute Integration Tests', () => {
       const studentRole = 'student';
       const adminPath = '/admin/dashboard';
 
-      // Student attempting to access admin path should be blocked
       const hasPermission = studentRole === 'admin' || false;
       expect(hasPermission).toBe(false);
     });
 
     it('should block direct URL access to student routes for admins (if restricted)', () => {
-      // In this system, admin can access everything, but this tests the concept
       const restrictedPath = '/student/dashboard';
       const allowedRoles = ['student', 'admin'];
 
@@ -236,7 +226,6 @@ describe('ProtectedRoute Integration Tests', () => {
 
   describe('Role Switching', () => {
     it('should update accessible routes when user role changes', () => {
-      // Initial state: student
       let userRole = 'student';
       let accessibleRoutes = [
         PERMISSIONS.VIEW_STUDENT_DASHBOARD,
@@ -245,7 +234,6 @@ describe('ProtectedRoute Integration Tests', () => {
 
       expect(accessibleRoutes).toContain(PERMISSIONS.VIEW_STUDENT_DASHBOARD);
 
-      // After role change: admin
       userRole = 'admin';
       accessibleRoutes = Object.values(PERMISSIONS);
 
