@@ -78,9 +78,10 @@ export default function StudentTimetable() {
           setSelectedGroup(response.data.groups[0].id);
         }
       }
-    } catch (err: any) {
-      console.error('Error fetching groups:', err);
-      toast.error('Failed to load student groups');
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      console.error('Error fetching groups:', e);
+      toast.error(e?.message || 'Failed to load student groups');
     }
   };
 
@@ -119,8 +120,9 @@ export default function StudentTimetable() {
 
       setTimetableData(grid);
       toast.success('Timetable loaded successfully');
-    } catch (err: any) {
-      const errorMsg = err.message || 'Something went wrong';
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      const errorMsg = e?.message || 'Something went wrong';
       setError(errorMsg);
       toast.error(errorMsg);
       setTimetableData({});

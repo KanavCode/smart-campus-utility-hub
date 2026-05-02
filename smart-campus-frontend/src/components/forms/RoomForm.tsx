@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { roomService } from '@/services/roomService';
+import { ApiError, RoomFormData } from '@/types';
 
 interface RoomFormProps {
   onSuccess: () => void;
   onCancel: () => void;
-  initialData?: any;
+  initialData?: RoomFormData;
 }
 
 export const RoomForm = ({ onSuccess, onCancel, initialData }: RoomFormProps) => {
@@ -48,9 +49,9 @@ export const RoomForm = ({ onSuccess, onCancel, initialData }: RoomFormProps) =>
       const payload = {
         room_code: formData.room_code.trim(),
         room_name: formData.room_name.trim(),
-        capacity: parseInt(formData.capacity as any),
-        room_type: (formData.room_type as any),
-        floor_number: formData.floor_number ? parseInt(formData.floor_number as any) : undefined,
+        capacity: Number(formData.capacity),
+        room_type: String(formData.room_type),
+        floor_number: formData.floor_number ? Number(formData.floor_number) : undefined,
         building: formData.building.trim(),
       };
 
@@ -62,8 +63,9 @@ export const RoomForm = ({ onSuccess, onCancel, initialData }: RoomFormProps) =>
         toast.success('Room created successfully!');
       }
       onSuccess();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to save room');
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      toast.error(err?.message || 'Failed to save room');
     } finally {
       setIsLoading(false);
     }

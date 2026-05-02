@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { timetableService } from '@/services/timetableService';
+import { ApiError, GroupFormData } from '@/types';
 
 interface GroupFormProps {
   onSuccess: () => void;
   onCancel: () => void;
-  initialData?: any;
+  initialData?: GroupFormData;
 }
 
 export const GroupForm = ({ onSuccess, onCancel, initialData }: GroupFormProps) => {
@@ -56,15 +57,16 @@ export const GroupForm = ({ onSuccess, onCancel, initialData }: GroupFormProps) 
       await timetableService.createGroup({
         group_code: formData.group_code.trim(),
         group_name: formData.group_name.trim(),
-        strength: parseInt(formData.strength as any),
+        strength: Number(formData.strength),
         department: formData.department.trim(),
-        semester: parseInt(formData.semester as any),
+        semester: Number(formData.semester),
         academic_year: formData.academic_year.trim(),
       });
       toast.success('Group created successfully!');
       onSuccess();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to create group');
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      toast.error(err?.message || 'Failed to create group');
     } finally {
       setIsLoading(false);
     }

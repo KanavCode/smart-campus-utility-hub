@@ -25,11 +25,11 @@ const AVAILABLE_SUBJECTS = [
 export default function Electives() {
   const { user } = useAuth();
   
-  const [displaySubjects, setDisplaySubjects] = useState<any[]>(AVAILABLE_SUBJECTS);
+  const [displaySubjects, setDisplaySubjects] = useState<unknown[]>(AVAILABLE_SUBJECTS);
   const [selectedChoices, setSelectedChoices] = useState<(Elective | null)[]>(Array(5).fill(null));
   const [draggedItem, setDraggedItem] = useState<Elective | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [allocation, setAllocation] = useState<any>(null);
+  const [allocation, setAllocation] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,8 +71,9 @@ export default function Electives() {
         } catch {
           // No allocation yet, that's okay
         }
-      } catch (err: any) {
-        const errorMsg = err?.message || 'Failed to load electives';
+      } catch (err: unknown) {
+        const e = err as { message?: string };
+        const errorMsg = e?.message || 'Failed to load electives';
         setError(errorMsg);
         toast.error(errorMsg);
       } finally {
@@ -133,8 +134,9 @@ export default function Electives() {
       
       setHasSubmitted(true);
       toast.success('Preferences submitted successfully!');
-    } catch (err: any) {
-      const errorMsg = err?.message || 'Failed to submit preferences';
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      const errorMsg = e?.message || 'Failed to submit preferences';
       toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);

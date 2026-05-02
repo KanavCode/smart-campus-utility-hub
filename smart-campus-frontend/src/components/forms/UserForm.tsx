@@ -5,16 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { userService } from '@/services/userService';
+import { ApiError, UserFormData } from '@/types';
 
 interface UserFormProps {
   onSuccess: () => void;
   onCancel: () => void;
-  initialData?: any;
+  initialData?: UserFormData;
 }
 
 export const UserForm = ({ onSuccess, onCancel, initialData }: UserFormProps) => {
   const [formData, setFormData] = useState({
-    full_name: initialData?.name || '',
+    full_name: initialData?.full_name || initialData?.name || '',
     email: initialData?.email || '',
     password: '',
     role: initialData?.role || 'student',
@@ -45,8 +46,9 @@ export const UserForm = ({ onSuccess, onCancel, initialData }: UserFormProps) =>
         toast.success('User created successfully!');
       }
       onSuccess();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to save user');
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      toast.error(err?.message || 'Failed to save user');
     }
   };
 
