@@ -168,7 +168,6 @@ const validationSchemas = {
   electiveQuery: Joi.object({
     department: Joi.string().max(100).optional(),
     semester: Joi.number().integer().min(1).max(8).optional()
-<<<<<<< fix/issue-39-clean
   }),
 
   // Timetable Schemas
@@ -240,11 +239,9 @@ const validationSchemas = {
   teacherIdParam: Joi.object({
     teacherId: Joi.string().uuid().required()
   }),
-  
+
   groupIdParam: Joi.object({
     groupId: Joi.string().uuid().required()
-=======
->>>>>>> main
   })
 };
 

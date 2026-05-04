@@ -38,7 +38,7 @@ const ALLOWED_SORT = {
  */
 const buildActiveEntityQuery = ({ table, defaultOrderBy, filters = [], sort, order, limit, offset }) => {
   const filterValues = [];
-  let conditions = `WHERE is_active = true`;
+  let conditions = 'WHERE is_active = true';
 
   filters.forEach((filter) => {
     const value = filter.transform ? filter.transform(filter.value) : filter.value;
