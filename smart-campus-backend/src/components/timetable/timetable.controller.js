@@ -1,7 +1,6 @@
 const { query } = require('../../config/db');
 const { asyncHandler, ApiError } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
-const { parsePagination } = require('../../utils/request');
 const timetableReadService = require('./timetable.read.service');
 
 const DEFAULT_LIMIT = 20;
@@ -17,7 +16,8 @@ const MAX_LIMIT = 100;
 const validatePaginationSort = (queryParams, table) => {
   const { page: rawPage = '1', limit: rawLimit = String(DEFAULT_LIMIT), sort, order } = queryParams;
 
-  const { page, limit, offset } = parsePagination(rawPage, rawLimit);
+  const page = Number(rawPage);
+  const limit = Number(rawLimit);
 
   if (!Number.isInteger(page) || page < 1) {
     throw new ApiError(400, 'page must be a positive integer');
@@ -25,6 +25,8 @@ const validatePaginationSort = (queryParams, table) => {
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) {
     throw new ApiError(400, `limit must be a positive integer no greater than ${MAX_LIMIT}`);
   }
+
+  const offset = (page - 1) * limit;
 
   const allowedFields = timetableReadService.ALLOWED_SORT[table];
   if (sort && !allowedFields.includes(sort)) {
