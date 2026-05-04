@@ -34,6 +34,8 @@ const validatePaginationSort = (queryParams, table) => {
     throw new ApiError(400, `limit must be a positive integer no greater than ${MAX_LIMIT}`);
   }
 
+  const offset = (page - 1) * limit;
+
   const allowedFields = timetableReadService.ALLOWED_SORT[table];
   if (sort && !allowedFields.includes(sort)) {
     throw new ApiError(400, `Invalid sort field. Allowed values: ${allowedFields.join(', ')}`);
