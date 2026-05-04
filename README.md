@@ -62,12 +62,6 @@ University campuses face significant operational challenges with fragmented syst
 - 🔒 **Secure & Scalable** - JWT authentication with enterprise-grade security
 - 🎨 **Modern UI/UX** - Beautiful, responsive design with smooth animations
 
-### Platform Statistics
-
-- **5,000+** Students Connected
-- **100+** Campus Events Managed
-- **50+** Active Clubs
-
 ---
 
 ## ✨ Features
