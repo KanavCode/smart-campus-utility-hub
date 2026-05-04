@@ -3,7 +3,7 @@ import { teacherService } from '@/services/teacherService';
 import { TeacherFormData } from '@/types';
 import { GenericFormModal } from './GenericFormModal';
 import { FieldConfig } from './types';
-import { z } from 'zod';
+import { teacherSchema } from '@/lib/validationSchemas';
 
 interface TeacherFormProps {
   onSuccess: () => void;
@@ -50,13 +50,7 @@ export const TeacherForm = ({ onSuccess, onCancel, initialData }: TeacherFormPro
     },
   ];
 
-  const validationSchema = z.object({
-    teacher_code: z.string().min(1, 'Teacher code is required'),
-    full_name: z.string().min(1, 'Full name is required'),
-    department: z.string().min(1, 'Department is required'),
-    email: z.string().email('Invalid email address'),
-    phone: z.string().min(1, 'Phone is required'),
-  });
+
 
   const customSubmitHandler = async (data: any, isUpdate: boolean) => {
     const trimmedData = Object.keys(data).reduce((acc, key) => {
@@ -80,7 +74,7 @@ export const TeacherForm = ({ onSuccess, onCancel, initialData }: TeacherFormPro
       initialData={initialData}
       onSuccess={onSuccess}
       onCancel={onCancel}
-      validationSchema={validationSchema}
+      validationSchema={teacherSchema}
       title="Teacher"
       customSubmitHandler={customSubmitHandler}
     />
