@@ -77,11 +77,13 @@ const TestAuthProvider = ({ user, children }: TestAuthProviderProps) => {
 describe('ProtectedRoute', () => {
   describe('Authentication Checks', () => {
     it('should redirect unauthenticated users to /auth', () => {
-      const { container } = render(
+      render(
         <BrowserRouter>
-          <ProtectedRoute>
-            <div>Protected Content</div>
-          </ProtectedRoute>
+          <AuthProvider>
+            <ProtectedRoute>
+              <div>Protected Content</div>
+            </ProtectedRoute>
+          </AuthProvider>
         </BrowserRouter>
       );
 

@@ -131,22 +131,6 @@ export default function Teachers() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {teachers.map((teacher: any) => (
-                  <motion.tr
-                    key={teacher.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="hover:bg-accent/5"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap font-medium">{teacher.teacher_code}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{teacher.full_name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{teacher.department}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
-                      <div>{teacher.email}</div>
-                      <div className="text-xs">{teacher.phone}</div>
-                    </td>
-                  </tr>
-                )}
 
                 {/* Empty state */}
                 {!isLoading && !error && teachers.length === 0 && (
@@ -160,7 +144,7 @@ export default function Teachers() {
                 {/* Data rows */}
                 {!isLoading &&
                   !error &&
-                  paginatedTeachers.map((teacher: any) => (
+                  teachers.map((teacher: any) => (
                     <motion.tr
                       key={teacher.id}
                       initial={{ opacity: 0 }}
