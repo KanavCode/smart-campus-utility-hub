@@ -156,14 +156,3 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
     />
   );
 };
-          className="flex-1"
-          asChild
-        >
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            Cancel
-          </motion.button>
-        </Button>
-      </div>
-    </form>
-  );
-};
