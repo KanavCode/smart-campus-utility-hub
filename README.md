@@ -15,6 +15,7 @@
 [![NSoC 2026](https://img.shields.io/badge/NSoC-2026-ff6b35)](https://github.com/KanavCode/smart-campus-utility-hub)
 [![GitHub Issues](https://img.shields.io/github/issues/KanavCode/smart-campus-utility-hub)](https://github.com/KanavCode/smart-campus-utility-hub/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/KanavCode/smart-campus-utility-hub?style=social)](https://github.com/KanavCode/smart-campus-utility-hub/stargazers)
+[![Repository Views](https://komarev.com/ghpvc/?username=KanavCode-smart-campus-utility-hub&label=Repository%20Views&color=blue&style=flat)](https://github.com/KanavCode/smart-campus-utility-hub)
 
 </div>
 
