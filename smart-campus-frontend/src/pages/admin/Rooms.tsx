@@ -137,22 +137,6 @@ export default function Rooms() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {rooms.map((room: any) => (
-                  <motion.tr
-                    key={room.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="hover:bg-accent/5"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap font-medium">{room.room_code}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{room.room_name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap capitalize">{room.room_type.replace('_', ' ')}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{room.capacity}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
-                      {room.building}, Floor {room.floor_number}
-                    </td>
-                  </tr>
-                )}
 
                 {/* Empty state */}
                 {!isLoading && !error && rooms.length === 0 && (
@@ -166,7 +150,7 @@ export default function Rooms() {
                 {/* Data rows */}
                 {!isLoading &&
                   !error &&
-                  paginatedRooms.map((room: any) => (
+                  rooms.map((room: any) => (
                     <motion.tr
                       key={room.id}
                       initial={{ opacity: 0 }}
