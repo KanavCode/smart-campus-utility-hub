@@ -6,6 +6,7 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { roomService } from '@/services/roomService';
 import { FormModal } from '@/components/modals/FormModal';
 import { RoomForm } from '@/components/forms/RoomForm';
+import { SkeletonTableRow, ErrorStateCard } from '@/components/ui/DataStateDisplay';
 import { useAdminCrud } from '@/hooks/useAdminCrud';
 import { toast } from 'sonner';
 
@@ -51,11 +52,14 @@ export default function Rooms() {
   const {
     isModalOpen,
     selectedItem: editingRoom,
+    isLoading,
+    error,
     openCreate,
     openEdit,
     closeModal,
     deleteItem,
     handleFormSuccess,
+    retryLoad,
   } = useAdminCrud<any>({
     getAll: roomService.getAll,
     deleteById: roomService.delete,
@@ -147,24 +151,53 @@ export default function Rooms() {
                     <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
                       {room.building}, Floor {room.floor_number}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEdit(room)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteItem(room.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                  </tr>
+                )}
+
+                {/* Empty state */}
+                {!isLoading && !error && rooms.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="text-center text-muted-foreground py-8">
+                      No rooms found. Create your first room to get started.
                     </td>
-                  </motion.tr>
-                ))}
+                  </tr>
+                )}
+
+                {/* Data rows */}
+                {!isLoading &&
+                  !error &&
+                  paginatedRooms.map((room: any) => (
+                    <motion.tr
+                      key={room.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="hover:bg-accent/5"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap font-medium">{room.room_code}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{room.room_name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap capitalize">{room.room_type.replace('_', ' ')}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{room.capacity}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
+                        {room.building}, Floor {room.floor_number}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEdit(room)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteItem(room.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </td>
+                    </motion.tr>
+                  ))}
               </tbody>
             </table>
           </div>

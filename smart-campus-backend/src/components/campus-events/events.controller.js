@@ -90,15 +90,22 @@ const getAllEvents = asyncHandler(async (req, res) => {
 
   const offset = (pageNum - 1) * limitNum;
 
-  const allowedSortFields = ["start_time", "title", "created_at"];
-  const allowedOrders = ["ASC", "DESC"];
-  const sortField = allowedSortFields.includes(sort) ? sort : "start_time";
-  const sortOrder = allowedOrders.includes(order.toUpperCase())
-    ? order.toUpperCase()
-    : "ASC";
+  const allowedSortFields = ['start_time', 'title', 'created_at'];
+  const allowedOrders = ['ASC', 'DESC'];
+  const sortField = allowedSortFields.includes(sort) ? sort : 'start_time';
+  const sortOrder = allowedOrders.includes(order.toUpperCase()) ? order.toUpperCase() : 'ASC';
 
-  let sql =
-    "SELECT e.*, c.name as club_name, COUNT(*) OVER() as total_count FROM events e LEFT JOIN clubs c ON e.club_id = c.id WHERE 1=1";
+  // Map allowed sort fields to fully-qualified, safe SQL identifiers.
+  const sortFieldMap = {
+    start_time: 'e.start_time',
+    title: 'e.title',
+    created_at: 'e.created_at',
+  };
+
+  // Ensure we always use a safe, whitelisted column name for ORDER BY.
+  const safeSortField = sortFieldMap[sortField] || 'e.start_time';
+  
+  let sql = 'SELECT e.*, c.name as club_name, COUNT(*) OVER() as total_count FROM events e LEFT JOIN clubs c ON e.club_id = c.id WHERE 1=1';
   const values = [];
   let paramCounter = 1;
 
@@ -144,7 +151,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
     sql += ' AND e.start_time > NOW()';
   }
 
-  sql += ` ORDER BY e.${sortField} ${sortOrder}`;
+  sql += ` ORDER BY ${safeSortField} ${sortOrder}`;
   sql += ` LIMIT $${paramCounter} OFFSET $${paramCounter + 1}`;
   values.push(limitNum, offset);
 

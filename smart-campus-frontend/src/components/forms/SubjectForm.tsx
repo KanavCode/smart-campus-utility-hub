@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { subjectService } from '@/services/subjectService';
+import { ApiError, SubjectFormData } from '@/types';
 
 interface SubjectFormProps {
   onSuccess: () => void;
   onCancel: () => void;
-  initialData?: any;
+  initialData?: SubjectFormData;
 }
 
 export const SubjectForm = ({ onSuccess, onCancel, initialData }: SubjectFormProps) => {
@@ -52,10 +53,10 @@ export const SubjectForm = ({ onSuccess, onCancel, initialData }: SubjectFormPro
       const payload = {
         subject_code: formData.subject_code.trim(),
         subject_name: formData.subject_name.trim(),
-        hours_per_week: parseInt(formData.hours_per_week as any),
-        course_type: (formData.course_type as any),
+        hours_per_week: Number(formData.hours_per_week),
+        course_type: String(formData.course_type),
         department: formData.department.trim(),
-        semester: parseInt(formData.semester as any),
+        semester: Number(formData.semester),
       };
 
       if (initialData?.id) {
@@ -66,8 +67,9 @@ export const SubjectForm = ({ onSuccess, onCancel, initialData }: SubjectFormPro
         toast.success('Subject created successfully!');
       }
       onSuccess();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to save subject');
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      toast.error(err?.message || 'Failed to save subject');
     } finally {
       setIsLoading(false);
     }

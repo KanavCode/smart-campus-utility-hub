@@ -33,8 +33,9 @@ export default function EventsPage() {
       setError(null);
       const response = await eventsService.getAll(filters);
       setEvents(response.data?.events || []);
-    } catch (error: any) {
-      const errorMsg = error?.message || 'Failed to load events';
+    } catch (error: unknown) {
+      const e = error as { message?: string };
+      const errorMsg = e?.message || 'Failed to load events';
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -47,8 +48,8 @@ export default function EventsPage() {
       const response = await eventsService.getMySaved();
       const ids = new Set(response.data?.events?.map((e: Event) => e.id) || []);
       setSavedEventIds(ids);
-    } catch (error) {
-      console.error('Failed to load saved events');
+    } catch (error: unknown) {
+      console.error('Failed to load saved events', error);
     }
   };
 
@@ -73,8 +74,9 @@ export default function EventsPage() {
         setSavedEventIds(prev => new Set(prev).add(eventId));
         toast.success('Event saved successfully!');
       }
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to save event');
+    } catch (error: unknown) {
+      const e = error as { message?: string };
+      toast.error(e?.message || 'Failed to save event');
     } finally {
       setIsSavingMap(new Map(isSavingMap).set(eventId, false));
     }

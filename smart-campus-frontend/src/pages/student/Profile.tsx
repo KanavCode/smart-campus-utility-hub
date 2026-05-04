@@ -9,6 +9,7 @@ import { FormModal } from '@/components/modals/FormModal';
 import { User, Lock, Mail, GraduationCap } from 'lucide-react';
 import { toast } from 'sonner';
 import { authService } from '@/services/authService';
+import { ApiError, UserFormData } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Profile() {
@@ -58,10 +59,10 @@ export default function Profile() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const updatePayload: any = {
+      const updatePayload: UserFormData = {
         full_name: profileData.full_name,
         email: profileData.email,
-        department: profileData.department
+        department: profileData.department || undefined,
       };
       
       // Add student-specific fields
@@ -73,8 +74,9 @@ export default function Profile() {
       await authService.updateProfile(updatePayload);
       toast.success('Profile updated successfully!');
       setIsEditModalOpen(false);
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to update profile');
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      toast.error(err?.message || 'Failed to update profile');
     }
   };
 
@@ -89,8 +91,9 @@ export default function Profile() {
       toast.success('Password changed successfully!');
       setIsPasswordModalOpen(false);
       setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to change password');
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      toast.error(err?.message || 'Failed to change password');
     }
   };
 

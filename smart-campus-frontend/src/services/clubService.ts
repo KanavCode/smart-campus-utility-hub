@@ -12,7 +12,7 @@ export interface Club {
 }
 
 export interface ClubWithEvents extends Club {
-  events: any[];
+  events: unknown[];
 }
 
 export const clubService = {
@@ -30,7 +30,7 @@ export const clubService = {
       const query = params.toString() ? `?${params.toString()}` : '';
       const data = asApiData(await api.get(`/clubs${query}`));
       return getPayloadArray<Club>(data, 'clubs');
-    } catch (error: any) {
+    } catch (error: unknown) {
       withServiceError(error, 'Failed to fetch clubs');
     }
   },
@@ -47,7 +47,7 @@ export const clubService = {
         ...(getPayload<Club>(data, 'club') as Club),
         events: getPayloadArray<any>(data, 'events')
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       withServiceError(error, 'Failed to fetch club details');
     }
   },
@@ -65,7 +65,7 @@ export const clubService = {
     try {
       const data = asApiData(await api.post('/clubs', clubData));
       return getPayload<Club>(data, 'club') as Club;
-    } catch (error: any) {
+    } catch (error: unknown) {
       withServiceError(error, 'Failed to create club');
     }
   },
@@ -78,7 +78,7 @@ export const clubService = {
     try {
       const data = asApiData(await api.put(`/clubs/${id}`, clubData));
       return getPayload<Club>(data, 'club') as Club;
-    } catch (error: any) {
+    } catch (error: unknown) {
       withServiceError(error, 'Failed to update club');
     }
   },
@@ -90,7 +90,7 @@ export const clubService = {
   delete: async (id: number): Promise<void> => {
     try {
       await api.delete(`/clubs/${id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       withServiceError(error, 'Failed to delete club');
     }
   },

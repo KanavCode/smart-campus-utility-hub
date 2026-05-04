@@ -1,21 +1,16 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { GraduationCap, CheckCircle } from "lucide-react";
-import { toast } from "sonner";
-import AuthBackground from "@/components/animations/AuthBackground";
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { GraduationCap, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { UserFormData } from '@/types';
+import AuthBackground from '@/components/animations/AuthBackground';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -63,7 +58,7 @@ export default function Auth() {
         navigate("/dashboard");
       }
     } catch (error: any) {
-      toast.error(error?.message || "Login failed. Please try again.");
+      toast.error(error?.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -100,12 +95,12 @@ export default function Auth() {
 
     try {
       // Build payload based on schema
-      const payload: any = {
+      const payload: UserFormData = {
         full_name: signupData.name,
         email: signupData.email,
         password: signupData.password,
         role: signupData.role,
-        department: signupData.department || null,
+        department: signupData.department || null
       };
 
       // Add student-specific fields only for students
@@ -129,7 +124,7 @@ export default function Auth() {
         setActiveTab("login");
       }, 2000);
     } catch (error: any) {
-      toast.error(error?.message || "Signup failed. Please try again.");
+      toast.error(error?.message || 'Signup failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -155,11 +150,7 @@ export default function Auth() {
             <h1 className="text-2xl font-bold">Smart Campus Hub</h1>
           </motion.div>
 
-          <Tabs
-            value={activeTab}
-            onValueChange={(value: any) => setActiveTab(value)}
-            className="w-full"
-          >
+          <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Signup</TabsTrigger>

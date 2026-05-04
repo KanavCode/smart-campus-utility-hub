@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { teacherService } from '@/services/teacherService';
+import { ApiError, TeacherFormData } from '@/types';
 
 interface TeacherFormProps {
   onSuccess: () => void;
   onCancel: () => void;
-  initialData?: any;
+  initialData?: TeacherFormData;
 }
 
 export const TeacherForm = ({ onSuccess, onCancel, initialData }: TeacherFormProps) => {
@@ -64,8 +65,9 @@ export const TeacherForm = ({ onSuccess, onCancel, initialData }: TeacherFormPro
         toast.success('Teacher created successfully!');
       }
       onSuccess();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to save teacher');
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      toast.error(err?.message || 'Failed to save teacher');
     } finally {
       setIsLoading(false);
     }

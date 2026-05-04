@@ -1,11 +1,12 @@
 import { timetableService, PaginationSortParams } from './timetableService';
 import { api } from '@/lib/axios';
 import { getPayload, getPayloadArray } from './serviceUtils';
+import { RoomFormData } from '@/types';
 
 export const roomService = {
   getAll: async () => {
     const response = await timetableService.getRooms();
-    return getPayloadArray<any>(response, 'rooms');
+    return getPayloadArray(response, 'rooms');
   },
 
   list: async (params: PaginationSortParams) => {
@@ -20,12 +21,12 @@ export const roomService = {
 
   create: async (roomData: any) => {
     const response = await timetableService.createRoom(roomData);
-    return getPayload<any>(response, 'room');
+    return getPayload(response, 'room');
   },
 
-  update: async (id: string, roomData: any) => {
+  update: async (id: string, roomData: RoomFormData) => {
     const { data } = await api.put(`/timetable/rooms/${id}`, roomData);
-    return getPayload<any>(data, 'room');
+    return getPayload(data, 'room');
   },
 
   delete: async (id: string) => {
