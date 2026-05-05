@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/select';
 import { FormModal } from '@/components/modals/FormModal';
 import { UserForm } from '@/components/forms/UserForm';
-import { TableDataStateRenderer, SkeletonTableRow } from '@/components/ui/DataStateDisplay';
+import { SkeletonTableRow } from '@/components/ui/DataStateDisplay';
 import { userService, UserFilterParams } from '@/services/userService';
 import { useAdminCrud } from '@/hooks/useAdminCrud';
 import { downloadUsersAsCSV, generateTimestampedFilename } from '@/lib/csvExport';
@@ -382,77 +382,21 @@ export default function Users() {
               </TableBody>
             </Table>
           </div>
-        </div>
 
-        <FormModal
-          isOpen={isModalOpen}
-          onClose={closeModal}
-          title={selectedUser ? 'Edit User' : 'Create New User'}
-        >
-          <UserForm
-            onSuccess={handleFormSuccess}
-            onCancel={closeModal}
-            initialData={selectedUser}
-          />
-        </FormModal>
+          <FormModal
+            isOpen={isModalOpen}
+            onClose={closeModal}
+            title={selectedUser ? 'Edit User' : 'Create New User'}
+          >
+            <UserForm
+              onSuccess={handleFormSuccess}
+              onCancel={closeModal}
+              initialData={selectedUser}
+            />
+          </FormModal>
+        </div>
       </motion.div>
     </DashboardLayout>
   );
 }
-                  </TableRow>
-                )}
 
-                {/* Data rows */}
-                {!isLoading &&
-                  !error &&
-                  filteredUsers.map((user) => (
-                    <TableRow key={user.id} className="hover:bg-accent/5">
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <span className="px-2 py-1 rounded-md bg-accent/20 text-xs">
-                          {user.role}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="glass">
-                            <DropdownMenuItem onClick={() => openEdit(user)}>
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => deleteItem(user.id)}
-                              className="text-destructive"
-                            >
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-
-        <FormModal
-          isOpen={isModalOpen}
-          onClose={closeModal}
-          title={selectedUser ? 'Edit User' : 'Create New User'}
-        >
-          <UserForm
-            onSuccess={handleFormSuccess}
-            onCancel={closeModal}
-            initialData={selectedUser}
-          />
-        </FormModal>
-      </motion.div>
-    </DashboardLayout>
-  );
-}
