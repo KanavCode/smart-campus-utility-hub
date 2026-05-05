@@ -6,7 +6,6 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { roomService } from '@/services/roomService';
 import { FormModal } from '@/components/modals/FormModal';
 import { RoomForm } from '@/components/forms/RoomForm';
-import { SkeletonTableRow, ErrorStateCard } from '@/components/ui/DataStateDisplay';
 import { useAdminCrud } from '@/hooks/useAdminCrud';
 import { toast } from 'sonner';
 
@@ -59,7 +58,6 @@ export default function Rooms() {
     closeModal,
     deleteItem,
     handleFormSuccess,
-    retryLoad,
   } = useAdminCrud<any>({
     getAll: roomService.getAll,
     deleteById: roomService.delete,
@@ -137,6 +135,38 @@ export default function Rooms() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
+                {rooms.map((room: any) => (
+                  <motion.tr
+                    key={room.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="hover:bg-accent/5"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap font-medium">{room.room_code}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{room.room_name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap capitalize">{room.room_type.replace('_', ' ')}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{room.capacity}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
+                      {room.building}, Floor {room.floor_number}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEdit(room)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteItem(room.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </td>
+                  </motion.tr>
+                ))}
 
                 {/* Empty state */}
                 {!isLoading && !error && rooms.length === 0 && (
@@ -146,42 +176,6 @@ export default function Rooms() {
                     </td>
                   </tr>
                 )}
-
-                {/* Data rows */}
-                {!isLoading &&
-                  !error &&
-                  rooms.map((room: any) => (
-                    <motion.tr
-                      key={room.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="hover:bg-accent/5"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap font-medium">{room.room_code}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{room.room_name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap capitalize">{room.room_type.replace('_', ' ')}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{room.capacity}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
-                        {room.building}, Floor {room.floor_number}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEdit(room)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteItem(room.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </td>
-                    </motion.tr>
-                  ))}
               </tbody>
             </table>
           </div>
