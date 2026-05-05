@@ -93,4 +93,15 @@ router.delete(
   userController.deleteUser
 );
 
+// SSO Routes
+router.get(
+  '/sso/:provider',
+  userController.ssoRedirect
+);
+
+router.get(
+  '/sso/:provider/callback',
+  userController.ssoCallback
+);
+
 module.exports = router;
