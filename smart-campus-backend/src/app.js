@@ -19,6 +19,10 @@ const electiveRoutes = require("./components/electives/elective.routes");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy is required for express-rate-limit to work correctly behind 
+// reverse proxies (like Nginx, Heroku, AWS ELB, etc.)
+app.set('trust proxy', 1);
+
 // =====================================================================
 // SECURITY MIDDLEWARE
 // =====================================================================
