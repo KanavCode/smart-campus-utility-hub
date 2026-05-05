@@ -234,6 +234,10 @@ Authorization: Bearer <your_jwt_token>
 - `department` - Filter by department
 - `is_featured` - true/false
 - `upcoming` - true (only future events)
+- `page` - Page number (default: 1)
+- `limit` - Items per page (default: 10)
+- `sort` - Sort by field: `start_time`, `title`, `created_at` (default: start_time)
+- `order` - Sort order: `ASC` or `DESC` (default: ASC)
 
 **Response:**
 
@@ -257,7 +261,12 @@ Authorization: Bearer <your_jwt_token>
         "tags": ["technology", "conference", "networking"]
       }
     ],
-    "count": 1
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 25,
+      "totalPages": 3
+    }
   }
 }
 ```
@@ -296,9 +305,46 @@ Authorization: Bearer <your_jwt_token>
 }
 ```
 
+**Response:** `201 Created`
+
+```json
+{
+  "success": true,
+  "message": "Event created successfully",
+  "data": {
+    "event": {
+      "id": 5,
+      "title": "Workshop on AI",
+      "location": "Lab 301",
+      "start_time": "2024-12-15T14:00:00Z",
+      "end_time": "2024-12-15T16:00:00Z",
+      "club_id": 1,
+      "is_featured": false,
+      "tags": ["workshop", "AI", "machine-learning"]
+    }
+  }
+}
+```
+
 ### 13. Update Event
 
 **PUT** `/events/:id` 🔒👨‍💼
+
+**Body:**
+
+```json
+{
+  "title": "Updated Workshop on AI",
+  "description": "Advanced AI concepts",
+  "location": "Lab 401",
+  "start_time": "2024-12-15T14:00:00Z",
+  "end_time": "2024-12-15T17:00:00Z",
+  "club_id": 1,
+  "target_department": "Computer Science",
+  "is_featured": true,
+  "tags": ["workshop", "AI", "deep-learning"]
+}
+```
 
 **Response:** `200 OK`
 
@@ -358,6 +404,28 @@ Allows students to save events to their personal list.
 
 **GET** `/events/saved/my-events` 🔒
 
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Saved events fetched successfully",
+  "data": {
+    "events": [
+      {
+        "id": 1,
+        "title": "Tech Conference 2024",
+        "location": "Main Auditorium",
+        "start_time": "2024-12-01T10:00:00Z",
+        "club_name": "Tech Club",
+        "saved_at": "2024-11-20T08:00:00Z"
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
 ---
 
 ## 🏛️ Clubs Endpoints
@@ -370,6 +438,10 @@ Allows students to save events to their personal list.
 
 - `category` - Filter by category
 - `search` - Search in name/description
+- `page` - Page number (default: 1)
+- `limit` - Items per page (default: 10)
+- `sort` - Sort by field: `name`, `category`, `created_at` (default: name)
+- `order` - Sort order: `ASC` or `DESC` (default: ASC)
 
 **Response:**
 
@@ -387,7 +459,12 @@ Allows students to save events to their personal list.
         "category": "Technical"
       }
     ],
-    "count": 1
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 8,
+      "totalPages": 1
+    }
   }
 }
 ```
@@ -423,9 +500,38 @@ Returns club details with all its events.
 }
 ```
 
+**Response:** `201 Created`
+
+```json
+{
+  "success": true,
+  "message": "Club created successfully",
+  "data": {
+    "club": {
+      "id": 3,
+      "name": "Photography Club",
+      "description": "Capture moments, create memories",
+      "contact_email": "photo@campus.edu",
+      "category": "Cultural"
+    }
+  }
+}
+```
+
 ### 21. Update Club
 
 **PUT** `/clubs/:id` 🔒👨‍💼
+
+**Body:**
+
+```json
+{
+  "name": "Photography Club Updated",
+  "description": "Capture and edit moments",
+  "contact_email": "photo.updated@campus.edu",
+  "category": "Cultural"
+}
+```
 
 **Response:** `200 OK`
 
