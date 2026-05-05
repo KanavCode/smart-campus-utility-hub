@@ -1,11 +1,9 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { subjectService } from '@/services/subjectService';
-import { ApiError, SubjectFormData } from '@/types';
+import { SubjectFormData } from '@/types';
+import { GenericFormModal } from './GenericFormModal';
+import { FieldConfig } from './types';
+import { z } from 'zod';
 
 interface SubjectFormProps {
   onSuccess: () => void;
@@ -14,179 +12,96 @@ interface SubjectFormProps {
 }
 
 export const SubjectForm = ({ onSuccess, onCancel, initialData }: SubjectFormProps) => {
-  const [formData, setFormData] = useState({
-    subject_code: initialData?.subject_code || '',
-    subject_name: initialData?.subject_name || '',
-    hours_per_week: initialData?.hours_per_week || '',
-    course_type: initialData?.course_type || 'Theory',
-    department: initialData?.department || '',
-    semester: initialData?.semester || '',
+  const fields: FieldConfig[] = [
+    {
+      id: 'subject_code',
+      label: 'Subject Code',
+      type: 'text',
+      required: true,
+      gridCol: 1,
+    },
+    {
+      id: 'subject_name',
+      label: 'Subject Name',
+      type: 'text',
+      required: true,
+      gridCol: 1,
+    },
+    {
+      id: 'hours_per_week',
+      label: 'Hours per Week',
+      type: 'number',
+      required: true,
+      gridCol: 1,
+    },
+    {
+      id: 'course_type',
+      label: 'Course Type',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'Theory', label: 'Theory' },
+        { value: 'Practical', label: 'Practical' },
+        { value: 'Lab', label: 'Lab' },
+      ],
+      gridCol: 1,
+    },
+    {
+      id: 'department',
+      label: 'Department',
+      type: 'text',
+      required: true,
+      gridCol: 1,
+    },
+    {
+      id: 'semester',
+      label: 'Semester',
+      type: 'number',
+      required: true,
+      min: 1,
+      max: 8,
+      gridCol: 1,
+    },
+  ];
+
+  const validationSchema = z.object({
+    subject_code: z.string().min(1, 'Subject code is required'),
+    subject_name: z.string().min(1, 'Subject name is required'),
+    hours_per_week: z.coerce.number().min(1, 'Hours per week is required'),
+    course_type: z.string().min(1, 'Course type is required'),
+    department: z.string().min(1, 'Department is required'),
+    semester: z.coerce.number().min(1).max(8, 'Semester must be between 1 and 8'),
   });
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      // Validate required fields
-      if (!formData.subject_code.trim()) {
-        toast.error('Subject code is required');
-        return;
-      }
-      if (!formData.subject_name.trim()) {
-        toast.error('Subject name is required');
-        return;
-      }
-      if (!formData.hours_per_week) {
-        toast.error('Hours per week is required');
-        return;
-      }
-      if (!formData.department.trim()) {
-        toast.error('Department is required');
-        return;
-      }
-      if (!formData.semester) {
-        toast.error('Semester is required');
-        return;
-      }
+  const customSubmitHandler = async (data: any, isUpdate: boolean) => {
+    const payload = {
+      subject_code: data.subject_code.trim(),
+      subject_name: data.subject_name.trim(),
+      hours_per_week: Number(data.hours_per_week),
+      course_type: String(data.course_type),
+      department: data.department.trim(),
+      semester: Number(data.semester),
+    };
 
-      const payload = {
-        subject_code: formData.subject_code.trim(),
-        subject_name: formData.subject_name.trim(),
-        hours_per_week: Number(formData.hours_per_week),
-        course_type: String(formData.course_type),
-        department: formData.department.trim(),
-        semester: Number(formData.semester),
-      };
-
-      if (initialData?.id) {
-        await subjectService.update(initialData.id, payload);
-        toast.success('Subject updated successfully!');
-      } else {
-        await subjectService.create(payload);
-        toast.success('Subject created successfully!');
-      }
-      onSuccess();
-    } catch (error: unknown) {
-      const err = error as ApiError;
-      toast.error(err?.message || 'Failed to save subject');
-    } finally {
-      setIsLoading(false);
+    if (isUpdate) {
+      await subjectService.update(initialData!.id, payload);
+      toast.success('Subject updated successfully!');
+    } else {
+      await subjectService.create(payload);
+      toast.success('Subject created successfully!');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="subject_code">Subject Code *</Label>
-          <Input
-            id="subject_code"
-            name="subject_code"
-            value={formData.subject_code}
-            onChange={(e) => setFormData({ ...formData, subject_code: e.target.value })}
-            required
-            className="glass"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="subject_name">Subject Name *</Label>
-          <Input
-            id="subject_name"
-            name="subject_name"
-            value={formData.subject_name}
-            onChange={(e) => setFormData({ ...formData, subject_name: e.target.value })}
-            required
-            className="glass"
-          />
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="hours_per_week">Hours per Week *</Label>
-          <Input
-            id="hours_per_week"
-            name="hours_per_week"
-            type="number"
-            value={formData.hours_per_week}
-            onChange={(e) => setFormData({ ...formData, hours_per_week: e.target.value })}
-            required
-            className="glass"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="course_type">Course Type *</Label>
-          <select
-            id="course_type"
-            name="course_type"
-            value={formData.course_type}
-            onChange={(e) => setFormData({ ...formData, course_type: e.target.value })}
-            required
-            className="w-full p-2 rounded-lg glass border border-border"
-          >
-            <option value="Theory">Theory</option>
-            <option value="Practical">Practical</option>
-            <option value="Lab">Lab</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="department">Department *</Label>
-          <Input
-            id="department"
-            name="department"
-            value={formData.department}
-            onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-            required
-            className="glass"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="semester">Semester *</Label>
-          <Input
-            id="semester"
-            name="semester"
-            type="number"
-            min="1"
-            max="8"
-            value={formData.semester}
-            onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
-            required
-            className="glass"
-          />
-        </div>
-      </div>
-
-      <div className="flex gap-3 pt-4">
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className="flex-1 bg-primary text-primary-foreground font-semibold glow-primary-hover"
-          asChild
-        >
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            {isLoading ? 'Saving...' : initialData?.id ? 'Update Subject' : 'Create Subject'}
-          </motion.button>
-        </Button>
-        <Button
-          type="button"
-          onClick={onCancel}
-          variant="outline"
-          className="flex-1"
-          disabled={isLoading}
-          asChild
-        >
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            Cancel
-          </motion.button>
-        </Button>
-      </div>
-    </form>
+    <GenericFormModal
+      fields={fields}
+      service={subjectService}
+      initialData={initialData}
+      onSuccess={onSuccess}
+      onCancel={onCancel}
+      validationSchema={validationSchema}
+      title="Subject"
+      customSubmitHandler={customSubmitHandler}
+    />
   );
 };
