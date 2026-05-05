@@ -569,8 +569,104 @@ const saveTimetableToDatabase = async (timetable, academic_year, semester_type) 
   }
 };
 
+/**
+ * Handle manual override: detect conflicts and suggest alternatives
+ * 
+ * @param {Object} assignment - { teacher_id, subject_id, group_id, room_id, day, period }
+ * @param {Object} currentState - Current timetable state with all schedule data
+ * @returns {Object} Result with conflicts and suggestions
+ */
+const detectConflictsAndSuggest = async (assignment, currentState) => {
+  try {
+    const { ConflictDetector } = require('./conflict.detector');
+    const { SuggestionEngine } = require('./suggestion.engine');
+
+    // Fetch resource details
+    const [teacher, subject, group, room] = await Promise.all([
+      Teacher.findById(assignment.teacher_id),
+      Subject.findById(assignment.subject_id),
+      StudentGroup.findById(assignment.group_id),
+      Room.findById(assignment.room_id)
+    ]);
+
+    if (!teacher || !subject || !group || !room) {
+      return {
+        success: false,
+        conflicts: [],
+        suggestions: [],
+        error: 'Invalid assignment: One or more resources not found'
+      };
+    }
+
+    // Step 1: Detect conflicts
+    const conflictDetector = new ConflictDetector(
+      currentState.timetable,
+      currentState.teacherSchedule,
+      currentState.roomSchedule,
+      currentState.groupSchedule
+    );
+
+    const conflicts = await conflictDetector.detectConflicts(
+      teacher, subject, group, room, assignment.day, assignment.period
+    );
+
+    // Step 2: If no conflicts, return success
+    if (conflicts.length === 0) {
+      logger.info('✅ No conflicts detected for manual override');
+      return {
+        success: true,
+        conflicts: [],
+        suggestions: [],
+        message: 'Assignment can proceed - no conflicts found'
+      };
+    }
+
+    // Step 3: If conflicts exist, generate suggestions
+    logger.warn(`⚠️ ${conflicts.length} conflict(s) detected. Generating suggestions...`);
+
+    const suggestionEngine = new SuggestionEngine(
+      currentState.timetable,
+      currentState.constraints,
+      currentState.teacherSchedule,
+      currentState.roomSchedule,
+      currentState.groupSchedule
+    );
+
+    const suggestions = await suggestionEngine.getSuggestions(
+      teacher, subject, group, room, assignment.day, assignment.period
+    );
+
+    logger.info(`📋 Generated ${suggestions.length} alternative suggestions`);
+
+    return {
+      success: false,
+      conflicts: conflicts,
+      suggestions: suggestions,
+      conflictCount: conflicts.length,
+      hasHighSeverityConflict: conflicts.some(c => c.severity === 'HIGH'),
+      requestedSlot: {
+        day: assignment.day,
+        period: assignment.period,
+        teacher: { id: teacher.id, name: teacher.full_name },
+        subject: { id: subject.id, name: subject.subject_name },
+        group: { id: group.id, name: group.group_name },
+        room: { id: room.id, name: room.room_name }
+      }
+    };
+  } catch (error) {
+    logger.error('Error in detectConflictsAndSuggest:', error);
+    return {
+      success: false,
+      conflicts: [],
+      suggestions: [],
+      error: error.message
+    };
+  }
+};
+
 module.exports = {
   generateTimetable,
   saveTimetableToDatabase,
-  TimetableSolver
+  TimetableSolver,
+  detectConflictsAndSuggest
 };
