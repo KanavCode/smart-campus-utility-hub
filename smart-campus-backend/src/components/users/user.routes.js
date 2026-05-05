@@ -49,6 +49,7 @@ router.put(
 router.post(
   '/change-password',
   verifyToken,
+  authLimiter,
   userController.changePassword
 );
 
