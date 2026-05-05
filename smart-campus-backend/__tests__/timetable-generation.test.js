@@ -464,3 +464,315 @@ describe('Timetable Generation Algorithm Tests', () => {
     expect(hasLunchBreak).toBe(false);
   });
 });
+
+describe('Conflict Detection & Smart Suggestion Engine - Issue #96', () => {
+  const { ConflictDetector } = require('../src/components/timetable/conflict.detector');
+  const { SuggestionEngine } = require('../src/components/timetable/suggestion.engine');
+  const { detectConflictsAndSuggest } = require('../src/components/timetable/timetable.service');
+
+  let mockState;
+
+  beforeEach(() => {
+    // Setup mock timetable state
+    mockState = {
+      timetable: {
+        Monday: { 1: [], 2: [], 3: [], 4: [], 5: [] },
+        Tuesday: { 1: [], 2: [], 3: [], 4: [], 5: [] }
+      },
+      teacherSchedule: {
+        Monday: { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set(), 5: new Set() },
+        Tuesday: { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set(), 5: new Set() }
+      },
+      roomSchedule: {
+        Monday: { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set(), 5: new Set() },
+        Tuesday: { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set(), 5: new Set() }
+      },
+      groupSchedule: {
+        Monday: { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set(), 5: new Set() },
+        Tuesday: { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set(), 5: new Set() }
+      },
+      constraints: {
+        days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        periods_per_day: 5,
+        lunch_break_period: 3
+      }
+    };
+  });
+
+  describe('ConflictDetector', () => {
+    let detector;
+
+    beforeEach(() => {
+      detector = new ConflictDetector(
+        mockState.timetable,
+        mockState.teacherSchedule,
+        mockState.roomSchedule,
+        mockState.groupSchedule
+      );
+    });
+
+    test('Should detect TEACHER_CONFLICT when teacher already scheduled', async () => {
+      const teacher = { id: 'T1', full_name: 'Dr. Smith' };
+      const subject = { id: 'S1', subject_name: 'Database', course_type: 'Theory' };
+      const group = { id: 'G1', group_name: 'Group A', strength: 30 };
+      const room = { id: 'R1', room_name: 'Room 101', capacity: 50, room_type: 'Classroom' };
+
+      // Pre-occupy teacher on Monday period 2
+      mockState.teacherSchedule['Monday']['2'].add('T1');
+
+      const conflicts = await detector.detectConflicts(teacher, subject, group, room, 'Monday', 2);
+
+      expect(conflicts).toContainEqual(expect.objectContaining({
+        type: 'TEACHER_CONFLICT',
+        severity: 'HIGH'
+      }));
+    });
+
+    test('Should detect ROOM_CONFLICT when room already occupied', async () => {
+      const teacher = { id: 'T1', full_name: 'Dr. Smith' };
+      const subject = { id: 'S1', subject_name: 'Database', course_type: 'Theory' };
+      const group = { id: 'G1', group_name: 'Group A', strength: 30 };
+      const room = { id: 'R1', room_name: 'Room 101', capacity: 50, room_type: 'Classroom' };
+
+      // Pre-occupy room on Monday period 2
+      mockState.roomSchedule['Monday']['2'].add('R1');
+
+      const conflicts = await detector.detectConflicts(teacher, subject, group, room, 'Monday', 2);
+
+      expect(conflicts).toContainEqual(expect.objectContaining({
+        type: 'ROOM_CONFLICT',
+        severity: 'HIGH'
+      }));
+    });
+
+    test('Should detect GROUP_CONFLICT when group already scheduled', async () => {
+      const teacher = { id: 'T1', full_name: 'Dr. Smith' };
+      const subject = { id: 'S1', subject_name: 'Database', course_type: 'Theory' };
+      const group = { id: 'G1', group_name: 'Group A', strength: 30 };
+      const room = { id: 'R1', room_name: 'Room 101', capacity: 50, room_type: 'Classroom' };
+
+      // Pre-occupy group on Monday period 2
+      mockState.groupSchedule['Monday']['2'].add('G1');
+
+      const conflicts = await detector.detectConflicts(teacher, subject, group, room, 'Monday', 2);
+
+      expect(conflicts).toContainEqual(expect.objectContaining({
+        type: 'GROUP_CONFLICT',
+        severity: 'HIGH'
+      }));
+    });
+
+    test('Should detect CAPACITY_CONFLICT when room too small', async () => {
+      const teacher = { id: 'T1', full_name: 'Dr. Smith' };
+      const subject = { id: 'S1', subject_name: 'Database', course_type: 'Theory' };
+      const group = { id: 'G1', group_name: 'Group A', strength: 50 };
+      const room = { id: 'R1', room_name: 'Room 101', capacity: 30, room_type: 'Classroom' };
+
+      const conflicts = await detector.detectConflicts(teacher, subject, group, room, 'Monday', 2);
+
+      expect(conflicts).toContainEqual(expect.objectContaining({
+        type: 'CAPACITY_CONFLICT',
+        severity: 'MEDIUM'
+      }));
+    });
+
+    test('Should detect ROOM_TYPE_CONFLICT for lab class in classroom', async () => {
+      const teacher = { id: 'T1', full_name: 'Dr. Smith' };
+      const subject = { id: 'S1', subject_name: 'Physics Lab', course_type: 'Lab' };
+      const group = { id: 'G1', group_name: 'Group A', strength: 20 };
+      const room = { id: 'R1', room_name: 'Room 101', capacity: 50, room_type: 'Classroom' };
+
+      const conflicts = await detector.detectConflicts(teacher, subject, group, room, 'Monday', 2);
+
+      expect(conflicts).toContainEqual(expect.objectContaining({
+        type: 'ROOM_TYPE_CONFLICT',
+        severity: 'MEDIUM'
+      }));
+    });
+
+    test('Should return empty array when no conflicts', async () => {
+      const teacher = { id: 'T1', full_name: 'Dr. Smith' };
+      const subject = { id: 'S1', subject_name: 'Database', course_type: 'Theory' };
+      const group = { id: 'G1', group_name: 'Group A', strength: 30 };
+      const room = { id: 'R1', room_name: 'Room 101', capacity: 50, room_type: 'Classroom' };
+
+      const conflicts = await detector.detectConflicts(teacher, subject, group, room, 'Monday', 2);
+
+      expect(conflicts.length).toBe(0);
+    });
+
+    test('Should detect multiple conflicts simultaneously', async () => {
+      const teacher = { id: 'T1', full_name: 'Dr. Smith' };
+      const subject = { id: 'S1', subject_name: 'Physics Lab', course_type: 'Lab' };
+      const group = { id: 'G1', group_name: 'Group A', strength: 50 };
+      const room = { id: 'R1', room_name: 'Room 101', capacity: 30, room_type: 'Classroom' };
+
+      // Create multiple conflicts
+      mockState.teacherSchedule['Monday']['2'].add('T1');
+      mockState.roomSchedule['Monday']['2'].add('R1');
+
+      const conflicts = await detector.detectConflicts(teacher, subject, group, room, 'Monday', 2);
+
+      expect(conflicts.length).toBeGreaterThan(1);
+      expect(conflicts.some(c => c.type === 'TEACHER_CONFLICT')).toBe(true);
+      expect(conflicts.some(c => c.type === 'ROOM_CONFLICT')).toBe(true);
+    });
+  });
+
+  describe('SuggestionEngine', () => {
+    let engine;
+
+    beforeEach(() => {
+      engine = new SuggestionEngine(
+        mockState.timetable,
+        mockState.constraints,
+        mockState.teacherSchedule,
+        mockState.roomSchedule,
+        mockState.groupSchedule
+      );
+    });
+
+    test('Should generate suggestions for available slots', async () => {
+      const teacher = { id: 'T1', full_name: 'Dr. Smith' };
+      const subject = { id: 'S1', subject_name: 'Database', course_type: 'Theory' };
+      const group = { id: 'G1', group_name: 'Group A', strength: 30 };
+      const room = { id: 'R1', room_name: 'Room 101', capacity: 50, room_type: 'Classroom' };
+
+      const suggestions = await engine.getSuggestions(teacher, subject, group, room, 'Monday', 2);
+
+      expect(suggestions).toBeInstanceOf(Array);
+      expect(suggestions.length).toBeGreaterThan(0);
+      expect(suggestions.length).toBeLessThanOrEqual(3);
+    });
+
+    test('Should return top 3 suggestions sorted by score', async () => {
+      const teacher = { id: 'T1', full_name: 'Dr. Smith' };
+      const subject = { id: 'S1', subject_name: 'Database', course_type: 'Theory' };
+      const group = { id: 'G1', group_name: 'Group A', strength: 30 };
+      const room = { id: 'R1', room_name: 'Room 101', capacity: 50, room_type: 'Classroom' };
+
+      const suggestions = await engine.getSuggestions(teacher, subject, group, room, 'Monday', 2);
+
+      // Verify max 3 suggestions
+      expect(suggestions.length).toBeLessThanOrEqual(3);
+
+      // Verify sorted by score descending
+      for (let i = 0; i < suggestions.length - 1; i++) {
+        expect(suggestions[i].score).toBeGreaterThanOrEqual(suggestions[i + 1].score);
+      }
+
+      // Verify each suggestion has required fields
+      suggestions.forEach(s => {
+        expect(s).toHaveProperty('day');
+        expect(s).toHaveProperty('period');
+        expect(s).toHaveProperty('score');
+        expect(s).toHaveProperty('rank');
+      });
+    });
+
+    test('Should score proximity correctly', () => {
+      // Same day, adjacent period should have high proximity
+      const score1 = engine.scoreProximity('Monday', 3, 'Monday', 2);
+      expect(score1).toBeGreaterThan(2);
+
+      // Different day should have lower proximity
+      const score2 = engine.scoreProximity('Tuesday', 2, 'Monday', 2);
+      expect(score2).toBeLessThan(score1);
+    });
+
+    test('Should score teacher load balance', () => {
+      // Day with no classes should score high
+      const score1 = engine.scoreTeacherLoad('T1', 'Monday');
+      expect(score1).toBe(4); // Max score
+
+      // Pre-occupy 2 slots for teacher on Tuesday
+      mockState.teacherSchedule['Tuesday']['2'].add('T1');
+      mockState.teacherSchedule['Tuesday']['4'].add('T1');
+
+      const score2 = engine.scoreTeacherLoad('T1', 'Tuesday');
+      expect(score2).toBeLessThan(score1);
+    });
+
+    test('Should score room utilization correctly', () => {
+      // Optimal utilization (70-85%)
+      const score1 = engine.scoreRoomUtilization(35, 50); // 70%
+      expect(score1).toBe(3);
+
+      // Good utilization (60-95%)
+      const score2 = engine.scoreRoomUtilization(40, 50); // 80%
+      expect(score2).toBe(3);
+
+      // Poor utilization
+      const score3 = engine.scoreRoomUtilization(10, 50); // 20%
+      expect(score3).toBe(0);
+    });
+
+    test('Should validate slot constraints properly', async () => {
+      const teacher = { id: 'T1', full_name: 'Dr. Smith' };
+      const subject = { id: 'S1', subject_name: 'Database', course_type: 'Theory' };
+      const group = { id: 'G1', group_name: 'Group A', strength: 30 };
+      const room = { id: 'R1', room_name: 'Room 101', capacity: 50, room_type: 'Classroom' };
+
+      // Pre-occupy a slot
+      mockState.teacherSchedule['Monday']['1'].add('T1');
+
+      // Should not suggest occupied slot
+      const isValid = await engine.isSlotValid(teacher, subject, group, room, 'Monday', 1);
+      expect(isValid).toBe(false);
+
+      // Should suggest empty slot
+      const isValidEmpty = await engine.isSlotValid(teacher, subject, group, room, 'Tuesday', 1);
+      expect(isValidEmpty).toBe(true);
+    });
+
+
+  });
+
+  describe('Service Integration - detectConflictsAndSuggest', () => {
+    
+    test('Should return suggestions when conflicts detected', async () => {
+      const { query } = require('../src/config/db');
+      query.mockReset();
+
+      // Mock Teacher.findById
+      query.mockResolvedValueOnce({ rows: [{ id: 'T1', full_name: 'Dr. Smith' }] });
+      // Mock Subject.findById
+      query.mockResolvedValueOnce({ rows: [{ id: 'S1', subject_name: 'Database', course_type: 'Theory' }] });
+      // Mock StudentGroup.findById
+      query.mockResolvedValueOnce({ rows: [{ id: 'G1', group_name: 'Group A', strength: 30 }] });
+      // Mock Room.findById
+      query.mockResolvedValueOnce({ rows: [{ id: 'R1', room_name: 'Room 101', capacity: 50, room_type: 'Classroom' }] });
+
+      // Pre-create a conflict
+      mockState.teacherSchedule['Monday']['2'].add('T1');
+
+      const result = await detectConflictsAndSuggest(
+        { teacher_id: 'T1', subject_id: 'S1', group_id: 'G1', room_id: 'R1', day: 'Monday', period: 2 },
+        mockState
+      );
+
+      expect(result).toHaveProperty('success');
+      expect(result).toHaveProperty('conflicts');
+      expect(result).toHaveProperty('suggestions');
+      expect(result.conflicts.length).toBeGreaterThan(0);
+    });
+
+    test('Should return success when no conflicts', async () => {
+      const { query } = require('../src/config/db');
+      query.mockReset();
+
+      query.mockResolvedValueOnce({ rows: [{ id: 'T1', full_name: 'Dr. Smith' }] });
+      query.mockResolvedValueOnce({ rows: [{ id: 'S1', subject_name: 'Database', course_type: 'Theory' }] });
+      query.mockResolvedValueOnce({ rows: [{ id: 'G1', group_name: 'Group A', strength: 30 }] });
+      query.mockResolvedValueOnce({ rows: [{ id: 'R1', room_name: 'Room 101', capacity: 50, room_type: 'Classroom' }] });
+
+      const result = await detectConflictsAndSuggest(
+        { teacher_id: 'T1', subject_id: 'S1', group_id: 'G1', room_id: 'R1', day: 'Monday', period: 2 },
+        mockState
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.conflicts.length).toBe(0);
+    });
+  });
+});

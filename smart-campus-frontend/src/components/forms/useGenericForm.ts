@@ -1,9 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { AxiosError } from 'axios';
 import { ApiError } from '@/types';
+import { extractZodErrors, extractApiErrors, mergeErrors } from '@/lib/errorHandling';
 import { FieldConfig, CrudService, UseGenericFormReturn } from './types';
 
 export const useGenericForm = (
@@ -20,6 +22,8 @@ export const useGenericForm = (
       : fields.reduce((acc, field) => ({ ...acc, [field.id]: '' }), {})
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Build validation schema from fields if not provided
   const buildDefaultSchema = () => {
@@ -68,6 +72,13 @@ export const useGenericForm = (
     mode: 'onChange',
   });
 
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   const register = useCallback(
     (fieldId: string) => ({
       value: formData[fieldId] ?? '',
@@ -76,9 +87,17 @@ export const useGenericForm = (
           ...prev,
           [fieldId]: value,
         }));
+        // Clear error for this field when user starts typing
+        if (fieldErrors[fieldId]) {
+          setFieldErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors[fieldId];
+            return newErrors;
+          });
+        }
       },
     }),
-    [formData]
+    [formData, fieldErrors]
   );
 
   const handleSubmit = useCallback(
@@ -87,32 +106,50 @@ export const useGenericForm = (
       
       try {
         setIsLoading(true);
+        setFieldErrors({});
+        
+        // Create new abort controller for this request
+        abortControllerRef.current = new AbortController();
         
         // Validate form data
-        const validatedData = await schema.parseAsync(formData);
+        let validatedData: any;
+        try {
+          validatedData = await schema.parseAsync(formData);
+        } catch (validationError) {
+          if (validationError instanceof z.ZodError) {
+            const errors = extractZodErrors(validationError);
+            setFieldErrors(errors.fieldErrors);
+            
+            // Show first error as toast
+            const firstError = Object.values(errors.fieldErrors)[0];
+            if (firstError) {
+              toast.error(firstError);
+            }
+          }
+          return;
+        }
         
         // Use custom submit handler if provided
         if (customSubmitHandler) {
-          await customSubmitHandler(validatedData, !!initialData?.id);
+          try {
+            await customSubmitHandler(validatedData, !!initialData?.id);
+          } catch (error) {
+            handleSubmitError(error);
+          }
         } else {
           // Default CRUD logic
-          if (initialData?.id) {
-            await service.update(initialData.id, validatedData);
-            toast.success('Updated successfully!');
-          } else {
-            await service.create(validatedData);
-            toast.success('Created successfully!');
+          try {
+            if (initialData?.id) {
+              await service.update(initialData.id, validatedData);
+              toast.success('Updated successfully!');
+            } else {
+              await service.create(validatedData);
+              toast.success('Created successfully!');
+            }
+            onSuccess?.();
+          } catch (error) {
+            handleSubmitError(error);
           }
-        }
-        
-        onSuccess?.();
-      } catch (error: unknown) {
-        if (error instanceof z.ZodError) {
-          const firstError = error.errors[0];
-          toast.error(firstError.message);
-        } else {
-          const err = error as ApiError;
-          toast.error(err?.message || 'An error occurred');
         }
       } finally {
         setIsLoading(false);
@@ -121,17 +158,45 @@ export const useGenericForm = (
     [formData, schema, service, initialData, onSuccess, customSubmitHandler]
   );
 
-  const formErrors = Object.keys(errors).reduce((acc, key) => {
-    acc[key] = errors[key as keyof typeof errors]?.message || '';
-    return acc;
-  }, {} as Record<string, string>);
+  const handleSubmitError = (error: unknown) => {
+    const apiErrors = extractApiErrors(error);
+    
+    // Set field-specific errors
+    if (Object.keys(apiErrors.fieldErrors).length > 0) {
+      setFieldErrors(apiErrors.fieldErrors);
+      
+      // Show first field error as toast
+      const firstError = Object.values(apiErrors.fieldErrors)[0];
+      toast.error(firstError);
+    } else if (apiErrors.generalError) {
+      // Show general error
+      toast.error(apiErrors.generalError);
+    } else {
+      toast.error('An unexpected error occurred');
+    }
+  };
+
+  const cancelRequest = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  }, []);
+
+  const mergedErrors = mergeErrors(
+    Object.keys(errors).reduce((acc, key) => {
+      acc[key] = errors[key as keyof typeof errors]?.message || '';
+      return acc;
+    }, {} as Record<string, string>),
+    fieldErrors
+  );
 
   return {
     formData,
-    errors: formErrors,
+    errors: mergedErrors,
     isLoading,
     register,
     handleSubmit,
     setFormData,
+    cancelRequest,
   };
 };

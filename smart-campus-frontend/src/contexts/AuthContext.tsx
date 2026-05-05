@@ -15,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<User>;
+  loginWithToken: (token: string) => Promise<User>;
   register: (userData: RegisterRequest) => Promise<User>;
   logout: () => Promise<void>;
   updateProfile: (updates: { full_name?: string; department?: string; cgpa?: number; semester?: number }) => Promise<User>;
@@ -150,10 +151,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const loginWithToken = async (newToken: string): Promise<User> => {
+    try {
+      setIsLoading(true);
+      // Temporarily store token so getProfile can use it
+      localStorage.setItem('authToken', newToken);
+      setToken(newToken);
+      
+      const response = await authService.getProfile();
+      const userData = response.data.user;
+      
+      setUser(userData as User);
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      return userData as User;
+    } catch (error) {
+      console.error('SSO Login error:', error);
+      // Clear invalid data
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      setToken(null);
+      setUser(null);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     token,
     login,
+    loginWithToken,
     register,
     logout,
     updateProfile,

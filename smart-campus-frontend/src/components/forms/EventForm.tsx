@@ -5,7 +5,7 @@ import { clubService, Club } from '@/services/clubService';
 import { EventFormData } from '@/types';
 import { GenericFormModal } from './GenericFormModal';
 import { FieldConfig } from './types';
-import { z } from 'zod';
+import { eventSchema } from '@/lib/validationSchemas';
 
 interface EventFormProps {
   onSuccess: () => void;
@@ -102,17 +102,7 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
     },
   ];
 
-  const validationSchema = z.object({
-    title: z.string().min(1, 'Event title is required'),
-    description: z.string().min(1, 'Description is required'),
-    location: z.string().min(1, 'Location is required'),
-    club_id: z.string().min(1, 'Associated club is required'),
-    start_time: z.string().min(1, 'Start time is required'),
-    end_time: z.string().min(1, 'End time is required'),
-    target_department: z.string().optional(),
-    tags: z.string().optional(),
-    is_featured: z.boolean().optional(),
-  });
+
 
   const customSubmitHandler = async (data: any, isUpdate: boolean) => {
     const payload = {
@@ -150,7 +140,7 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
       initialData={initialData}
       onSuccess={onSuccess}
       onCancel={onCancel}
-      validationSchema={validationSchema}
+      validationSchema={eventSchema}
       title="Event"
       customSubmitHandler={customSubmitHandler}
     />

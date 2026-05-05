@@ -134,6 +134,96 @@ const deleteUser = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, 'User deleted successfully');
 });
 
+/* SSO Redirect */
+const ssoRedirect = asyncHandler(async (req, res) => {
+  const { provider } = req.params;
+  let authUrl = '';
+
+  if (provider === 'google') {
+    const clientId = process.env.GOOGLE_CLIENT_ID || 'mock-client-id';
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/auth/sso/google/callback';
+    authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile`;
+  } else if (provider === 'microsoft') {
+    const clientId = process.env.MS_CLIENT_ID || 'mock-client-id';
+    const redirectUri = process.env.MS_REDIRECT_URI || 'http://localhost:5000/api/auth/sso/microsoft/callback';
+    authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&response_mode=query&scope=User.Read`;
+  } else {
+    return res.status(400).json({ success: false, message: 'Invalid SSO provider' });
+  }
+
+  res.redirect(authUrl);
+});
+
+/* SSO Callback */
+const ssoCallback = asyncHandler(async (req, res) => {
+  const { provider } = req.params;
+  const { code } = req.query;
+
+  if (!code) {
+    return res.redirect('http://localhost:5173/auth?error=NoCodeProvided');
+  }
+
+  let userInfo = null;
+
+  try {
+    if (provider === 'google') {
+      const clientId = process.env.GOOGLE_CLIENT_ID || 'mock-client-id';
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET || 'mock-client-secret';
+      const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/auth/sso/google/callback';
+
+      // If mock, simulate user
+      if (clientId === 'mock-client-id') {
+        userInfo = { email: 'mockuser@smartcampus.edu', name: 'Mock Google User', sub: 'google-123' };
+      } else {
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            code,
+            grant_type: 'authorization_code',
+            redirect_uri: redirectUri,
+          }),
+        });
+        const tokenData = await tokenResponse.json();
+        
+        if (!tokenData.access_token) {
+           throw new Error('Failed to get access token');
+        }
+
+        const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        });
+        const profileData = await profileResponse.json();
+        userInfo = { email: profileData.email, name: profileData.name, sub: profileData.sub };
+      }
+    } else if (provider === 'microsoft') {
+      // Mock Microsoft logic
+      userInfo = { email: 'mockmsuser@smartcampus.edu', name: 'Mock MS User', sub: 'ms-123' };
+    }
+
+    if (!userInfo || !userInfo.email) {
+      return res.redirect('http://localhost:5173/auth?error=ProfileFetchFailed');
+    }
+
+    const result = await userAuthService.handleSSOLogin({
+      email: userInfo.email,
+      full_name: userInfo.name || 'SSO User',
+      auth_provider: provider,
+      provider_id: userInfo.sub,
+    });
+
+    logger.info('User logged in via SSO', { userId: result.user.id, email: result.user.email, provider });
+
+    // Redirect to frontend with token
+    res.redirect(`http://localhost:5173/auth?token=${result.token}`);
+  } catch (error) {
+    logger.error('SSO Callback Error', error);
+    res.redirect('http://localhost:5173/auth?error=SSOFailed');
+  }
+});
+
 module.exports = {
   register,
   login,
@@ -144,5 +234,7 @@ module.exports = {
   getUserById,
   updateUserByAdmin,
   deactivateUser,
-  deleteUser
+  deleteUser,
+  ssoRedirect,
+  ssoCallback
 };
