@@ -140,6 +140,83 @@ const validationSchemas = {
     order: Joi.string().valid('asc', 'desc', 'ASC', 'DESC').default('asc')
   }),
 
+  // Timetable list/query validation
+  timetableQuery: Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+    sort: Joi.string().max(50).optional(),
+    order: Joi.string().valid('asc', 'desc', 'ASC', 'DESC').default('asc'),
+    department: Joi.string().max(100).optional(),
+    semester: Joi.number().integer().min(1).max(8).optional(),
+    room_type: Joi.string().max(50).optional(),
+    academic_year: Joi.string().max(20).optional(),
+    semester_type: Joi.string().max(20).optional()
+  }),
+
+  groupIdParam: Joi.object({
+    groupId: Joi.string().uuid().required()
+  }),
+
+  teacherIdParam: Joi.object({
+    teacherId: Joi.string().uuid().required()
+  }),
+
+  timetableTeacher: Joi.object({
+    teacher_code: Joi.string().min(1).max(20).required(),
+    full_name: Joi.string().min(2).max(100).required(),
+    department: Joi.string().max(100).required(),
+    email: Joi.string().email().required(),
+    phone: Joi.string().max(20).allow('', null).optional()
+  }),
+
+  timetableSubject: Joi.object({
+    subject_code: Joi.string().min(1).max(20).required(),
+    subject_name: Joi.string().min(2).max(100).required(),
+    hours_per_week: Joi.number().integer().min(1).max(20).required(),
+    course_type: Joi.string().valid('Theory', 'Practical', 'Lab').required(),
+    department: Joi.string().max(100).required(),
+    semester: Joi.number().integer().min(1).max(8).required()
+  }),
+
+  timetableRoom: Joi.object({
+    room_code: Joi.string().min(1).max(20).required(),
+    room_name: Joi.string().min(2).max(100).required(),
+    capacity: Joi.number().integer().min(1).required(),
+    room_type: Joi.string().max(50).required(),
+    floor_number: Joi.number().integer().min(0).required(),
+    building: Joi.string().min(1).max(100).required()
+  }),
+
+  timetableGroup: Joi.object({
+    group_code: Joi.string().min(1).max(20).required(),
+    group_name: Joi.string().min(2).max(100).required(),
+    strength: Joi.number().integer().min(1).required(),
+    department: Joi.string().max(100).required(),
+    semester: Joi.number().integer().min(1).max(8).required(),
+    academic_year: Joi.string().min(4).max(20).required()
+  }),
+
+  assignTeacherSubject: Joi.object({
+    teacher_id: Joi.string().uuid().required(),
+    subject_id: Joi.string().uuid().required(),
+    priority: Joi.number().integer().min(1).optional()
+  }),
+
+  assignSubjectGroup: Joi.object({
+    subject_id: Joi.string().uuid().required(),
+    group_id: Joi.string().uuid().required()
+  }),
+
+  generateTimetable: Joi.object({
+    groups: Joi.array().items(Joi.object()).min(1).required(),
+    days: Joi.array().items(Joi.string()).min(1).required(),
+    periods_per_day: Joi.number().integer().min(1).required(),
+    lunch_break_period: Joi.number().integer().min(1).optional(),
+    academic_year: Joi.string().min(4).max(20).required(),
+    semester_type: Joi.string().min(1).max(20).required(),
+    preferences: Joi.object().optional()
+  }),
+
   // Event list query validation
   eventQuery: Joi.object({
     search: Joi.string().max(100).optional(),
@@ -168,80 +245,6 @@ const validationSchemas = {
   electiveQuery: Joi.object({
     department: Joi.string().max(100).optional(),
     semester: Joi.number().integer().min(1).max(8).optional()
-  }),
-
-  // Timetable Schemas
-  timetableTeacher: Joi.object({
-    teacher_code: Joi.string().max(50).required(),
-    full_name: Joi.string().min(2).max(100).required(),
-    department: Joi.string().max(100).required(),
-    email: Joi.string().email().required(),
-    phone: Joi.string().pattern(/^\+?[0-9]{10,15}$/).optional()
-  }),
-
-  timetableSubject: Joi.object({
-    subject_code: Joi.string().max(50).required(),
-    subject_name: Joi.string().min(2).max(150).required(),
-    hours_per_week: Joi.number().integer().min(1).required(),
-    course_type: Joi.string().required(),
-    department: Joi.string().max(100).required(),
-    semester: Joi.number().integer().min(1).max(8).required()
-  }),
-
-  timetableRoom: Joi.object({
-    room_code: Joi.string().max(50).required(),
-    room_name: Joi.string().min(2).max(100).required(),
-    capacity: Joi.number().integer().min(1).required(),
-    room_type: Joi.string().required(),
-    floor_number: Joi.number().integer().required(),
-    building: Joi.string().max(100).required()
-  }),
-
-  timetableGroup: Joi.object({
-    group_code: Joi.string().max(50).required(),
-    group_name: Joi.string().min(2).max(150).required(),
-    strength: Joi.number().integer().min(1).required(),
-    department: Joi.string().max(100).required(),
-    semester: Joi.number().integer().min(1).max(8).required(),
-    academic_year: Joi.string().pattern(/^\d{4}-\d{2,4}$/).required()
-  }),
-
-  assignTeacherSubject: Joi.object({
-    teacher_id: Joi.string().uuid().required(),
-    subject_id: Joi.string().uuid().required(),
-    priority: Joi.number().integer().min(1).optional()
-  }),
-
-  assignSubjectGroup: Joi.object({
-    subject_id: Joi.string().uuid().required(),
-    group_id: Joi.string().uuid().required()
-  }),
-
-  generateTimetable: Joi.object({
-    groups: Joi.array().items(Joi.string().uuid()).min(1).required(),
-    days: Joi.array().items(Joi.string()).min(1).required(),
-    periods_per_day: Joi.number().integer().min(1).required(),
-    lunch_break_period: Joi.number().integer().min(1).max(Joi.ref('periods_per_day')).optional(),
-    academic_year: Joi.string().pattern(/^\d{4}-\d{2,4}$/).required(),
-    semester_type: Joi.string().valid('odd', 'even').required(),
-    preferences: Joi.object().optional()
-  }),
-
-  // Timetable Query Parameters
-  timetableQuery: Joi.object({
-    department: Joi.string().max(100).optional(),
-    semester: Joi.number().integer().min(1).max(8).optional(),
-    room_type: Joi.string().optional(),
-    academic_year: Joi.string().pattern(/^\d{4}-\d{2,4}$/).optional(),
-    semester_type: Joi.string().valid('odd', 'even').optional()
-  }),
-
-  teacherIdParam: Joi.object({
-    teacherId: Joi.string().uuid().required()
-  }),
-
-  groupIdParam: Joi.object({
-    groupId: Joi.string().uuid().required()
   })
 };
 
