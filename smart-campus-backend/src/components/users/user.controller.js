@@ -84,8 +84,8 @@ const changePassword = asyncHandler(async (req, res) => {
 
 /* Get all users (admin only) --> GET /api/users -> Protected route - Admin only */
 const getAllUsers = asyncHandler(async (req, res) => {
-  const { role, department, page = 1, limit = 50 } = req.query;
-  const result = await userAdminService.listUsers({ role, department, page, limit });
+  const { role, department, is_active, page = 1, limit = 50 } = req.query;
+  const result = await userAdminService.listUsers({ role, department, is_active, page, limit });
 
   sendSuccess(res, 200, 'Users fetched successfully', { 
     users: result.users, 
