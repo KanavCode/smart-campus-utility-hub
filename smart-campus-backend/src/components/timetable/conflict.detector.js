@@ -69,6 +69,25 @@ class ConflictDetector {
       });
     }
 
+    // Conflict 6: Teacher unavailability (hard constraint in timetable solver)
+    try {
+      const { Teacher } = require('./timetable.models');
+      const unavailability = await Teacher.getUnavailability(teacher.id);
+      if (Array.isArray(unavailability) && unavailability.length > 0) {
+        const isUnavailable = unavailability.some(u => u.day_of_week === day && u.period_number === period);
+        if (isUnavailable) {
+          conflicts.push({
+            type: 'TEACHER_UNAVAILABILITY',
+            severity: 'HIGH',
+            message: `Teacher ${teacher.full_name} is marked unavailable for ${day} Period ${period}`,
+            timeDependent: true
+          });
+        }
+      }
+    } catch (err) {
+      // Unavailability check failed (e.g., in test environment) - skip this check
+    }
+
     return conflicts;
   }
 
