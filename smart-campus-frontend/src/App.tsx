@@ -6,7 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ConnectivityProvider } from "@/contexts/ConnectivityContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { OfflineBanner } from "@/components/layout/OfflineBanner";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -66,11 +68,13 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <RoutePreloader />
+        <ConnectivityProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <OfflineBanner />
+              <RoutePreloader />
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 {/* Public Routes */}
@@ -288,7 +292,8 @@ const App = () => (
               <Chatbot />
             </Suspense>
           </BrowserRouter>
-        </TooltipProvider>
+          </TooltipProvider>
+        </ConnectivityProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
