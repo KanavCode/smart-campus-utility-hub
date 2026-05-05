@@ -3,7 +3,7 @@ import { roomService } from '@/services/roomService';
 import { RoomFormData } from '@/types';
 import { GenericFormModal } from './GenericFormModal';
 import { FieldConfig } from './types';
-import { z } from 'zod';
+import { roomSchema } from '@/lib/validationSchemas';
 
 interface RoomFormProps {
   onSuccess: () => void;
@@ -63,14 +63,7 @@ export const RoomForm = ({ onSuccess, onCancel, initialData }: RoomFormProps) =>
     },
   ];
 
-  const validationSchema = z.object({
-    room_code: z.string().min(1, 'Room code is required'),
-    room_name: z.string().min(1, 'Room name is required'),
-    capacity: z.coerce.number().min(1, 'Capacity is required'),
-    room_type: z.string().min(1, 'Room type is required'),
-    floor_number: z.coerce.number().min(0, 'Floor number is required'),
-    building: z.string().min(1, 'Building is required'),
-  });
+
 
   const customSubmitHandler = async (data: any, isUpdate: boolean) => {
     const payload = {
@@ -98,7 +91,7 @@ export const RoomForm = ({ onSuccess, onCancel, initialData }: RoomFormProps) =>
       initialData={initialData}
       onSuccess={onSuccess}
       onCancel={onCancel}
-      validationSchema={validationSchema}
+      validationSchema={roomSchema}
       title="Room"
       customSubmitHandler={customSubmitHandler}
     />

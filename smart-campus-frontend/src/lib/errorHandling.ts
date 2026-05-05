@@ -1,66 +1,160 @@
-import { z } from 'zod';
+import { AxiosError } from 'axios';
+import { ZodError } from 'zod';
+
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
+export interface FormErrorResponse {
+  fieldErrors: Record<string, string>;
+  generalError?: string;
+}
 
 /**
- * Extracts per-field and general errors from a ZodError.
+ * Extract field-specific errors from Zod validation
  */
-export const extractZodErrors = (
-  error: z.ZodError
-): { fieldErrors: Record<string, string>; generalError: string | null } => {
+export const extractZodErrors = (error: ZodError): FormErrorResponse => {
   const fieldErrors: Record<string, string> = {};
+  
+  error.errors.forEach((err) => {
+    const path = err.path.join('.');
+    fieldErrors[path] = err.message;
+  });
 
-  for (const issue of error.issues) {
-    const key = issue.path[0] as string | undefined;
-    if (key && !fieldErrors[key]) {
-      fieldErrors[key] = issue.message;
-    }
-  }
-
-  return {
-    fieldErrors,
-    generalError: Object.keys(fieldErrors).length === 0 ? error.issues[0]?.message ?? null : null,
-  };
+  return { fieldErrors };
 };
 
 /**
- * Extracts per-field and general errors from an unknown API error.
- * Handles Axios error shapes as well as plain Error / ApiError objects.
+ * Extract field-specific errors from API response
  */
-export const extractApiErrors = (
-  error: unknown
-): { fieldErrors: Record<string, string>; generalError: string | null } => {
-  // Zod validation error
-  if (error instanceof z.ZodError) {
-    return extractZodErrors(error);
-  }
+export const extractApiErrors = (error: unknown): FormErrorResponse => {
+  const axiosError = error as AxiosError<any>;
 
-  // Axios / fetch structured API error  { response.data.errors: { field: message } }
-  const axiosData = (error as any)?.response?.data;
-  if (axiosData) {
-    if (axiosData.errors && typeof axiosData.errors === 'object') {
+  // Handle validation errors from backend
+  if (axiosError?.response?.status === 400) {
+    const data = axiosError.response.data;
+    
+    // Backend might return errors in different formats
+    if (data?.fieldErrors && typeof data.fieldErrors === 'object') {
+      return {
+        fieldErrors: data.fieldErrors,
+        generalError: data.message,
+      };
+    }
+
+    // Or as a flat error message
+    if (data?.message) {
+      return {
+        fieldErrors: {},
+        generalError: data.message,
+      };
+    }
+
+    // Or as validation array
+    if (Array.isArray(data?.errors)) {
       const fieldErrors: Record<string, string> = {};
-      for (const [key, msg] of Object.entries(axiosData.errors)) {
-        fieldErrors[key] = String(msg);
-      }
-      return { fieldErrors, generalError: null };
-    }
-    if (axiosData.message) {
-      return { fieldErrors: {}, generalError: String(axiosData.message) };
+      data.errors.forEach((err: any) => {
+        if (err.field && err.message) {
+          fieldErrors[err.field] = err.message;
+        }
+      });
+      return { fieldErrors, generalError: data.message };
     }
   }
 
-  // Plain Error / ApiError
-  const message = (error as any)?.message;
+  // Handle server errors
+  if (axiosError?.response?.status === 500) {
+    return {
+      fieldErrors: {},
+      generalError: 'Server error. Please try again later.',
+    };
+  }
+
+  // Handle network errors
+  if (axiosError?.message === 'Network Error') {
+    return {
+      fieldErrors: {},
+      generalError: 'Network error. Please check your connection.',
+    };
+  }
+
+  // Handle timeout
+  if (axiosError?.code === 'ECONNABORTED') {
+    return {
+      fieldErrors: {},
+      generalError: 'Request timeout. Please try again.',
+    };
+  }
+
   return {
     fieldErrors: {},
-    generalError: typeof message === 'string' ? message : 'An unexpected error occurred',
+    generalError: axiosError?.message || 'An unexpected error occurred',
   };
 };
 
 /**
- * Merges two error maps, giving priority to the second (API errors override
- * client-side inline errors for the same field).
+ * Merge multiple error sources
  */
 export const mergeErrors = (
-  clientErrors: Record<string, string>,
+  validationErrors: Record<string, string>,
   apiErrors: Record<string, string>
-): Record<string, string> => ({ ...clientErrors, ...apiErrors });
+): Record<string, string> => {
+  return { ...validationErrors, ...apiErrors };
+};
+
+/**
+ * Format field error message with context
+ */
+export const formatFieldError = (
+  field: string,
+  message: string,
+  context?: string
+): string => {
+  if (context) {
+    return `${context} - ${message}`;
+  }
+  return message;
+};
+
+/**
+ * Check if a specific field has an error
+ */
+export const hasFieldError = (
+  fieldErrors: Record<string, string>,
+  field: string
+): boolean => {
+  return field in fieldErrors && fieldErrors[field]?.length > 0;
+};
+
+/**
+ * Get error message for a field
+ */
+export const getFieldError = (
+  fieldErrors: Record<string, string>,
+  field: string
+): string | undefined => {
+  return fieldErrors[field];
+};
+
+/**
+ * Transform form errors to be displayed above the form
+ */
+export const toDisplayErrors = (
+  fieldErrors: Record<string, string>,
+  generalError?: string
+): { field: string; message: string }[] => {
+  const errors: FieldError[] = [];
+
+  // Add general error first
+  if (generalError) {
+    errors.push({ field: 'general', message: generalError });
+  }
+
+  // Add field errors
+  Object.entries(fieldErrors).forEach(([field, message]) => {
+    errors.push({ field, message });
+  });
+
+  return errors;
+};

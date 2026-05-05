@@ -3,7 +3,7 @@ import { subjectService } from '@/services/subjectService';
 import { SubjectFormData } from '@/types';
 import { GenericFormModal } from './GenericFormModal';
 import { FieldConfig } from './types';
-import { z } from 'zod';
+import { subjectSchema } from '@/lib/validationSchemas';
 
 interface SubjectFormProps {
   onSuccess: () => void;
@@ -64,14 +64,7 @@ export const SubjectForm = ({ onSuccess, onCancel, initialData }: SubjectFormPro
     },
   ];
 
-  const validationSchema = z.object({
-    subject_code: z.string().min(1, 'Subject code is required'),
-    subject_name: z.string().min(1, 'Subject name is required'),
-    hours_per_week: z.coerce.number().min(1, 'Hours per week is required'),
-    course_type: z.string().min(1, 'Course type is required'),
-    department: z.string().min(1, 'Department is required'),
-    semester: z.coerce.number().min(1).max(8, 'Semester must be between 1 and 8'),
-  });
+
 
   const customSubmitHandler = async (data: any, isUpdate: boolean) => {
     const payload = {
@@ -99,7 +92,7 @@ export const SubjectForm = ({ onSuccess, onCancel, initialData }: SubjectFormPro
       initialData={initialData}
       onSuccess={onSuccess}
       onCancel={onCancel}
-      validationSchema={validationSchema}
+      validationSchema={subjectSchema}
       title="Subject"
       customSubmitHandler={customSubmitHandler}
     />

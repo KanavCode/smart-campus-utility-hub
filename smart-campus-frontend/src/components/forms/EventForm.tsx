@@ -5,7 +5,7 @@ import { clubService, Club } from '@/services/clubService';
 import { EventFormData } from '@/types';
 import { GenericFormModal } from './GenericFormModal';
 import { FieldConfig } from './types';
-import { z } from 'zod';
+import { eventSchema } from '@/lib/validationSchemas';
 
 interface EventFormProps {
   onSuccess: () => void;
@@ -209,7 +209,7 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
       initialData={initialData}
       onSuccess={onSuccess}
       onCancel={onCancel}
-      validationSchema={validationSchema}
+      validationSchema={eventSchema}
       title="Event"
       customSubmitHandler={customSubmitHandler}
     />

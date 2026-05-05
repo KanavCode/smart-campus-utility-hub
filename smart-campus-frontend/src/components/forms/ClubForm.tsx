@@ -3,7 +3,7 @@ import { clubService } from '@/services/clubService';
 import { ClubFormData } from '@/types';
 import { GenericFormModal } from './GenericFormModal';
 import { FieldConfig } from './types';
-import { z } from 'zod';
+import { clubSchema } from '@/lib/validationSchemas';
 
 interface ClubFormProps {
   onSuccess: () => void;
@@ -44,12 +44,7 @@ export const ClubForm = ({ onSuccess, onCancel, initialData }: ClubFormProps) =>
     },
   ];
 
-  const validationSchema = z.object({
-    name: z.string().min(1, 'Club name is required'),
-    description: z.string().min(1, 'Description is required'),
-    contact_email: z.string().email('Invalid email address'),
-    category: z.string().min(1, 'Category is required'),
-  });
+
 
   const customSubmitHandler = async (data: any, isUpdate: boolean) => {
     if (isUpdate) {
@@ -68,7 +63,7 @@ export const ClubForm = ({ onSuccess, onCancel, initialData }: ClubFormProps) =>
       initialData={initialData}
       onSuccess={onSuccess}
       onCancel={onCancel}
-      validationSchema={validationSchema}
+      validationSchema={clubSchema}
       title="Club"
       customSubmitHandler={customSubmitHandler}
     />

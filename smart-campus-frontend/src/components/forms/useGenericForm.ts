@@ -1,6 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { AxiosError } from 'axios';
 import { ApiError } from '@/types';
 import { extractZodErrors, extractApiErrors, mergeErrors } from '@/lib/errorHandling';
 import { FieldConfig, CrudService, UseGenericFormReturn } from './types';
@@ -19,6 +22,8 @@ export const useGenericForm = (
       : fields.reduce((acc, field) => ({ ...acc, [field.id]: field.type === 'checkbox' ? false : '' }), {})
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Client-side inline errors (per-field, shown after touch)
   const [inlineErrors, setInlineErrors] = useState<Record<string, string>>({});
@@ -99,6 +104,13 @@ export const useGenericForm = (
     };
   }, []);
 
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   const register = useCallback(
     (fieldId: string) => ({
       value: formData[fieldId] ?? '',
@@ -163,22 +175,38 @@ export const useGenericForm = (
 
       try {
         setIsLoading(true);
-        setInlineErrors({});
-        setApiFieldErrors({});
-
-        // Set up abort controller for this request
+        setFieldErrors({});
+        
+        // Create new abort controller for this request
         abortControllerRef.current = new AbortController();
-
-        const validatedData = parseResult.data;
-
+        
+        // Validate form data
+        let validatedData: any;
+        try {
+          validatedData = await schema.parseAsync(formData);
+        } catch (validationError) {
+          if (validationError instanceof z.ZodError) {
+            const errors = extractZodErrors(validationError);
+            setFieldErrors(errors.fieldErrors);
+            
+            // Show first error as toast
+            const firstError = Object.values(errors.fieldErrors)[0];
+            if (firstError) {
+              toast.error(firstError);
+            }
+          }
+          return;
+        }
+        
+        // Use custom submit handler if provided
         if (customSubmitHandler) {
           try {
             await customSubmitHandler(validatedData, !!initialData?.id);
           } catch (error) {
-            handleApiError(error);
-            return;
+            handleSubmitError(error);
           }
         } else {
+          // Default CRUD logic
           try {
             if (initialData?.id) {
               await service.update(initialData.id, validatedData);
@@ -187,13 +215,11 @@ export const useGenericForm = (
               await service.create(validatedData);
               toast.success('Created successfully!');
             }
+            onSuccess?.();
           } catch (error) {
-            handleApiError(error);
-            return;
+            handleSubmitError(error);
           }
         }
-
-        onSuccess?.();
       } finally {
         setIsLoading(false);
       }
@@ -201,13 +227,28 @@ export const useGenericForm = (
     [fields, formData, schema, service, initialData, onSuccess, customSubmitHandler, handleApiError]
   );
 
-  const cancelRequest = useCallback(() => {
-    abortControllerRef.current?.abort();
-  }, []);
+  const handleSubmitError = (error: unknown) => {
+    const apiErrors = extractApiErrors(error);
+    // Set field-specific errors
+    if (Object.keys(apiErrors.fieldErrors).length > 0) {
+      setFieldErrors(apiErrors.fieldErrors);
+      // Show first field error as toast
+      const firstError = Object.values(apiErrors.fieldErrors)[0];
+      toast.error(firstError);
+    } else if (apiErrors.generalError) {
+      // Show general error
+      toast.error(apiErrors.generalError);
+    } else {
+      toast.error('An unexpected error occurred');
+    }
+  };
 
-  // Merge client-side inline errors with API field errors
-  // API errors take priority for the same field (they're more specific)
-  const mergedErrors = mergeErrors(inlineErrors, apiFieldErrors);
+  const cancelRequest = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  }, []);
+  const mergedErrors = mergeErrors(inlineErrors, fieldErrors);
 
   return {
     formData,

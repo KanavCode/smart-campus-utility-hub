@@ -14,10 +14,20 @@ export const ThemeToggle = () => {
       className="relative"
       asChild
     >
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.98 }}
-      >
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.98 }}
+      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-pressed={theme === 'dark'}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleTheme();
+        }
+       }}
+    >
+
         {theme === 'dark' ? (
           <Sun className="h-5 w-5 text-primary" />
         ) : (
