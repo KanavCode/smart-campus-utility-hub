@@ -55,4 +55,5 @@ export interface UseGenericFormReturn {
   };
   handleSubmit: (e: React.FormEvent) => Promise<void>;
   setFormData: (data: Record<string, any>) => void;
+  cancelRequest?: () => void;
 }

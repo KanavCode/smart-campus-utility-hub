@@ -1,9 +1,9 @@
 import { toast } from 'sonner';
 import { userService } from '@/services/userService';
-import { UserFormData, ApiError } from '@/types';
+import { UserFormData } from '@/types';
 import { GenericFormModal } from './GenericFormModal';
 import { FieldConfig } from './types';
-import { z } from 'zod';
+import { userSchema } from '@/lib/validationSchemas';
 
 interface UserFormProps {
   onSuccess: () => void;
@@ -76,23 +76,7 @@ export const UserForm = ({ onSuccess, onCancel, initialData }: UserFormProps) =>
     },
   ];
 
-  const validationSchema = z.object({
-    full_name: z.string().min(1, 'Full name is required'),
-    email: z.string().email('Invalid email address'),
-    password: initialData?.id
-      ? z.string().optional()
-      : z.string().min(6, 'Password must be at least 6 characters'),
-    role: z.enum(['student', 'admin']),
-    department: z.string().optional(),
-    cgpa: z.coerce.number().min(0).max(10).or(z.string().optional()),
-    semester: z.coerce.number().min(1).max(8).or(z.string().optional()),
-  });
-
   const customSubmitHandler = async (data: any, isUpdate: boolean) => {
-    if (data.role === 'student' && (!data.cgpa || !data.semester)) {
-      toast.error('CGPA and Semester are required for student accounts.');
-      throw new Error('Validation error');
-    }
 
     const payload = {
       ...data,
@@ -116,7 +100,7 @@ export const UserForm = ({ onSuccess, onCancel, initialData }: UserFormProps) =>
       initialData={initialData}
       onSuccess={onSuccess}
       onCancel={onCancel}
-      validationSchema={validationSchema}
+      validationSchema={userSchema}
       title="User"
       customSubmitHandler={customSubmitHandler}
     />

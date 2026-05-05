@@ -2,7 +2,7 @@ import { toast } from 'sonner';
 import { electiveService, Elective } from '@/services/electiveService';
 import { GenericFormModal } from './GenericFormModal';
 import { FieldConfig } from './types';
-import { z } from 'zod';
+import { electiveSchema } from '@/lib/validationSchemas';
 
 interface ElectiveFormProps {
   onSuccess: () => void;
@@ -69,16 +69,7 @@ export const ElectiveForm = ({ onSuccess, onCancel, initialData }: ElectiveFormP
     },
   ];
 
-  const validationSchema = z.object({
-    subject_name: z.string().refine(
-      val => allowedSubjects.includes(val),
-      'Please select a valid subject from the allowed list'
-    ),
-    description: z.string().min(1, 'Description is required'),
-    max_students: z.coerce.number().min(1, 'Max students is required').max(200),
-    department: z.string().min(1, 'Department is required'),
-    semester: z.coerce.number().min(1).max(8, 'Semester must be between 1 and 8'),
-  });
+
 
   const customSubmitHandler = async (data: any, isUpdate: boolean) => {
     const payload = {
@@ -105,7 +96,7 @@ export const ElectiveForm = ({ onSuccess, onCancel, initialData }: ElectiveFormP
       initialData={initialData}
       onSuccess={onSuccess}
       onCancel={onCancel}
-      validationSchema={validationSchema}
+      validationSchema={electiveSchema}
       title="Elective"
       customSubmitHandler={customSubmitHandler}
     />

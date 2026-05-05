@@ -3,7 +3,7 @@ import { timetableService } from '@/services/timetableService';
 import { GroupFormData } from '@/types';
 import { GenericFormModal } from './GenericFormModal';
 import { FieldConfig } from './types';
-import { z } from 'zod';
+import { groupSchema } from '@/lib/validationSchemas';
 
 interface GroupFormProps {
   onSuccess: () => void;
@@ -64,14 +64,7 @@ export const GroupForm = ({ onSuccess, onCancel, initialData }: GroupFormProps) 
     },
   ];
 
-  const validationSchema = z.object({
-    group_code: z.string().min(1, 'Group code is required'),
-    group_name: z.string().min(1, 'Group name is required'),
-    department: z.string().min(1, 'Department is required'),
-    semester: z.coerce.number().min(1).max(8, 'Semester must be between 1 and 8'),
-    strength: z.coerce.number().min(1, 'Student strength is required'),
-    academic_year: z.string().min(1, 'Academic year is required'),
-  });
+
 
   const customSubmitHandler = async (data: any, isUpdate: boolean) => {
     const payload = {
@@ -95,7 +88,7 @@ export const GroupForm = ({ onSuccess, onCancel, initialData }: GroupFormProps) 
       initialData={initialData}
       onSuccess={onSuccess}
       onCancel={onCancel}
-      validationSchema={validationSchema}
+      validationSchema={groupSchema}
       title="Group"
       customSubmitHandler={customSubmitHandler}
     />
