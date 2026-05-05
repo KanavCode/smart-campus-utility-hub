@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { ApiError } from '@/types';
+import { extractZodErrors, extractApiErrors, mergeErrors } from '@/lib/errorHandling';
 import { FieldConfig, CrudService, UseGenericFormReturn } from './types';
 
 export const useGenericForm = (
@@ -18,10 +19,16 @@ export const useGenericForm = (
       : fields.reduce((acc, field) => ({ ...acc, [field.id]: field.type === 'checkbox' ? false : '' }), {})
   );
   const [isLoading, setIsLoading] = useState(false);
-  // Tracks which fields the user has interacted with so we only show
-  // inline errors after the field has been touched.
-  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+  // Client-side inline errors (per-field, shown after touch)
   const [inlineErrors, setInlineErrors] = useState<Record<string, string>>({});
+  // Server-side field errors returned from the API
+  const [apiFieldErrors, setApiFieldErrors] = useState<Record<string, string>>({});
+  // Tracks which fields the user has interacted with
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+  // Abort controller so in-flight requests can be cancelled on unmount
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Build validation schema from fields if not provided
   const buildDefaultSchema = () => {
@@ -63,22 +70,21 @@ export const useGenericForm = (
   const schema = validationSchema || buildDefaultSchema();
 
   /**
-   * Re-validate the entire form and update inlineErrors.
-   * Only shows errors for fields that have been touched.
+   * Re-validate the entire form against the schema.
+   * Only surfaces errors for fields the user has already touched.
    */
   const revalidate = useCallback(
     (data: Record<string, any>, touched: Record<string, boolean>) => {
       const result = schema.safeParse(data);
       if (!result.success) {
-        const fieldErrors: Record<string, string> = {};
+        const errors: Record<string, string> = {};
         for (const issue of result.error.issues) {
           const key = issue.path[0] as string;
-          // Only surface errors for fields the user has interacted with
-          if (touched[key] && !fieldErrors[key]) {
-            fieldErrors[key] = issue.message;
+          if (touched[key] && !errors[key]) {
+            errors[key] = issue.message;
           }
         }
-        setInlineErrors(fieldErrors);
+        setInlineErrors(errors);
       } else {
         setInlineErrors({});
       }
@@ -86,41 +92,71 @@ export const useGenericForm = (
     [schema]
   );
 
+  // Cancel any in-flight request on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   const register = useCallback(
     (fieldId: string) => ({
       value: formData[fieldId] ?? '',
       onChange: (value: any) => {
         const updated = { ...formData, [fieldId]: value };
         const newTouched = { ...touchedFields, [fieldId]: true };
+
         setFormData(updated);
         setTouchedFields(newTouched);
+
+        // Re-run client-side validation for touched fields
         revalidate(updated, newTouched);
+
+        // Clear any server-side error for this field when the user edits it
+        if (apiFieldErrors[fieldId]) {
+          setApiFieldErrors((prev) => {
+            const next = { ...prev };
+            delete next[fieldId];
+            return next;
+          });
+        }
       },
     }),
-    [formData, touchedFields, revalidate]
+    [formData, touchedFields, apiFieldErrors, revalidate]
   );
+
+  /**
+   * Handles errors from the API and surfaces them as field-level or toast messages.
+   */
+  const handleApiError = useCallback((error: unknown) => {
+    const { fieldErrors, generalError } = extractApiErrors(error);
+
+    if (Object.keys(fieldErrors).length > 0) {
+      setApiFieldErrors(fieldErrors);
+      toast.error(Object.values(fieldErrors)[0]);
+    } else if (generalError) {
+      toast.error(generalError);
+    } else {
+      toast.error('An unexpected error occurred');
+    }
+  }, []);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      // Mark all fields as touched so every error becomes visible on submit
+      // Mark all fields touched so every error becomes visible on submit
       const allTouched = fields.reduce(
         (acc, f) => ({ ...acc, [f.id]: true }),
         {} as Record<string, boolean>
       );
       setTouchedFields(allTouched);
 
-      // Run full synchronous validation first so errors appear before any API call
+      // Run full synchronous validation — short-circuit before any API call
       const parseResult = schema.safeParse(formData);
       if (!parseResult.success) {
-        const fieldErrors: Record<string, string> = {};
-        for (const issue of parseResult.error.issues) {
-          const key = issue.path[0] as string;
-          if (!fieldErrors[key]) fieldErrors[key] = issue.message;
-        }
+        const { fieldErrors } = extractZodErrors(parseResult.error);
         setInlineErrors(fieldErrors);
-        // Surface the first error in a toast so the user knows what to fix
         toast.error(parseResult.error.errors[0].message);
         return;
       }
@@ -128,44 +164,58 @@ export const useGenericForm = (
       try {
         setIsLoading(true);
         setInlineErrors({});
+        setApiFieldErrors({});
+
+        // Set up abort controller for this request
+        abortControllerRef.current = new AbortController();
 
         const validatedData = parseResult.data;
 
-        // Use custom submit handler if provided
         if (customSubmitHandler) {
-          await customSubmitHandler(validatedData, !!initialData?.id);
+          try {
+            await customSubmitHandler(validatedData, !!initialData?.id);
+          } catch (error) {
+            handleApiError(error);
+            return;
+          }
         } else {
-          // Default CRUD logic
-          if (initialData?.id) {
-            await service.update(initialData.id, validatedData);
-            toast.success('Updated successfully!');
-          } else {
-            await service.create(validatedData);
-            toast.success('Created successfully!');
+          try {
+            if (initialData?.id) {
+              await service.update(initialData.id, validatedData);
+              toast.success('Updated successfully!');
+            } else {
+              await service.create(validatedData);
+              toast.success('Created successfully!');
+            }
+          } catch (error) {
+            handleApiError(error);
+            return;
           }
         }
 
         onSuccess?.();
-      } catch (error: unknown) {
-        if (error instanceof z.ZodError) {
-          toast.error(error.errors[0].message);
-        } else {
-          const err = error as ApiError;
-          toast.error(err?.message || 'An error occurred');
-        }
       } finally {
         setIsLoading(false);
       }
     },
-    [fields, formData, schema, service, initialData, onSuccess, customSubmitHandler]
+    [fields, formData, schema, service, initialData, onSuccess, customSubmitHandler, handleApiError]
   );
+
+  const cancelRequest = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
+  // Merge client-side inline errors with API field errors
+  // API errors take priority for the same field (they're more specific)
+  const mergedErrors = mergeErrors(inlineErrors, apiFieldErrors);
 
   return {
     formData,
-    errors: inlineErrors,
+    errors: mergedErrors,
     isLoading,
     register,
     handleSubmit,
     setFormData,
+    cancelRequest,
   };
 };
