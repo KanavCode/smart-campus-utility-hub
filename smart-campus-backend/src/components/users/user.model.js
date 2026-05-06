@@ -207,7 +207,7 @@ class UserModel {
    * @returns {Promise<Array>} Array of users
    */
   static async findAll(filters = {}) {
-    const { role, department, limit = 50, offset = 0 } = filters;
+    const { role, department, is_active, limit = 50, offset = 0 } = filters;
     let sql = 'SELECT id, full_name, email, role, department, cgpa, semester, is_active, created_at FROM users WHERE 1=1';
     const values = [];
     let paramCounter = 1;
@@ -221,6 +221,12 @@ class UserModel {
     if (department) {
       sql += ` AND department = $${paramCounter}`;
       values.push(department);
+      paramCounter++;
+    }
+
+    if (is_active !== undefined && is_active !== null) {
+      sql += ` AND is_active = $${paramCounter}`;
+      values.push(is_active === 'true' || is_active === true);
       paramCounter++;
     }
 
