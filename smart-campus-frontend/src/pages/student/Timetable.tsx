@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -217,7 +218,8 @@ export default function StudentTimetable() {
           
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             {/* Group Selector */}
-            <select
+<label className="sr-only" htmlFor="student-group-select">Select group</label>
+            <select id="student-group-select" aria-label="Select group"
               value={selectedGroup}
               onChange={(e) => setSelectedGroup(e.target.value)}
               className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[200px] focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
@@ -232,7 +234,8 @@ export default function StudentTimetable() {
             </select>
 
             {/* Academic Year Selector */}
-            <select
+<label className="sr-only" htmlFor="student-academic-year-select">Select academic year</label>
+<select id="student-academic-year-select" aria-label="Select academic year"
               value={selectedAcademicYear}
               onChange={(e) => setSelectedAcademicYear(e.target.value)}
               className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[140px] focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
@@ -244,7 +247,8 @@ export default function StudentTimetable() {
             </select>
 
             {/* Semester Type Selector */}
-            <select
+<label className="sr-only" htmlFor="student-semester-type-select">Select semester type</label>
+            <select id="student-semester-type-select"
               value={selectedSemesterType}
               onChange={(e) => setSelectedSemesterType(e.target.value)}
               className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[120px] focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
