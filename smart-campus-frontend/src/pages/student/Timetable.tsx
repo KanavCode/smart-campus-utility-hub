@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Beaker, Loader2, AlertCircle, RefreshCw, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { timetableService } from '@/services/timetableService';
+import { useConnectivity } from '@/contexts/ConnectivityContext';
+import { WifiOff } from 'lucide-react';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -54,6 +56,20 @@ export default function StudentTimetable() {
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('2024-25');
   const [selectedSemesterType, setSelectedSemesterType] = useState<string>('odd');
+  const { isOnline } = useConnectivity();
+
+  // Load cached data on mount
+  useEffect(() => {
+    const cached = localStorage.getItem('cached_timetable_grid');
+    if (cached) {
+      try {
+        setTimetableData(JSON.parse(cached));
+        setLoading(false);
+      } catch (e) {
+        console.error('Failed to parse cached timetable', e);
+      }
+    }
+  }, []);
 
   // Fetch available groups on component mount
   useEffect(() => {
@@ -87,6 +103,11 @@ export default function StudentTimetable() {
 
   const fetchTimetable = async (): Promise<void> => {
     try {
+      if (!isOnline && Object.keys(timetableData).length > 0) {
+        toast.info('You are offline. Showing cached timetable.');
+        return;
+      }
+
       setLoading(true);
       setError('');
 
@@ -119,13 +140,20 @@ export default function StudentTimetable() {
       });
 
       setTimetableData(grid);
+      localStorage.setItem('cached_timetable_grid', JSON.stringify(grid));
       toast.success('Timetable loaded successfully');
     } catch (err: unknown) {
       const e = err as { message?: string };
       const errorMsg = e?.message || 'Something went wrong';
-      setError(errorMsg);
-      toast.error(errorMsg);
-      setTimetableData({});
+      
+      // If we already have data, don't clear it on error, especially if offline
+      if (Object.keys(timetableData).length > 0) {
+        toast.error(`Update failed: ${errorMsg}. Showing cached data.`);
+        setError(''); // Clear error so we don't show the error card over existing data
+      } else {
+        setError(errorMsg);
+        toast.error(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -192,8 +220,8 @@ export default function StudentTimetable() {
             <select
               value={selectedGroup}
               onChange={(e) => setSelectedGroup(e.target.value)}
-              className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[200px] focus:outline-none focus:ring-2 focus:ring-accent"
-              disabled={loading || availableGroups.length === 0}
+              className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[200px] focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+              disabled={loading || availableGroups.length === 0 || !isOnline}
             >
               <option value="">Select Group</option>
               {availableGroups.map(group => (
@@ -207,8 +235,8 @@ export default function StudentTimetable() {
             <select
               value={selectedAcademicYear}
               onChange={(e) => setSelectedAcademicYear(e.target.value)}
-              className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[140px] focus:outline-none focus:ring-2 focus:ring-accent"
-              disabled={loading}
+              className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[140px] focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+              disabled={loading || !isOnline}
             >
               <option value="2024-25">2024-25</option>
               <option value="2023-24">2023-24</option>
@@ -219,8 +247,8 @@ export default function StudentTimetable() {
             <select
               value={selectedSemesterType}
               onChange={(e) => setSelectedSemesterType(e.target.value)}
-              className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[120px] focus:outline-none focus:ring-2 focus:ring-accent"
-              disabled={loading}
+              className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[120px] focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+              disabled={loading || !isOnline}
             >
               <option value="odd">Odd Semester</option>
               <option value="even">Even Semester</option>
@@ -228,7 +256,7 @@ export default function StudentTimetable() {
 
             <Button
               onClick={handleRefresh}
-              disabled={loading || !selectedGroup}
+              disabled={loading || !selectedGroup || !isOnline}
               variant="outline"
               size="sm"
               className="gap-2"
@@ -236,6 +264,13 @@ export default function StudentTimetable() {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
+            
+            {!isOnline && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-600 rounded-lg text-xs font-medium border border-amber-500/20">
+                <WifiOff className="h-3.5 w-3.5" />
+                Offline Mode
+              </div>
+            )}
           </div>
         </div>
 
