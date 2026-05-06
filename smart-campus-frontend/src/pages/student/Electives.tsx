@@ -10,16 +10,16 @@ import { toast } from 'sonner';
 
 // 10 Available Subjects for drag and drop
 const AVAILABLE_SUBJECTS = [
-  { id: 1, subject_name: "Artificial Intelligence", description: "Learn AI fundamentals and applications", max_students: 50, department: "CS", semester: 4 },
-  { id: 2, subject_name: "Statistics in Data Science", description: "Statistical methods for data analysis", max_students: 45, department: "CS", semester: 4 },
-  { id: 3, subject_name: "Data Warehousing & Data Mining", description: "Store and extract insights from data", max_students: 50, department: "CS", semester: 4 },
-  { id: 4, subject_name: "Distributed Systems", description: "Build scalable distributed applications", max_students: 40, department: "CS", semester: 4 },
-  { id: 5, subject_name: "Network Security", description: "Secure networks and prevent cyber attacks", max_students: 35, department: "CS", semester: 4 },
-  { id: 6, subject_name: "Big Data Analytics", description: "Analyze large-scale datasets", max_students: 40, department: "CS", semester: 4 },
-  { id: 7, subject_name: "Cloud Computing", description: "Cloud infrastructure and services", max_students: 50, department: "CS", semester: 4 },
-  { id: 8, subject_name: "Machine Learning", description: "Train models to learn from data", max_students: 45, department: "CS", semester: 4 },
-  { id: 9, subject_name: "Mobile Computing", description: "Develop mobile applications", max_students: 50, department: "CS", semester: 4 },
-  { id: 10, subject_name: "Computer Vision & Applications", description: "Image processing and computer vision", max_students: 40, department: "CS", semester: 4 }
+  { id: "elec-01", subject_name: "Artificial Intelligence", description: "Learn AI fundamentals and applications", max_students: 50, department: "CS", semester: 4 },
+  { id: "elec-02", subject_name: "Statistics in Data Science", description: "Statistical methods for data analysis", max_students: 45, department: "CS", semester: 4 },
+  { id: "elec-03", subject_name: "Data Warehousing & Data Mining", description: "Store and extract insights from data", max_students: 50, department: "CS", semester: 4 },
+  { id: "elec-04", subject_name: "Distributed Systems", description: "Build scalable distributed applications", max_students: 40, department: "CS", semester: 4 },
+  { id: "elec-05", subject_name: "Network Security", description: "Secure networks and prevent cyber attacks", max_students: 35, department: "CS", semester: 4 },
+  { id: "elec-06", subject_name: "Big Data Analytics", description: "Analyze large-scale datasets", max_students: 40, department: "CS", semester: 4 },
+  { id: "elec-07", subject_name: "Cloud Computing", description: "Cloud infrastructure and services", max_students: 50, department: "CS", semester: 4 },
+  { id: "elec-08", subject_name: "Machine Learning", description: "Train models to learn from data", max_students: 45, department: "CS", semester: 4 },
+  { id: "elec-09", subject_name: "Mobile Computing", description: "Develop mobile applications", max_students: 50, department: "CS", semester: 4 },
+  { id: "elec-10", subject_name: "Computer Vision & Applications", description: "Image processing and computer vision", max_students: 40, department: "CS", semester: 4 }
 ];
 
 export default function Electives() {

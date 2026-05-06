@@ -173,22 +173,16 @@ export default function Profile() {
               <Button
                 onClick={() => setIsEditModalOpen(true)}
                 className="bg-primary text-primary-foreground glow-primary-hover"
-                asChild
               >
-                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                  Edit Profile
-                </motion.button>
+                Edit Profile
               </Button>
               <Button
                 onClick={() => setIsPasswordModalOpen(true)}
                 variant="outline"
                 className="glow-accent-hover"
-                asChild
               >
-                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                  <Lock className="h-4 w-4 mr-2" />
-                  Change Password
-                </motion.button>
+                <Lock className="h-4 w-4 mr-2" />
+                Change Password
               </Button>
             </div>
           </CardContent>
@@ -264,16 +258,11 @@ export default function Profile() {
               type="button"
               variant="outline"
               onClick={() => setIsEditModalOpen(false)}
-              asChild
             >
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                Cancel
-              </motion.button>
+              Cancel
             </Button>
-            <Button type="submit" className="bg-primary text-primary-foreground" asChild>
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                Save Changes
-              </motion.button>
+            <Button type="submit" className="bg-primary text-primary-foreground">
+              Save Changes
             </Button>
           </div>
         </form>
@@ -321,16 +310,11 @@ export default function Profile() {
               type="button"
               variant="outline"
               onClick={() => setIsPasswordModalOpen(false)}
-              asChild
             >
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                Cancel
-              </motion.button>
+              Cancel
             </Button>
-            <Button type="submit" className="bg-primary text-primary-foreground" asChild>
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                Change Password
-              </motion.button>
+            <Button type="submit" className="bg-primary text-primary-foreground">
+              Change Password
             </Button>
           </div>
         </form>

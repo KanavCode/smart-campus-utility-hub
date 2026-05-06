@@ -1,6 +1,8 @@
 const { asyncHandler } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
+const { query } = require('../../config/db');
 const electiveService = require('./elective.service');
+const UserModel = require('../users/user.model');
 
 /**
  * Electives Controller
@@ -106,6 +108,17 @@ const deleteElective = asyncHandler(async (req, res) => {
 const submitChoices = asyncHandler(async (req, res) => {
   const { choices } = req.body; // Array of { elective_id|subject_name, preference_rank }
   const userId = req.user.id;
+
+  // ── Null-State Armor: ensure profile is complete ──
+  const user = await UserModel.findById(userId);
+  if (!user || !user.semester || !user.department) {
+    return res.status(400).json({
+      success: false,
+      error: 'PROFILE_INCOMPLETE',
+      message: 'Please complete your academic profile (department & semester) to access this feature.'
+    });
+  }
+
   const result = await electiveService.submitChoices({ choices, userId });
 
   if (!result.success) {

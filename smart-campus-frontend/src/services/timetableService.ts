@@ -153,7 +153,7 @@ export const timetableService = {
    * @param academicYear - Academic year (e.g., 2024-25)
    * @param semesterType - Semester type (odd/even)
    */
-  getGroupTimetable: async (groupId: string, academicYear = '2024-25', semesterType = 'odd') => {
+  getGroupTimetable: async (groupId: string, academicYear = '2025-26', semesterType = 'odd') => {
     try {
       const query = `?academic_year=${encodeURIComponent(academicYear)}&semester_type=${encodeURIComponent(semesterType)}`;
       const { data } = await api.get(`/timetable/group/${groupId}${query}`);
@@ -170,7 +170,7 @@ export const timetableService = {
    * @param academicYear - Academic year (e.g., 2024-25)
    * @param semesterType - Semester type (odd/even)
    */
-  getTeacherSchedule: async (teacherId: string, academicYear = '2024-25', semesterType = 'odd') => {
+  getTeacherSchedule: async (teacherId: string, academicYear = '2025-26', semesterType = 'odd') => {
     try {
       const query = `?academic_year=${encodeURIComponent(academicYear)}&semester_type=${encodeURIComponent(semesterType)}`;
       const { data } = await api.get(`/timetable/teacher/${teacherId}${query}`);

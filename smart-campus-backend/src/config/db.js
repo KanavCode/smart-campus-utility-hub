@@ -30,18 +30,27 @@ const logger = winston.createLogger({
 });
 
 // Database connection pool configuration
-const poolConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT) || 5432,
-  database: process.env.DB_NAME || 'smart_campus_unified',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD,
-  
-  // Pool configuration
-  max: parseInt(process.env.DB_MAX_CONNECTIONS) || 20,
-  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS) || 30000,
-  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS) || 5000,
-};
+// Supports two modes:
+//   1. DATABASE_URL (Supabase cloud / production) — parses connection string, enables SSL
+//   2. Individual DB_* env vars (local development) — no SSL
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      max: parseInt(process.env.DB_MAX_CONNECTIONS) || 20,
+      idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS) || 30000,
+      connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS) || 10000,
+    }
+  : {
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT) || 5432,
+      database: process.env.DB_NAME || 'smart_campus_unified',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD,
+      max: parseInt(process.env.DB_MAX_CONNECTIONS) || 20,
+      idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS) || 30000,
+      connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS) || 5000,
+    };
 
 // Create connection pool
 const pool = new Pool(poolConfig);
@@ -76,8 +85,12 @@ const testConnection = async () => {
     const result = await client.query('SELECT NOW()');
     logger.info('✅ Database connected successfully');
     logger.info(`📅 Server time: ${result.rows[0].now}`);
-    logger.info(`🗄️  Database: ${poolConfig.database}`);
-    logger.info(`🏢 Host: ${poolConfig.host}:${poolConfig.port}`);
+    if (poolConfig.connectionString) {
+      logger.info('🗄️  Mode: Supabase Cloud (DATABASE_URL)');
+    } else {
+      logger.info(`🗄️  Database: ${poolConfig.database}`);
+      logger.info(`🏢 Host: ${poolConfig.host}:${poolConfig.port}`);
+    }
     isDbConnected = true;
     return true;
   } catch (err) {
