@@ -9,11 +9,19 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const getInitialTheme = (): Theme => {
+  try {
+    const stored = localStorage.getItem('theme');
+    if (stored === 'light' || stored === 'dark') return stored;
+  } catch {
+    return 'dark';
+  }
+
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem('theme') as Theme;
-    return stored || 'dark';
-  });
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
   useEffect(() => {
     const root = window.document.documentElement;
