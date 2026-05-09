@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { timetableService } from '@/services/timetableService';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
+
 
 interface TimetableSlot {
   id: string;
@@ -56,9 +58,28 @@ export default function StudentTimetable() {
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('2024-25');
   const [selectedSemesterType, setSelectedSemesterType] = useState<string>('odd');
 
+  const [breakPeriods, setBreakPeriods] = useState<Set<number>>(() => new Set([4]));
+
   // Fetch available groups on component mount
   useEffect(() => {
     fetchAvailableGroups();
+  }, []);
+
+  // Fetch timetable config (lunch break periods) on component mount
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await timetableService.getConfig();
+        const lunchPeriod = response?.data?.defaultLunchBreak;
+        if (typeof lunchPeriod === 'number') {
+          setBreakPeriods(new Set([lunchPeriod]));
+        }
+      } catch (e) {
+        // Keep fallback to period 4
+      }
+    };
+
+    fetchConfig();
   }, []);
 
   // Fetch timetable when group, year, or semester changes
@@ -67,6 +88,7 @@ export default function StudentTimetable() {
       fetchTimetable();
     }
   }, [selectedGroup, selectedAcademicYear, selectedSemesterType]);
+
 
   const fetchAvailableGroups = async (): Promise<void> => {
     try {
@@ -319,9 +341,10 @@ export default function StudentTimetable() {
 
                       {PERIODS.map((period) => {
                         const slot = timetableData[day]?.[period];
-                        const isLunchBreak = period === 4; // Assuming period 4 is lunch
+                        const isLunchBreak = breakPeriods.has(period);
                         
                         return (
+
                           <motion.div
                             key={`${day}-${period}`}
                             whileHover={{ scale: slot ? 1.03 : 1 }}
