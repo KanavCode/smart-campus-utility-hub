@@ -1,6 +1,8 @@
 const rateLimit = require('express-rate-limit');
+const { logger } = require('../config/db');
 
-// Keep rate limiting active in non-test environments, but avoid test flakiness.
+// Rate limiting interferes with sequential auth tests that intentionally perform
+// multiple failed login attempts. Keep production behavior unchanged.
 const isTestEnv = process.env.NODE_ENV === 'test';
 
 /**
@@ -15,6 +17,10 @@ const apiLimiter = isTestEnv
       message: {
         success: false,
         error: 'Too many requests from this IP, please try again later.',
+      },
+      handler: (req, res, next, options) => {
+        logger.warn(`Rate limit exceeded for IP: ${req.ip} on route: ${req.originalUrl}`);
+        res.status(options.statusCode).send(options.message);
       },
       standardHeaders: true,
       legacyHeaders: false,
@@ -32,6 +38,10 @@ const authLimiter = isTestEnv
       message: {
         success: false,
         error: 'Too many authentication attempts. Please try again after 15 minutes.',
+      },
+      handler: (req, res, next, options) => {
+        logger.error(`Brute-force protection triggered for IP: ${req.ip} on route: ${req.originalUrl}`);
+        res.status(options.statusCode).send(options.message);
       },
       standardHeaders: true,
       legacyHeaders: false,

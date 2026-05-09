@@ -102,10 +102,43 @@ const changePasswordById = async (userId, { oldPassword, newPassword }) => {
   await UserModel.changePassword(userId, oldPassword, newPassword);
 };
 
+const handleSSOLogin = async ({ email, full_name, auth_provider, provider_id }) => {
+  let user = await UserModel.findByEmail(email);
+
+  if (!user) {
+    // Dynamically provision user
+    user = await UserModel.createSSO({
+      full_name,
+      email,
+      role: 'student', // Default role for new SSO users
+      auth_provider,
+      provider_id,
+    });
+  } else {
+    if (user.is_active === false) {
+      throw new ApiError(403, 'Account is deactivated. Please contact support.');
+    }
+    // Note: We could optionally update the provider_id if it's missing, 
+    // but relying on email matching is standard for Entra ID / Workspace if domains match.
+  }
+
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  });
+
+  return {
+    user,
+    token,
+  };
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getProfileById,
   updateProfileById,
   changePasswordById,
+  handleSSOLogin,
 };

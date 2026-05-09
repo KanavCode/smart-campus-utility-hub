@@ -6,6 +6,23 @@
     <title>Smart Campus Utility Hub</title>
     <meta name="description" content="Your intelligent campus management system" />
     <meta name="author" content="Smart Campus" />
+    <script>
+      (function () {
+        try {
+          var storedTheme = localStorage.getItem('theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var theme = storedTheme === 'light' || storedTheme === 'dark'
+            ? storedTheme
+            : prefersDark ? 'dark' : 'light';
+
+          document.documentElement.classList.add(theme);
+          document.documentElement.style.colorScheme = theme;
+        } catch {
+          document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = 'dark';
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />

@@ -57,15 +57,40 @@ export interface Group {
   updated_at?: string;
 }
 
+/** Shared query params for server-side pagination and sorting. */
+export interface PaginationSortParams {
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
+
+/** Shape of the pagination metadata returned by list endpoints. */
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+}
+
+const buildQueryString = (params: Record<string, string | number | undefined>): string => {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      searchParams.append(key, String(value));
+    }
+  }
+  const qs = searchParams.toString();
+  return qs ? `?${qs}` : '';
+};
+
 export const timetableService = {
   /**
    * Get all teachers
-   * GET /api/timetable/teachers?department=Computer%20Science
-   * @param department - Optional department filter
+   * GET /api/timetable/teachers?department=...&page=1&limit=20&sort=full_name&order=asc
    */
-  getTeachers: async (department = '') => {
+  getTeachers: async (department = '', pagination: PaginationSortParams = {}) => {
     try {
-      const query = department ? `?department=${encodeURIComponent(department)}` : '';
+      const query = buildQueryString({ department, ...pagination });
       const { data } = await api.get(`/timetable/teachers${query}`);
       return data;
     } catch (error: unknown) {
@@ -75,15 +100,14 @@ export const timetableService = {
 
   /**
    * Get all subjects
-   * GET /api/timetable/subjects?department=Computer%20Science&semester=5
-   * @param filters - { department?, semester? }
+   * GET /api/timetable/subjects?department=...&semester=5&page=1&limit=20&sort=subject_name&order=asc
    */
-  getSubjects: async (filters: { department?: string; semester?: number } = {}) => {
+  getSubjects: async (
+    filters: { department?: string; semester?: number } = {},
+    pagination: PaginationSortParams = {}
+  ) => {
     try {
-      const params = new URLSearchParams();
-      if (filters.department) params.append('department', filters.department);
-      if (filters.semester) params.append('semester', filters.semester.toString());
-      const query = params.toString() ? `?${params.toString()}` : '';
+      const query = buildQueryString({ ...filters, ...pagination });
       const { data } = await api.get(`/timetable/subjects${query}`);
       return data;
     } catch (error: unknown) {
@@ -93,12 +117,11 @@ export const timetableService = {
 
   /**
    * Get all rooms
-   * GET /api/timetable/rooms?room_type=Lab
-   * @param roomType - Optional room type filter
+   * GET /api/timetable/rooms?room_type=Lab&page=1&limit=20&sort=room_name&order=asc
    */
-  getRooms: async (roomType = '') => {
+  getRooms: async (roomType = '', pagination: PaginationSortParams = {}) => {
     try {
-      const query = roomType ? `?room_type=${encodeURIComponent(roomType)}` : '';
+      const query = buildQueryString({ room_type: roomType, ...pagination });
       const { data } = await api.get(`/timetable/rooms${query}`);
       return data;
     } catch (error: unknown) {
@@ -108,15 +131,14 @@ export const timetableService = {
 
   /**
    * Get all student groups
-   * GET /api/timetable/groups?department=Computer%20Science&semester=5
-   * @param filters - { department?, semester? }
+   * GET /api/timetable/groups?department=...&semester=5&page=1&limit=20&sort=group_name&order=asc
    */
-  getGroups: async (filters: { department?: string; semester?: number } = {}) => {
+  getGroups: async (
+    filters: { department?: string; semester?: number } = {},
+    pagination: PaginationSortParams = {}
+  ) => {
     try {
-      const params = new URLSearchParams();
-      if (filters.department) params.append('department', filters.department);
-      if (filters.semester) params.append('semester', filters.semester.toString());
-      const query = params.toString() ? `?${params.toString()}` : '';
+      const query = buildQueryString({ ...filters, ...pagination });
       const { data } = await api.get(`/timetable/groups${query}`);
       return data;
     } catch (error: unknown) {
