@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -81,44 +82,59 @@ export default function Users() {
     entityName: 'user',
   });
 
-  // Fetch filtered users when filters change
-  useEffect(() => {
-    const fetchFilteredUsers = async () => {
-      if (filters.role || filters.department || filters.is_active) {
-        setIsLoadingFiltered(true);
-        try {
-          const filterParams: UserFilterParams = {};
-          if (filters.role) filterParams.role = filters.role;
-          if (filters.department) filterParams.department = filters.department;
-          if (filters.is_active === 'true') {
-            filterParams.is_active = true;
-          } else if (filters.is_active === 'false') {
-            filterParams.is_active = false;
-          }
+  const lastServerFilterKeyRef = useRef<string | null>(null);
 
-          const data = await userService.getAllWithFilters(filterParams);
-          setFilteredUsersData(data);
-        } catch (err) {
-          console.error('Error fetching filtered users:', err);
-          setFilteredUsersData([]);
-        } finally {
-          setIsLoadingFiltered(false);
-        }
-      } else {
+
+  // Fetch filtered users when server-side filters change
+  useEffect(() => {
+    const run = async () => {
+      const hasServerSideFilters = !!(filters.role || filters.department || filters.is_active);
+
+      // If no server-side filters, reset (and don’t call backend)
+      if (!hasServerSideFilters) {
         setFilteredUsersData([]);
+        return;
+      }
+
+      const filterParams: UserFilterParams = {};
+      if (filters.role) filterParams.role = filters.role;
+      if (filters.department) filterParams.department = filters.department;
+      if (filters.is_active === 'true') {
+        filterParams.is_active = true;
+      } else if (filters.is_active === 'false') {
+        filterParams.is_active = false;
+      }
+
+      const serverFilterKey = JSON.stringify(filterParams);
+      // Guard: avoid refetch if effective params are unchanged
+      if (lastServerFilterKeyRef.current === serverFilterKey) return;
+      lastServerFilterKeyRef.current = serverFilterKey;
+
+
+      setIsLoadingFiltered(true);
+      try {
+        const data = await userService.getAllWithFilters(filterParams);
+        setFilteredUsersData(data);
+      } catch (err) {
+        console.error('Error fetching filtered users:', err);
+        setFilteredUsersData([]);
+      } finally {
+        setIsLoadingFiltered(false);
       }
     };
 
-    fetchFilteredUsers();
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.role, filters.department, filters.is_active]);
 
-  // Determine which data to display
-  const dataToDisplay =
+  // Server-side dataset to display (client-side search is applied on top)
+  const serverFilteredUsers =
     filters.role || filters.department || filters.is_active ? filteredUsersData : users;
 
-  // Apply search filter on top of other filters
-  const searchFiltered = dataToDisplay.filter((user) => {
+  // Apply client-side search on top of server-side filters
+  const searchFiltered = serverFilteredUsers.filter((user) => {
     const q = filters.search.toLowerCase();
+    if (!q) return true;
     return (
       (user.name || '').toLowerCase().includes(q) ||
       (user.email || '').toLowerCase().includes(q) ||
@@ -126,11 +142,16 @@ export default function Users() {
     );
   });
 
-  // Unique values for filter dropdowns
+  const showingCount = searchFiltered.length;
+  const totalCount = serverFilteredUsers.length;
+
+
+  // Unique values for filter dropdowns (from the unfiltered dataset)
   const uniqueRoles = Array.from(new Set(users.map((u) => u.role).filter(Boolean)));
   const uniqueDepartments = Array.from(
     new Set(users.map((u) => u.department).filter(Boolean))
   );
+
 
   const handleFilterChange = (filterKey: keyof FilterState, value: string) => {
     setFilters((prev) => ({
@@ -268,12 +289,13 @@ export default function Users() {
             {/* Filter Summary */}
             {hasActiveFilters && (
               <div className="text-sm text-muted-foreground">
-                Showing {searchFiltered.length} of {users.length} users
+                Showing {showingCount} of {totalCount} users
                 {filters.role && ` • Role: ${filters.role}`}
                 {filters.department && ` • Department: ${filters.department}`}
                 {filters.is_active && ` • Status: ${filters.is_active === 'true' ? 'Active' : 'Inactive'}`}
               </div>
             )}
+
           </div>
 
           <div className="rounded-lg border border-border overflow-hidden">
@@ -313,10 +335,8 @@ export default function Users() {
                 )}
 
                 {/* Empty state - only show when not loading, no error, and no items */}
-                {!isLoading &&
-                  !isLoadingFiltered &&
-                  !error &&
-                  searchFiltered.length === 0 && (
+                {(!isLoading && !isLoadingFiltered && !error && searchFiltered.length === 0) && (
+
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         {filters.search ? (
