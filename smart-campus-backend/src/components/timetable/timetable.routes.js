@@ -41,4 +41,8 @@ router.post('/assign/subject-group', verifyToken, verifyAdmin, validate(validati
 // Admin routes - timetable generation
 router.post('/generate', verifyToken, verifyAdmin, validate(validationSchemas.generateTimetable, 'body'), timetableController.generateTimetable);
 
+// Admin routes - manual slot management
+router.put('/slots/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), timetableController.updateTimetableSlot);
+router.delete('/slots/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), timetableController.deleteTimetableSlot);
+
 module.exports = router;
