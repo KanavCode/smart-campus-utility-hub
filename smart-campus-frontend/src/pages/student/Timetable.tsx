@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -76,9 +76,31 @@ export default function StudentTimetable() {
 
   const [breakPeriods, setBreakPeriods] = useState<Set<number>>(() => new Set([4]));
 
+  const fetchAvailableGroups = async (): Promise<void> => {
+    try {
+      const response = await timetableService.getGroups();
+
+      if (response.success && response.data?.groups) {
+        const newGroups: Group[] = response.data.groups;
+        setAvailableGroups(newGroups);
+
+        // Keep current selection if still present; otherwise auto-select first group.
+        const currentIsValid = !!selectedGroup && newGroups.some((g) => g.id === selectedGroup);
+        if (!currentIsValid) {
+          setSelectedGroup(newGroups.length > 0 ? newGroups[0].id : '');
+        }
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      console.error('Error fetching groups:', e);
+      toast.error(e?.message || 'Failed to load student groups');
+    }
+  };
+
   // Fetch available groups on component mount
   useEffect(() => {
     fetchAvailableGroups();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch timetable config (lunch break periods) on component mount
@@ -98,33 +120,23 @@ export default function StudentTimetable() {
     fetchConfig();
   }, []);
 
-  // Fetch timetable when group, year, or semester changes
+  const isSelectedGroupValid =
+    !!selectedGroup && availableGroups.some((g) => g.id === selectedGroup);
+
+  // Fetch timetable when group, year, or semester changes (guard against invalid group / race)
+  const latestTimetableRequestIdRef = useRef(0);
+
   useEffect(() => {
-    if (selectedGroup) {
-      fetchTimetable();
-    }
-  }, [selectedGroup, selectedAcademicYear, selectedSemesterType]);
+    if (!selectedGroup || !isSelectedGroupValid) return;
+    if (!selectedAcademicYear || !selectedSemesterType) return;
+
+    const requestId = ++latestTimetableRequestIdRef.current;
+    fetchTimetable(requestId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGroup, selectedAcademicYear, selectedSemesterType, isSelectedGroupValid]);
 
 
-  const fetchAvailableGroups = async (): Promise<void> => {
-    try {
-      const response = await timetableService.getGroups();
-      
-      if (response.success && response.data?.groups) {
-        setAvailableGroups(response.data.groups);
-        // Auto-select first group if available
-        if (response.data.groups.length > 0) {
-          setSelectedGroup(response.data.groups[0].id);
-        }
-      }
-    } catch (err: unknown) {
-      const e = err as { message?: string };
-      console.error('Error fetching groups:', e);
-      toast.error(e?.message || 'Failed to load student groups');
-    }
-  };
-
-  const fetchTimetable = async (): Promise<void> => {
+  const fetchTimetable = async (requestId: number): Promise<void> => {
     try {
       if (!isOnline && Object.keys(timetableData).length > 0) {
         toast.info('You are offline. Showing cached timetable.');
@@ -139,6 +151,9 @@ export default function StudentTimetable() {
         selectedAcademicYear,
         selectedSemesterType
       );
+
+      // Ignore stale responses (race protection)
+      if (requestId !== latestTimetableRequestIdRef.current) return;
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to load timetable');
@@ -183,11 +198,13 @@ export default function StudentTimetable() {
   };
 
   const handleRefresh = (): void => {
-    if (selectedGroup) {
-      fetchTimetable();
-    } else {
-      toast.error('Please select a group first');
+    if (!selectedGroup || !isSelectedGroupValid) {
+      toast.error('Please select a valid group first');
+      return;
     }
+
+    const requestId = ++latestTimetableRequestIdRef.current;
+    fetchTimetable(requestId);
   };
 
   const getCellContent = (slot: TimetableSlot | null): JSX.Element => {
