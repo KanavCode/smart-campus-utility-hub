@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LoadingProvider } from "@/contexts/LoadingContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Landing from "./pages/Landing";
@@ -69,9 +70,10 @@ const App = () => (
     <ThemeProvider>
       <AuthProvider>
         <LoadingProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
+          <NotificationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
             <LoadingSpinner />
           <BrowserRouter>
             <RoutePreloader />
@@ -293,8 +295,9 @@ const App = () => (
             </Suspense>
           </BrowserRouter>
         </TooltipProvider>
-        </LoadingProvider>
-      </AuthProvider>
+      </NotificationProvider>
+    </LoadingProvider>
+  </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );
