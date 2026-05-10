@@ -2,22 +2,42 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, BookOpen, Clock, User, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Calendar, BookOpen, Clock, User, CheckCircle2, ArrowRight, Coffee } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { eventsService } from '@/services/eventService';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { timetableService, Group } from '@/services/timetableService';
+import { TimetableSlot } from '@/types';
+
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const getAcademicYear = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  return month >= 6 ? `${year}-${String(year + 1).slice(-2)}` : `${year - 1}-${String(year).slice(-2)}`;
+};
+
+const getSemesterType = () => {
+  const month = new Date().getMonth();
+  return month >= 0 && month <= 5 ? 'even' : 'odd';
+};
 
 export default function StudentDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [savedEvents, setSavedEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [todayClasses, setTodayClasses] = useState<TimetableSlot[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [timetableLoading, setTimetableLoading] = useState(true);
 
   useEffect(() => {
     loadSavedEvents();
+    loadTodaySchedule();
   }, []);
 
   const loadSavedEvents = async () => {
@@ -29,11 +49,52 @@ export default function StudentDashboard() {
     } catch (error) {
       console.error('Error loading saved events:', error);
     } finally {
-      setLoading(false);
+      setEventsLoading(false);
+    }
+  };
+
+  const loadTodaySchedule = async () => {
+    try {
+      const response = await timetableService.getGroups({
+        department: user?.department,
+        semester: user?.semester ?? undefined,
+      });
+      const groups: Group[] = response?.data?.groups || [];
+      const selectedGroup =
+        groups.find((group) => (
+          (!user?.department || group.department === user.department) &&
+          (!user?.semester || group.semester === user.semester)
+        )) || groups[0];
+
+      if (!selectedGroup) {
+        setTodayClasses([]);
+        return;
+      }
+
+      const timetableResponse = await timetableService.getGroupTimetable(
+        selectedGroup.id,
+        getAcademicYear(),
+        getSemesterType()
+      );
+      const slots: TimetableSlot[] = timetableResponse?.data?.slots || [];
+      const today = DAYS[new Date().getDay()];
+
+      setTodayClasses(
+        slots
+          .filter((slot) => slot.day_of_week === today)
+          .sort((a, b) => a.period_number - b.period_number)
+      );
+    } catch (error) {
+      console.error('Error loading today schedule:', error);
+      setTodayClasses([]);
+    } finally {
+      setTimetableLoading(false);
     }
   };
 
   const profileCompletion = 75; // TODO: Calculate based on filled fields
+  const dashboardLoading = eventsLoading || timetableLoading;
+  const hasEmptyDay = !dashboardLoading && savedEvents.length === 0 && todayClasses.length === 0;
 
   const renderStatCardSkeleton = () => (
     <Card className="glass border-muted">
@@ -112,7 +173,7 @@ export default function StudentDashboard() {
         </motion.div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {loading ? (
+          {dashboardLoading ? (
             <>
               {[...Array(4)].map((_, i) => (
                 <div key={`stat-skeleton-${i}`} className="h-full">
@@ -135,8 +196,14 @@ export default function StudentDashboard() {
                     <Clock className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">5 Classes</div>
-                    <p className="text-xs text-muted-foreground mt-1">Next: Data Structures at 10:00 AM</p>
+                    <div className="text-2xl font-bold">
+                      {todayClasses.length === 0 ? 'No Classes' : `${todayClasses.length} Classes`}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {todayClasses.length > 0
+                        ? `Next: ${todayClasses[0]?.subject?.subject_name} in ${todayClasses[0]?.room?.room_code}`
+                        : 'No classes today. Enjoy a slower day on campus.'}
+                    </p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -210,8 +277,29 @@ export default function StudentDashboard() {
           )}
         </div>
 
+        {hasEmptyDay && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55 }}
+          >
+            <Card className="glass overflow-hidden border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-background to-emerald-500/10">
+              <CardContent className="flex flex-col items-center justify-center px-6 py-12 text-center">
+                <div className="mb-4 rounded-full border border-amber-500/20 bg-amber-500/15 p-4">
+                  <Coffee className="h-10 w-10 text-amber-600" />
+                </div>
+                <h2 className="text-2xl font-semibold tracking-tight">No classes today!</h2>
+                <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+                  Your schedule is clear and there are no upcoming saved events right now. Go enjoy a coffee on campus
+                  and check back later for fresh updates.
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Upcoming Saved Events */}
-        {loading ? (
+        {eventsLoading ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -219,8 +307,7 @@ export default function StudentDashboard() {
           >
             {renderEventsSectionSkeleton()}
           </motion.div>
-        ) : (
-          savedEvents.length > 0 && (
+        ) : savedEvents.length > 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -267,7 +354,31 @@ export default function StudentDashboard() {
                 </CardContent>
               </Card>
             </motion.div>
-          )
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <Card className="glass border-dashed border-muted">
+              <CardContent className="flex flex-col items-center justify-center px-6 py-12 text-center">
+                <div className="mb-4 rounded-full bg-accent/10 p-4">
+                  <Coffee className="h-8 w-8 text-accent" />
+                </div>
+                <h3 className="text-xl font-semibold">No upcoming events</h3>
+                <p className="mt-2 max-w-lg text-sm text-muted-foreground">
+                  Your saved events list is empty for now. Explore campus activities and bookmark something fun for later.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-5"
+                  onClick={() => navigate('/events')}
+                >
+                  Browse Events <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
 
         <motion.div
