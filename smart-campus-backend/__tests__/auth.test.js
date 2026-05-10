@@ -26,7 +26,7 @@ describe('Authentication API Tests', () => {
   let testUserId;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   describe('POST /api/auth/register', () => {

@@ -18,9 +18,18 @@ class TimetableSolver {
     this.teacherSchedule = {};
     this.roomSchedule = {};
     this.groupSchedule = {};
-    this.solutionFound = false;
     this.maxIterations = 100000;
     this.currentIteration = 0;
+    // unscheduledCount tracks remaining work — O(1) completion check
+    this.unscheduledCount = 0;
+    this.cache = {
+      groups: {},
+      subjectTeachers: {},       // subjectId -> [{ ...teacher, unavailableSlots: Set<"day_period"> }]
+      suitableRooms: {}          // "courseType_strength" -> [room]
+    };
+    this.subjectPeriodsCounter = {};
+    // Flat array built once after init — avoids Object.values() on every solve() call
+    this._counterList = [];
   }
 
   /**
@@ -48,7 +57,7 @@ class TimetableSolver {
       const timeSlots = this.generateTimeSlots();
       
       // Start backtracking
-      const result = await this.solve(timeSlots, 0);
+      const result = this.solve(timeSlots, 0);
       
       if (result) {
         logger.info('✅ Timetable generation successful');
@@ -88,17 +97,26 @@ class TimetableSolver {
       this.teacherSchedule[day] = {};
       this.roomSchedule[day] = {};
       this.groupSchedule[day] = {};
+      this.subjectPeriodsCounter[day] = {};
       
       for (let period = 1; period <= periods_per_day; period++) {
-        this.timetable[day][period] = [];
+        // Map<groupId, assignment> enables O(1) undo instead of Array.filter
+        this.timetable[day][period] = new Map();
         this.teacherSchedule[day][period] = new Set();
         this.roomSchedule[day][period] = new Set();
         this.groupSchedule[day][period] = new Set();
       }
     });
 
-    // Initialize subject hour counters for each group
+    // Initialize subject hour counters and pre-fetch data for caching
     for (const groupId of groups) {
+      const group = await StudentGroup.findById(groupId);
+      this.cache.groups[groupId] = group;
+      
+      days.forEach(day => {
+        this.subjectPeriodsCounter[day][groupId] = {};
+      });
+
       const subjects = await StudentGroup.getGroupSubjects(groupId);
       
       for (const subject of subjects) {
@@ -109,9 +127,38 @@ class TimetableSolver {
           subject: subject,
           groupId: groupId
         };
+        this.unscheduledCount += subject.hours_per_week;
+
+        days.forEach(day => {
+          this.subjectPeriodsCounter[day][groupId][subject.id] = 0;
+        });
+
+        // Pre-fetch teachers; convert unavailability list to a Set for O(1) lookup
+        if (!this.cache.subjectTeachers[subject.id]) {
+          const teachers = await Subject.getSubjectTeachers(subject.id);
+          const enriched = [];
+          for (const teacher of teachers) {
+            const unavailability = await Teacher.getUnavailability(teacher.id);
+            const unavailableSlots = new Set(
+              unavailability.map(u => `${u.day_of_week}_${u.period_number}`)
+            );
+            enriched.push({ ...teacher, unavailableSlots });
+          }
+          enriched.sort((a, b) => (a.priority || 999) - (b.priority || 999));
+          this.cache.subjectTeachers[subject.id] = enriched;
+        }
+
+        // Pre-fetch suitable rooms
+        const roomKey = `${subject.course_type}_${group.strength}`;
+        if (!this.cache.suitableRooms[roomKey]) {
+          const suitableRooms = await Room.findSuitableRooms(subject.course_type, group.strength);
+          this.cache.suitableRooms[roomKey] = suitableRooms;
+        }
       }
     }
 
+    // Build flat counter list once so solve() never calls Object.values() again
+    this._counterList = Object.values(this.subjectHourCounters);
     logger.info(`Initialized data structures for ${groups.length} groups`);
   }
 
@@ -124,47 +171,35 @@ class TimetableSolver {
   async validateConstraints() {
     const errors = [];
     const { groups, days, periods_per_day, lunch_break_period } = this.constraints;
+    const availableSlotsPerGroup = days.length * periods_per_day - (lunch_break_period ? days.length : 0);
 
-    // Validate groups exist
+    // All data already in cache — no extra DB calls needed
     for (const groupId of groups) {
-      const group = await StudentGroup.findById(groupId);
-      if (!group) {
+      if (!this.cache.groups[groupId]) {
         errors.push(`Student group with ID ${groupId} not found`);
+        continue;
       }
-    }
 
-    // Validate lunch break period
-    if (lunch_break_period && (lunch_break_period < 1 || lunch_break_period > periods_per_day)) {
-      errors.push(`Invalid lunch break period: ${lunch_break_period}`);
-    }
+      // Derive subjects from the already-built counter list
+      const groupCounters = this._counterList.filter(c => c.groupId === groupId);
+      const groupHours = groupCounters.reduce((sum, c) => sum + c.required, 0);
 
-    // Check if total required hours can fit in available slots
-    for (const groupId of groups) {
-      const subjects = await StudentGroup.getGroupSubjects(groupId);
-      const groupHours = subjects.reduce((sum, subject) => sum + subject.hours_per_week, 0);
-      
-      // Check if single group's hours fit in a week
-      const availableSlotsPerGroup = days.length * periods_per_day - (lunch_break_period ? days.length : 0);
       if (groupHours > availableSlotsPerGroup) {
         errors.push(`Group ${groupId} requires ${groupHours} hours but only ${availableSlotsPerGroup} slots available`);
       }
-    }
 
-    // Check teacher assignments
-    for (const groupId of groups) {
-      const subjects = await StudentGroup.getGroupSubjects(groupId);
-      for (const subject of subjects) {
-        const teachers = await Subject.getSubjectTeachers(subject.id);
-        if (teachers.length === 0) {
+      for (const { subject } of groupCounters) {
+        if ((this.cache.subjectTeachers[subject.id] || []).length === 0) {
           errors.push(`No teacher assigned to subject: ${subject.subject_name} (${subject.subject_code})`);
         }
       }
     }
 
-    return {
-      valid: errors.length === 0,
-      errors: errors
-    };
+    if (lunch_break_period && (lunch_break_period < 1 || lunch_break_period > periods_per_day)) {
+      errors.push(`Invalid lunch break period: ${lunch_break_period}`);
+    }
+
+    return { valid: errors.length === 0, errors };
   }
 
   /**
@@ -193,82 +228,62 @@ class TimetableSolver {
 
   /**
    * Main backtracking solver
-   * Recursively assigns subjects to time slots while satisfying constraints
-   * 
-   * @param {Array} timeSlots - All available time slots
-   * @param {Number} slotIndex - Current slot index being processed
-   * @returns {Boolean} True if solution found, false otherwise
+   *
+   * Strategy: iterate slots in a loop; for each slot try every pending
+   * subject-teacher-room combination and recurse only on the choice branch.
+   * Using unscheduledCount for O(1) completion check and a Map for O(1) undo.
+   *
+   * @param {Array} timeSlots
+   * @param {Number} slotIndex
+   * @returns {Boolean}
    */
-  async solve(timeSlots, slotIndex) {
-    this.currentIteration++;
-    
-    // Prevent infinite loops
-    if (this.currentIteration > this.maxIterations) {
+  solve(timeSlots, slotIndex) {
+    if (++this.currentIteration > this.maxIterations) {
       logger.warn('Maximum iterations reached');
       return false;
     }
 
-    // Log progress every 1000 iterations
     if (this.currentIteration % 1000 === 0) {
-      logger.info(`Iteration ${this.currentIteration}: Processing slot ${slotIndex}/${timeSlots.length}`);
+      logger.info(`Iteration ${this.currentIteration}: slot ${slotIndex}/${timeSlots.length}`);
     }
 
-    // Base case: all subjects scheduled
-    if (this.areAllSubjectsScheduled()) {
-      return true;
-    }
+    // O(1) completion check
+    if (this.unscheduledCount === 0) return true;
 
-    // Base case: all time slots processed but not all subjects scheduled
-    if (slotIndex >= timeSlots.length) {
-      return false;
-    }
+    if (slotIndex >= timeSlots.length) return false;
 
-    const currentSlot = timeSlots[slotIndex];
-    const { day, period } = currentSlot;
-
-    // Try to schedule each unfinished subject in current slot
-    for (const counter of Object.values(this.subjectHourCounters)) {
-      if (counter.scheduled >= counter.required) {
-        continue; // Subject already fully scheduled
-      }
+    const { day, period } = timeSlots[slotIndex];
+    for (const counter of this._counterList) {
+      if (counter.scheduled >= counter.required) continue;
 
       const { subject, groupId } = counter;
-      
-      // Check if group is already scheduled in this slot
-      if (this.groupSchedule[day][period].has(groupId)) {
-        continue;
-      }
-      
-      // Find available teachers for this subject
-      const availableTeachers = await this.getAvailableTeachers(subject.id, day, period);
-      
+      if (this.groupSchedule[day][period].has(groupId)) continue;
+
+      const group = this.cache.groups[groupId];
+      const availableTeachers = this.getAvailableTeachers(subject.id, day, period);
+
       for (const teacher of availableTeachers) {
-        // Find suitable rooms
-        const group = await StudentGroup.findById(groupId);
-        const availableRooms = await this.getAvailableRooms(subject, group, day, period);
-        
+        const availableRooms = this.getAvailableRooms(subject, group, day, period);
+
         for (const room of availableRooms) {
-          // Check if this assignment is valid
-          if (await this.isValidAssignment(teacher, subject, group, room, day, period)) {
-            // Make assignment
-            this.makeAssignment(teacher, subject, group, room, day, period);
-            counter.scheduled++;
+          if (!this.isValidAssignment(teacher, subject, group, room, day, period)) continue;
 
-            // Recursively solve next slot
-            if (await this.solve(timeSlots, slotIndex + 1)) {
-              return true;
-            }
+          this.makeAssignment(teacher, subject, group, room, day, period);
+          counter.scheduled++;
+          this.unscheduledCount--;
 
-            // Backtrack
-            this.undoAssignment(teacher, subject, group, room, day, period);
-            counter.scheduled--;
-          }
+          if (this.solve(timeSlots, slotIndex + 1)) return true;
+
+          // Backtrack
+          this.undoAssignment(teacher, subject, group, room, day, period);
+          counter.scheduled--;
+          this.unscheduledCount++;
         }
       }
     }
 
-    // No valid assignment found for this slot, try next slot (skip empty slots)
-    return await this.solve(timeSlots, slotIndex + 1);
+    // Skip this slot and try the next one
+    return this.solve(timeSlots, slotIndex + 1);
   }
 
   /**
@@ -280,27 +295,21 @@ class TimetableSolver {
    * @param {Number} period - Period number
    * @returns {Array} Available teachers sorted by priority
    */
-  async getAvailableTeachers(subjectId, day, period) {
-    const teachers = await Subject.getSubjectTeachers(subjectId);
+  getAvailableTeachers(subjectId, day, period) {
+    const teachers = this.cache.subjectTeachers[subjectId] || [];
+    const slotKey = `${day}_${period}`;
     const available = [];
 
     for (const teacher of teachers) {
-      // Check if teacher is not already scheduled
-      if (!this.teacherSchedule[day][period].has(teacher.id)) {
-        // Check teacher unavailability
-        const unavailability = await Teacher.getUnavailability(teacher.id);
-        const isUnavailable = unavailability.some(u => 
-          u.day_of_week === day && u.period_number === period
-        );
-
-        if (!isUnavailable) {
-          available.push(teacher);
-        }
+      if (
+        !this.teacherSchedule[day][period].has(teacher.id) &&
+        !teacher.unavailableSlots.has(slotKey)          // O(1) Set lookup
+      ) {
+        available.push(teacher);
       }
     }
 
-    // Sort by priority (lower number = higher priority)
-    return available.sort((a, b) => (a.priority || 999) - (b.priority || 999));
+    return available;
   }
 
   /**
@@ -313,8 +322,9 @@ class TimetableSolver {
    * @param {Number} period - Period number
    * @returns {Array} Available rooms
    */
-  async getAvailableRooms(subject, group, day, period) {
-    const suitableRooms = await Room.findSuitableRooms(subject.course_type, group.strength);
+  getAvailableRooms(subject, group, day, period) {
+    const roomKey = `${subject.course_type}_${group.strength}`;
+    const suitableRooms = this.cache.suitableRooms[roomKey] || [];
     const available = [];
 
     for (const room of suitableRooms) {
@@ -333,7 +343,7 @@ class TimetableSolver {
    * 
    * @returns {Boolean} True if assignment is valid
    */
-  async isValidAssignment(teacher, subject, group, room, day, period) {
+  isValidAssignment(teacher, subject, group, room, day, period) {
     // Hard constraint 1: No teacher conflicts
     if (this.teacherSchedule[day][period].has(teacher.id)) {
       return false;
@@ -361,7 +371,7 @@ class TimetableSolver {
 
     // Check max periods per day for this subject-group combination
     if (subject.max_periods_per_day) {
-      const periodsToday = this.countSubjectPeriodsForDay(subject.id, group.id, day);
+      const periodsToday = this.subjectPeriodsCounter[day][group.id][subject.id] || 0;
       if (periodsToday >= subject.max_periods_per_day) {
         return false;
       }
@@ -371,73 +381,30 @@ class TimetableSolver {
   }
 
   /**
-   * Count how many periods a subject has been assigned for a group on a specific day
-   */
-  countSubjectPeriodsForDay(subjectId, groupId, day) {
-    let count = 0;
-    const periods = this.timetable[day];
-    
-    for (const period in periods) {
-      const assignments = periods[period];
-      count += assignments.filter(a => 
-        a.subject.id === subjectId && a.group.id === groupId
-      ).length;
-    }
-    
-    return count;
-  }
-
-  /**
-   * Make assignment in the timetable
-   * Updates all tracking data structures
+   * Make assignment — stored in a Map<groupId, assignment> for O(1) undo
    */
   makeAssignment(teacher, subject, group, room, day, period) {
-    const assignment = {
-      teacher: teacher,
-      subject: subject,
-      group: group,
-      room: room,
-      day: day,
-      period: period
-    };
-
-    this.timetable[day][period].push(assignment);
+    this.timetable[day][period].set(group.id, { teacher, subject, group, room, day, period });
     this.teacherSchedule[day][period].add(teacher.id);
     this.groupSchedule[day][period].add(group.id);
     this.roomSchedule[day][period].add(room.id);
+    this.subjectPeriodsCounter[day][group.id][subject.id]++;
   }
 
   /**
-   * Undo assignment (backtrack)
-   * Removes assignment from all tracking data structures
+   * Undo assignment (backtrack) — O(1) via Map keyed by groupId
    */
   undoAssignment(teacher, subject, group, room, day, period) {
-    // Remove from timetable
-    this.timetable[day][period] = this.timetable[day][period].filter(
-      assignment => !(
-        assignment.teacher.id === teacher.id &&
-        assignment.subject.id === subject.id &&
-        assignment.group.id === group.id &&
-        assignment.room.id === room.id
-      )
-    );
-
+    this.timetable[day][period].delete(group.id);
     this.teacherSchedule[day][period].delete(teacher.id);
     this.groupSchedule[day][period].delete(group.id);
     this.roomSchedule[day][period].delete(room.id);
+    this.subjectPeriodsCounter[day][group.id][subject.id]--;
   }
 
-  /**
-   * Check if all subjects are fully scheduled
-   * @returns {Boolean} True if all subjects have been scheduled for required hours
-   */
+  // Kept for external callers / tests; internally we use unscheduledCount
   areAllSubjectsScheduled() {
-    for (const counter of Object.values(this.subjectHourCounters)) {
-      if (counter.scheduled < counter.required) {
-        return false;
-      }
-    }
-    return true;
+    return this.unscheduledCount === 0;
   }
 
   /**
@@ -451,7 +418,7 @@ class TimetableSolver {
 
     for (const [day, periods] of Object.entries(this.timetable)) {
       for (const [period, assignments] of Object.entries(periods)) {
-        for (const assignment of assignments) {
+        for (const assignment of assignments.values()) {
           formattedTimetable.push({
             day: day,
             period: parseInt(period),
@@ -505,7 +472,7 @@ class TimetableSolver {
   getStatistics() {
     const totalSlots = Object.values(this.timetable).reduce((total, periods) => {
       return total + Object.values(periods).reduce((dayTotal, assignments) => {
-        return dayTotal + assignments.length;
+        return dayTotal + assignments.size;
       }, 0);
     }, 0);
 
@@ -544,22 +511,21 @@ const generateTimetable = async (constraints) => {
  */
 const saveTimetableToDatabase = async (timetable, academic_year, semester_type) => {
   try {
-    // Clear existing timetable
     await TimetableSlot.clearTimetable(academic_year, semester_type);
 
-    // Save new timetable
-    for (const slot of timetable) {
-      await TimetableSlot.create({
+    // Batch all inserts in one call instead of one query per slot
+    await TimetableSlot.bulkCreate(
+      timetable.map(slot => ({
         day_of_week: slot.day,
         period_number: slot.period,
         teacher_id: slot.teacher.id,
         subject_id: slot.subject.id,
         group_id: slot.group.id,
         room_id: slot.room.id,
-        academic_year: academic_year,
-        semester_type: semester_type
-      });
-    }
+        academic_year,
+        semester_type
+      }))
+    );
 
     logger.info(`✅ Timetable saved to database: ${timetable.length} slots`);
     return true;
@@ -569,8 +535,104 @@ const saveTimetableToDatabase = async (timetable, academic_year, semester_type) 
   }
 };
 
+/**
+ * Handle manual override: detect conflicts and suggest alternatives
+ * 
+ * @param {Object} assignment - { teacher_id, subject_id, group_id, room_id, day, period }
+ * @param {Object} currentState - Current timetable state with all schedule data
+ * @returns {Object} Result with conflicts and suggestions
+ */
+const detectConflictsAndSuggest = async (assignment, currentState) => {
+  try {
+    const { ConflictDetector } = require('./conflict.detector');
+    const { SuggestionEngine } = require('./suggestion.engine');
+
+    // Fetch resource details
+    const [teacher, subject, group, room] = await Promise.all([
+      Teacher.findById(assignment.teacher_id),
+      Subject.findById(assignment.subject_id),
+      StudentGroup.findById(assignment.group_id),
+      Room.findById(assignment.room_id)
+    ]);
+
+    if (!teacher || !subject || !group || !room) {
+      return {
+        success: false,
+        conflicts: [],
+        suggestions: [],
+        error: 'Invalid assignment: One or more resources not found'
+      };
+    }
+
+    // Step 1: Detect conflicts
+    const conflictDetector = new ConflictDetector(
+      currentState.timetable,
+      currentState.teacherSchedule,
+      currentState.roomSchedule,
+      currentState.groupSchedule
+    );
+
+    const conflicts = await conflictDetector.detectConflicts(
+      teacher, subject, group, room, assignment.day, assignment.period
+    );
+
+    // Step 2: If no conflicts, return success
+    if (conflicts.length === 0) {
+      logger.info('✅ No conflicts detected for manual override');
+      return {
+        success: true,
+        conflicts: [],
+        suggestions: [],
+        message: 'Assignment can proceed - no conflicts found'
+      };
+    }
+
+    // Step 3: If conflicts exist, generate suggestions
+    logger.warn(`⚠️ ${conflicts.length} conflict(s) detected. Generating suggestions...`);
+
+    const suggestionEngine = new SuggestionEngine(
+      currentState.timetable,
+      currentState.constraints,
+      currentState.teacherSchedule,
+      currentState.roomSchedule,
+      currentState.groupSchedule
+    );
+
+    const suggestions = await suggestionEngine.getSuggestions(
+      teacher, subject, group, room, assignment.day, assignment.period
+    );
+
+    logger.info(`📋 Generated ${suggestions.length} alternative suggestions`);
+
+    return {
+      success: false,
+      conflicts: conflicts,
+      suggestions: suggestions,
+      conflictCount: conflicts.length,
+      hasHighSeverityConflict: conflicts.some(c => c.severity === 'HIGH'),
+      requestedSlot: {
+        day: assignment.day,
+        period: assignment.period,
+        teacher: { id: teacher.id, name: teacher.full_name },
+        subject: { id: subject.id, name: subject.subject_name },
+        group: { id: group.id, name: group.group_name },
+        room: { id: room.id, name: room.room_name }
+      }
+    };
+  } catch (error) {
+    logger.error('Error in detectConflictsAndSuggest:', error);
+    return {
+      success: false,
+      conflicts: [],
+      suggestions: [],
+      error: error.message
+    };
+  }
+};
+
 module.exports = {
   generateTimetable,
   saveTimetableToDatabase,
-  TimetableSolver
+  TimetableSolver,
+  detectConflictsAndSuggest
 };

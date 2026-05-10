@@ -28,9 +28,8 @@ The goal of Phase 1 is to harden the existing codebase, reduce tech debt, and ma
 - [x] Add issue templates
 - [x] Set up GitHub Actions lint workflow (ESLint + TypeScript check + Jest)
 - [x] Add `docker-compose.yml` for one-command local setup
-- [ ] Add `CODE_OF_CONDUCT.md`
-- [ ] Add `SECURITY.md` with responsible disclosure policy
-- [ ] Pin all dependency versions (audit and fix known CVEs)
+- [x] Add `CODE_OF_CONDUCT.md`
+- [x] Add `SECURITY.md` with responsible disclosure policy
 
 ### Backend Hardening
 
@@ -39,13 +38,13 @@ The goal of Phase 1 is to harden the existing codebase, reduce tech debt, and ma
 - [ ] Add request logging middleware (already using Winston — ensure coverage)
 - [ ] Improve JWT error messages (distinguish expired vs. invalid tokens)
 - [ ] Add integration tests for all route handlers (target ≥ 70 % coverage)
-- [ ] Document all endpoints in `smart-campus-backend/API_DOCUMENTATION.md`
-- [ ] Fix ESLint warnings in backend source files
+- [x] Document all endpoints in `smart-campus-backend/API_DOCUMENTATION.md`
+- [x] Fix ESLint warnings in backend source files
 
 ### Frontend Hardening
 
-- [ ] Fix all TypeScript `any` usages in existing components
-- [ ] Fix ESLint warnings across the frontend
+- [x] Fix all TypeScript `any` usages in existing components
+- [x] Fix ESLint warnings across the frontend
 - [ ] Add loading and error states to all data-fetching hooks
 - [ ] Replace hardcoded API URLs with `VITE_API_BASE_URL` environment variable
 - [ ] Improve 404 page design
@@ -55,7 +54,7 @@ The goal of Phase 1 is to harden the existing codebase, reduce tech debt, and ma
 
 - [ ] Add database indexes for frequently queried columns (`user_id`, `event_date`, `cgpa`)
 - [ ] Ensure all foreign key constraints are defined in `schema.sql`
-- [ ] Write a seed script (`sql/seed.js`) with sample data for development
+- [x] Write a seed script (`sql/seed.js`) with sample data for development
 
 ---
 
@@ -90,8 +89,8 @@ Phase 2 adds high-demand features requested by students and faculty.
 
 - [ ] **Refresh Token Rotation** — silent re-authentication without re-login
 - [ ] **OAuth Login** — Google / Microsoft SSO for institutional accounts
-- [ ] **Profile Page** — students and faculty can update their profile and photo
-- [ ] **Admin User Management** — promote/demote roles from the admin panel
+- [x] **Profile Page** — students and faculty can update their profile and photo
+- [x] **Admin User Management** — promote/demote roles from the admin panel
 
 ---
 
@@ -102,7 +101,7 @@ Phase 3 prepares the platform for real institutional deployment.
 
 ### Infrastructure
 
-- [ ] **Containerisation** — complete multi-service `docker-compose.yml` with Nginx reverse proxy
+- [x] **Containerisation** — complete multi-service `docker-compose.yml` with Nginx reverse proxy
 - [ ] **CI/CD Pipeline** — auto-deploy to staging on merge to `develop`; production on release tag
 - [ ] **Environment-Based Config** — distinct configs for `development`, `staging`, `production`
 - [ ] **Database Migrations** — adopt a proper migration tool (e.g., `db-migrate` or `Flyway`)
