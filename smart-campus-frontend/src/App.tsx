@@ -14,6 +14,9 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+
 const StudentDashboard = lazy(() => import("./pages/student/Dashboard"));
 const Timetable = lazy(() => import("./pages/student/Timetable"));
 const EventsPage = lazy(() => import("./pages/student/Events"));
@@ -81,6 +84,10 @@ const App = () => (
                 <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
+
+                {/* Password Recovery Routes */}
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
                 {/* Student Routes */}
                 <Route

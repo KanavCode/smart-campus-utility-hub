@@ -138,6 +138,26 @@ const validationSchemas = {
     limit: Joi.number().integer().min(1).max(100).default(20),
     sort: Joi.string().optional(),
     order: Joi.string().valid('asc', 'desc').default('asc')
+  }),
+
+  // Forgot password
+  forgotPassword: Joi.object({
+    email: Joi.string().email().required()
+  }),
+
+  // Reset password
+  resetPassword: Joi.object({
+    token: Joi.string().required(),
+    newPassword: Joi.string()
+      .min(8)
+      .required()
+      .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/),
+    confirmPassword: Joi.string()
+      .valid(Joi.ref('newPassword'))
+      .required()
+      .messages({
+        'any.only': 'Passwords do not match'
+      })
   })
 };
 

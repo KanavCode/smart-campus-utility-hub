@@ -219,6 +219,15 @@ export default function Auth() {
                           {isLoading ? 'Logging in...' : 'Login'}
                         </motion.button>
                       </Button>
+                                          <div className="text-center">
+                                            <button
+                                              type="button"
+                                              onClick={() => navigate('/forgot-password')}
+                                              className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                                            >
+                                              Forgot Password?
+                                            </button>
+                                          </div>
                     </motion.form>
                   </TabsContent>
 
