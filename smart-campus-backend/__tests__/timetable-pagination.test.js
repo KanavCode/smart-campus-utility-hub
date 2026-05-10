@@ -219,6 +219,38 @@ describe('Timetable Listing – Pagination and Sorting', () => {
 
       expect(res.status).toBe(400);
     });
+
+    test('limit=-1 → 400', async () => {
+      const res = await request(app)
+        .get('/api/timetable/teachers')
+        .query({ limit: '-1' });
+
+      expect(res.status).toBe(400);
+    });
+
+    test('limit=-100 → 400', async () => {
+      const res = await request(app)
+        .get('/api/timetable/teachers')
+        .query({ limit: '-100' });
+
+      expect(res.status).toBe(400);
+    });
+
+    test('Non-integer page (float) → 400', async () => {
+      const res = await request(app)
+        .get('/api/timetable/teachers')
+        .query({ page: '1.5' });
+
+      expect(res.status).toBe(400);
+    });
+
+    test('Non-integer limit (float) → 400', async () => {
+      const res = await request(app)
+        .get('/api/timetable/teachers')
+        .query({ limit: '5.5' });
+
+      expect(res.status).toBe(400);
+    });
   });
 
   describe('Invalid sort parameters → 400', () => {
@@ -322,6 +354,44 @@ describe('Timetable Listing – Pagination and Sorting', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.page).toBe(1);
       expect(res.body.data.limit).toBe(5);
+    });
+
+    test('Large dataset simulation (1,000,000 records)', async () => {
+      const totalRecords = 1000000;
+      const currentPage = 5000;
+      const currentLimit = 50;
+      
+      // Mock returning a single page of data in a sea of 1M records
+      const mockRows = Array.from({ length: 50 }, (_, i) => ({ 
+        id: `id-${i}`, 
+        full_name: `Teacher ${i + (currentPage - 1) * currentLimit}` 
+      }));
+      
+      mockListResponse(mockRows, totalRecords);
+
+      const res = await request(app)
+        .get('/api/timetable/teachers')
+        .query({ page: currentPage, limit: currentLimit });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.total).toBe(totalRecords);
+      expect(res.body.data.page).toBe(currentPage);
+      expect(res.body.data.count).toBe(currentLimit);
+      expect(res.body.data.teachers).toHaveLength(currentLimit);
+    });
+
+    test('Extremely large page number (beyond 32-bit int) returns empty result', async () => {
+      // Postgres/JS handles large numbers, but we check if it breaks anything
+      const largePage = 2147483648; 
+      mockListResponse([], 100);
+
+      const res = await request(app)
+        .get('/api/timetable/teachers')
+        .query({ page: largePage.toString() });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.page).toBe(largePage);
+      expect(res.body.data.teachers).toEqual([]);
     });
 
     test('page=1&limit=20 (defaults) returns valid structure for all list endpoints', async () => {

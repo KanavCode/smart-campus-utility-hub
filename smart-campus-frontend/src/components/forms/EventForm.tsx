@@ -78,19 +78,23 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
       type: 'datetime-local',
       required: true,
       gridCol: 1,
+      hint: 'Must be after the start time',
     },
     {
       id: 'target_department',
       label: 'Target Department',
       type: 'text',
       required: false,
+      placeholder: 'e.g. Computer Science (leave blank for all)',
       gridCol: 1,
     },
     {
       id: 'tags',
-      label: 'Tags (comma-separated)',
+      label: 'Tags',
       type: 'text',
       required: false,
+      placeholder: 'e.g. tech, workshop, open-to-all',
+      hint: 'Comma-separated. Each tag will be trimmed automatically.',
       gridCol: 1,
     },
     {
@@ -102,18 +106,83 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
     },
   ];
 
-
+  const validationSchema = z
+    .object({
+      title: z
+        .string()
+        .transform((v) => v.trim())
+        .pipe(z.string().min(1, 'Event title is required')),
+      description: z
+        .string()
+        .transform((v) => v.trim())
+        .pipe(z.string().min(1, 'Description is required')),
+      location: z
+        .string()
+        .transform((v) => v.trim())
+        .pipe(z.string().min(1, 'Location is required')),
+      club_id: z.string().min(1, 'Associated club is required'),
+      start_time: z.string().min(1, 'Start time is required'),
+      end_time: z.string().min(1, 'End time is required'),
+      target_department: z
+        .string()
+        .transform((v) => v.trim())
+        .optional(),
+      // Accept either a raw comma-string (from the text input) or an already
+      // normalised array so the form works correctly in both create and edit mode.
+      tags: z
+        .union([
+          z.array(z.string()),
+          z
+            .string()
+            .optional()
+            .transform((v) =>
+              v
+                ? v
+                    .split(',')
+                    .map((t) => t.trim())
+                    .filter(Boolean)
+                : []
+            ),
+        ])
+        .optional(),
+      is_featured: z.boolean().optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.start_time && data.end_time) {
+        const start = new Date(data.start_time);
+        const end = new Date(data.end_time);
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end <= start) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'End time must be after the start time',
+            path: ['end_time'],
+          });
+        }
+      }
+    });
 
   const customSubmitHandler = async (data: any, isUpdate: boolean) => {
+    const normalizeTags = (raw: unknown): string[] => {
+      if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
+      if (typeof raw === 'string')
+        return raw
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean);
+      return [];
+    };
+
     const payload = {
       ...data,
-      club_id: parseInt(data.club_id),
-      tags: data.tags
-        ? data.tags
-            .split(',')
-            .map((t: string) => t.trim())
-            .filter((t: string) => t)
-        : [],
+      title: typeof data.title === 'string' ? data.title.trim() : data.title,
+      description:
+        typeof data.description === 'string'
+          ? data.description.trim()
+          : data.description,
+      location:
+        typeof data.location === 'string' ? data.location.trim() : data.location,
+      club_id: parseInt(data.club_id, 10),
+      tags: normalizeTags(data.tags),
     };
 
     if (isUpdate) {

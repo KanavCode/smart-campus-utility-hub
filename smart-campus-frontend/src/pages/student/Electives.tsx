@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { electiveService, Elective } from '@/services/electiveService';
+import { useConnectivity } from '@/contexts/ConnectivityContext';
 import { toast } from 'sonner';
 
 // 10 Available Subjects for drag and drop
@@ -24,6 +25,7 @@ const AVAILABLE_SUBJECTS = [
 
 export default function Electives() {
   const { user } = useAuth();
+  const { isOnline } = useConnectivity();
   
   const [displaySubjects, setDisplaySubjects] = useState<unknown[]>(AVAILABLE_SUBJECTS);
   const [selectedChoices, setSelectedChoices] = useState<(Elective | null)[]>(Array(5).fill(null));
@@ -93,7 +95,7 @@ export default function Electives() {
   };
 
   const handleDropInChoice = (index: number) => {
-    if (!draggedItem || hasSubmitted) return;
+    if (!draggedItem || hasSubmitted || !isOnline) return;
 
     // Check if already selected
     if (selectedChoices.some(choice => choice?.id === draggedItem.id)) {
@@ -108,12 +110,17 @@ export default function Electives() {
   };
 
   const handleRemoveChoice = (index: number) => {
+    if (!isOnline) return;
     const newChoices = [...selectedChoices];
     newChoices[index] = null;
     setSelectedChoices(newChoices);
   };
 
   const handleSubmitChoices = async () => {
+    if (!isOnline) {
+      toast.error('You are offline. Please wait for a connection to submit.');
+      return;
+    }
     const filledChoices = selectedChoices.filter(choice => choice !== null);
     
     if (filledChoices.length !== MAX_SUBJECTS) {
@@ -284,10 +291,10 @@ export default function Electives() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            draggable={!isSelected && !hasSubmitted}
-                            onDragStart={() => !isSelected && !hasSubmitted && handleDragStart(subject)}
+                            draggable={!isSelected && !hasSubmitted && isOnline}
+                            onDragStart={() => !isSelected && !hasSubmitted && isOnline && handleDragStart(subject)}
                             onDragEnd={handleDragEnd}
-                            className={`${!isSelected && !hasSubmitted ? 'cursor-move' : 'cursor-not-allowed'} transition-all duration-200`}
+                            className={`${!isSelected && !hasSubmitted && isOnline ? 'cursor-move' : 'cursor-not-allowed'} transition-all duration-200`}
                           >
                             <div className={`glass rounded-lg p-4 transition-all duration-200 ${
                               isSelected 
@@ -409,7 +416,7 @@ export default function Electives() {
                 >
                   <Button
                     onClick={handleSubmitChoices}
-                    disabled={filledCount !== MAX_SUBJECTS || hasSubmitted || isSubmitting}
+                    disabled={filledCount !== MAX_SUBJECTS || hasSubmitted || isSubmitting || !isOnline}
                     className="w-full"
                     size="lg"
                   >

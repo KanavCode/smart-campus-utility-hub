@@ -1,14 +1,19 @@
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Beaker, Loader2, AlertCircle, RefreshCw, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { timetableService } from '@/services/timetableService';
+import { useConnectivity } from '@/contexts/ConnectivityContext';
+import { WifiOff } from 'lucide-react';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
+
 
 interface TimetableSlot {
   id: string;
@@ -54,28 +59,35 @@ export default function StudentTimetable() {
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('2024-25');
   const [selectedSemesterType, setSelectedSemesterType] = useState<string>('odd');
+  const { isOnline } = useConnectivity();
 
-  // Fetch available groups on component mount
+  // Load cached data on mount
   useEffect(() => {
-    fetchAvailableGroups();
+    const cached = localStorage.getItem('cached_timetable_grid');
+    if (cached) {
+      try {
+        setTimetableData(JSON.parse(cached));
+        setLoading(false);
+      } catch (e) {
+        console.error('Failed to parse cached timetable', e);
+      }
+    }
   }, []);
 
-  // Fetch timetable when group, year, or semester changes
-  useEffect(() => {
-    if (selectedGroup) {
-      fetchTimetable();
-    }
-  }, [selectedGroup, selectedAcademicYear, selectedSemesterType]);
+  const [breakPeriods, setBreakPeriods] = useState<Set<number>>(() => new Set([4]));
 
   const fetchAvailableGroups = async (): Promise<void> => {
     try {
       const response = await timetableService.getGroups();
-      
+
       if (response.success && response.data?.groups) {
-        setAvailableGroups(response.data.groups);
-        // Auto-select first group if available
-        if (response.data.groups.length > 0) {
-          setSelectedGroup(response.data.groups[0].id);
+        const newGroups: Group[] = response.data.groups;
+        setAvailableGroups(newGroups);
+
+        // Keep current selection if still present; otherwise auto-select first group.
+        const currentIsValid = !!selectedGroup && newGroups.some((g) => g.id === selectedGroup);
+        if (!currentIsValid) {
+          setSelectedGroup(newGroups.length > 0 ? newGroups[0].id : '');
         }
       }
     } catch (err: unknown) {
@@ -85,8 +97,52 @@ export default function StudentTimetable() {
     }
   };
 
-  const fetchTimetable = async (): Promise<void> => {
+  // Fetch available groups on component mount
+  useEffect(() => {
+    fetchAvailableGroups();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch timetable config (lunch break periods) on component mount
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await timetableService.getConfig();
+        const lunchPeriod = response?.data?.defaultLunchBreak;
+        if (typeof lunchPeriod === 'number') {
+          setBreakPeriods(new Set([lunchPeriod]));
+        }
+      } catch (e) {
+        // Keep fallback to period 4
+      }
+    };
+
+    fetchConfig();
+  }, []);
+
+  const isSelectedGroupValid =
+    !!selectedGroup && availableGroups.some((g) => g.id === selectedGroup);
+
+  // Fetch timetable when group, year, or semester changes (guard against invalid group / race)
+  const latestTimetableRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!selectedGroup || !isSelectedGroupValid) return;
+    if (!selectedAcademicYear || !selectedSemesterType) return;
+
+    const requestId = ++latestTimetableRequestIdRef.current;
+    fetchTimetable(requestId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGroup, selectedAcademicYear, selectedSemesterType, isSelectedGroupValid]);
+
+
+  const fetchTimetable = async (requestId: number): Promise<void> => {
     try {
+      if (!isOnline && Object.keys(timetableData).length > 0) {
+        toast.info('You are offline. Showing cached timetable.');
+        return;
+      }
+
       setLoading(true);
       setError('');
 
@@ -95,6 +151,9 @@ export default function StudentTimetable() {
         selectedAcademicYear,
         selectedSemesterType
       );
+
+      // Ignore stale responses (race protection)
+      if (requestId !== latestTimetableRequestIdRef.current) return;
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to load timetable');
@@ -119,24 +178,33 @@ export default function StudentTimetable() {
       });
 
       setTimetableData(grid);
+      localStorage.setItem('cached_timetable_grid', JSON.stringify(grid));
       toast.success('Timetable loaded successfully');
     } catch (err: unknown) {
       const e = err as { message?: string };
       const errorMsg = e?.message || 'Something went wrong';
-      setError(errorMsg);
-      toast.error(errorMsg);
-      setTimetableData({});
+      
+      // If we already have data, don't clear it on error, especially if offline
+      if (Object.keys(timetableData).length > 0) {
+        toast.error(`Update failed: ${errorMsg}. Showing cached data.`);
+        setError(''); // Clear error so we don't show the error card over existing data
+      } else {
+        setError(errorMsg);
+        toast.error(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleRefresh = (): void => {
-    if (selectedGroup) {
-      fetchTimetable();
-    } else {
-      toast.error('Please select a group first');
+    if (!selectedGroup || !isSelectedGroupValid) {
+      toast.error('Please select a valid group first');
+      return;
     }
+
+    const requestId = ++latestTimetableRequestIdRef.current;
+    fetchTimetable(requestId);
   };
 
   const getCellContent = (slot: TimetableSlot | null): JSX.Element => {
@@ -189,11 +257,12 @@ export default function StudentTimetable() {
           
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             {/* Group Selector */}
-            <select
+<label className="sr-only" htmlFor="student-group-select">Select group</label>
+            <select id="student-group-select" aria-label="Select group"
               value={selectedGroup}
               onChange={(e) => setSelectedGroup(e.target.value)}
-              className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[200px] focus:outline-none focus:ring-2 focus:ring-accent"
-              disabled={loading || availableGroups.length === 0}
+              className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[200px] focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+              disabled={loading || availableGroups.length === 0 || !isOnline}
             >
               <option value="">Select Group</option>
               {availableGroups.map(group => (
@@ -204,11 +273,12 @@ export default function StudentTimetable() {
             </select>
 
             {/* Academic Year Selector */}
-            <select
+<label className="sr-only" htmlFor="student-academic-year-select">Select academic year</label>
+<select id="student-academic-year-select" aria-label="Select academic year"
               value={selectedAcademicYear}
               onChange={(e) => setSelectedAcademicYear(e.target.value)}
-              className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[140px] focus:outline-none focus:ring-2 focus:ring-accent"
-              disabled={loading}
+              className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[140px] focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+              disabled={loading || !isOnline}
             >
               <option value="2024-25">2024-25</option>
               <option value="2023-24">2023-24</option>
@@ -216,11 +286,12 @@ export default function StudentTimetable() {
             </select>
 
             {/* Semester Type Selector */}
-            <select
+<label className="sr-only" htmlFor="student-semester-type-select">Select semester type</label>
+            <select id="student-semester-type-select"
               value={selectedSemesterType}
               onChange={(e) => setSelectedSemesterType(e.target.value)}
-              className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[120px] focus:outline-none focus:ring-2 focus:ring-accent"
-              disabled={loading}
+              className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[120px] focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+              disabled={loading || !isOnline}
             >
               <option value="odd">Odd Semester</option>
               <option value="even">Even Semester</option>
@@ -228,7 +299,7 @@ export default function StudentTimetable() {
 
             <Button
               onClick={handleRefresh}
-              disabled={loading || !selectedGroup}
+              disabled={loading || !selectedGroup || !isOnline}
               variant="outline"
               size="sm"
               className="gap-2"
@@ -236,6 +307,13 @@ export default function StudentTimetable() {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
+            
+            {!isOnline && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-600 rounded-lg text-xs font-medium border border-amber-500/20">
+                <WifiOff className="h-3.5 w-3.5" />
+                Offline Mode
+              </div>
+            )}
           </div>
         </div>
 
@@ -315,9 +393,10 @@ export default function StudentTimetable() {
 
                       {PERIODS.map((period) => {
                         const slot = timetableData[day]?.[period];
-                        const isLunchBreak = period === 4; // Assuming period 4 is lunch
+                        const isLunchBreak = breakPeriods.has(period);
                         
                         return (
+
                           <motion.div
                             key={`${day}-${period}`}
                             whileHover={{ scale: slot ? 1.03 : 1 }}

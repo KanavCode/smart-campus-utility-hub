@@ -30,12 +30,15 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Automatically initialize the database on first run
       - ./smart-campus-backend/sql/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-smart_campus_unified}']
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-smart_campus_unified}']
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - smart_campus_network
 
   # -------------------------------------------------------------------
   # Backend API (Node.js / Express)
@@ -44,51 +47,51 @@ services:
     build:
       context: ./smart-campus-backend
       dockerfile: Dockerfile
+      target: runtime
     container_name: smart_campus_backend
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - ./smart-campus-backend/.env
     environment:
-      NODE_ENV: development
-      PORT: 5000
+      NODE_ENV: ${NODE_ENV:-production}
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-smart_campus_unified}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-      CORS_ORIGINS: 'http://localhost:5173'
     ports:
       - '5000:5000'
-    volumes:
-      - ./smart-campus-backend/src:/app/src:ro
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:5000/health || exit 1']
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:5000/health || exit 1']
       interval: 15s
       timeout: 5s
       retries: 5
+    networks:
+      - smart_campus_network
 
   # -------------------------------------------------------------------
-  # Frontend (Vite dev server)
+  # Frontend (Vite / Nginx)
   # -------------------------------------------------------------------
   frontend:
     build:
       context: ./smart-campus-frontend
       dockerfile: Dockerfile
+      target: production
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:5000/api}
     container_name: smart_campus_frontend
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
-    environment:
-      VITE_API_BASE_URL: http://localhost:5000/api
     ports:
-      - '5173:5173'
-    volumes:
-      - ./smart-campus-frontend/src:/app/src:ro
+      - '80:80'
+    networks:
+      - smart_campus_network
+
+networks:
+  smart_campus_network:
+    driver: bridge
 
 volumes:
   postgres_data:

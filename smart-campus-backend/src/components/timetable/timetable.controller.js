@@ -3,6 +3,7 @@ const { asyncHandler, ApiError } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
 const { parsePagination, parseInteger } = require('../../utils/request');
 const timetableReadService = require('./timetable.read.service');
+const notificationService = require('../../services/notification.service');
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -530,6 +531,13 @@ const generateTimetable = asyncHandler(async (req, res) => {
   // Save to database
   await saveTimetableToDatabase(result.timetable, academic_year, semester_type);
 
+  // Notify clients
+  notificationService.broadcast('TIMETABLE_GENERATED', {
+    message: `A new timetable has been generated for ${academic_year} (${semester_type} semester)`,
+    academic_year,
+    semester_type
+  });
+
   logger.info('Timetable generation completed', {
     totalSlots: result.statistics.totalSlots,
     iterations: result.statistics.iterations
@@ -568,6 +576,63 @@ const getTimetableConfig = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Update a specific timetable slot (Admin only)
+ * PUT /api/timetable/slots/:id
+ */
+const updateTimetableSlot = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { TimetableSlot } = require('./timetable.models');
+  
+  const slot = await TimetableSlot.update(id, req.body);
+  if (!slot) {
+    throw new ApiError(404, 'Timetable slot not found');
+  }
+
+  logger.info('Timetable slot updated', { slotId: id, updatedBy: req.user.id });
+
+  // Notify clients
+  notificationService.broadcast('SLOT_UPDATED', {
+    message: `A class on ${slot.day_of_week} (Period ${slot.period_number}) has been updated`,
+    slot
+  });
+
+  res.json({
+    success: true,
+    message: 'Timetable slot updated successfully',
+    data: { slot }
+  });
+});
+
+/**
+ * Delete/Cancel a specific timetable slot (Admin only)
+ * DELETE /api/timetable/slots/:id
+ */
+const deleteTimetableSlot = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { TimetableSlot } = require('./timetable.models');
+  
+  const slot = await TimetableSlot.delete(id);
+  if (!slot) {
+    throw new ApiError(404, 'Timetable slot not found');
+  }
+
+  logger.info('Timetable slot cancelled', { slotId: id, deletedBy: req.user.id });
+
+  // Notify clients
+  notificationService.broadcast('SLOT_CANCELLED', {
+    message: `The class on ${slot.day_of_week} (Period ${slot.period_number}) has been cancelled`,
+    slotId: id,
+    day: slot.day_of_week,
+    period: slot.period_number
+  });
+
+  res.json({
+    success: true,
+    message: 'Timetable slot cancelled successfully'
+  });
+});
+
 module.exports = {
   getAllTeachers,
   getAllSubjects,
@@ -588,5 +653,7 @@ module.exports = {
   assignTeacherToSubject,
   assignSubjectToGroup,
   generateTimetable,
-  getTimetableConfig
+  getTimetableConfig,
+  updateTimetableSlot,
+  deleteTimetableSlot
 };
