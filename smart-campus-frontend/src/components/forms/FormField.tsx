@@ -84,6 +84,21 @@ export const FormField = ({
           />
         );
 
+      // Native input for datetime-local — the shadcn Input wrapper can block
+      // the browser's native date/time picker popup from opening.
+      case 'datetime-local':
+        return (
+          <input
+            id={field.id}
+            type="datetime-local"
+            value={value ?? ''}
+            onChange={handleChange}
+            required={field.required}
+            disabled={isLoading || field.disabled}
+            className={`w-full px-3 py-2 rounded-lg text-sm bg-transparent ${baseInputClasses} focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed`}
+          />
+        );
+
       default:
         return (
           <Input
@@ -120,7 +135,13 @@ export const FormField = ({
         </Label>
       )}
       
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error ? (
+        <p className="text-xs text-red-500 flex items-center gap-1">
+          <span aria-hidden="true">⚠</span> {error}
+        </p>
+      ) : field.hint ? (
+        <p className="text-xs text-muted-foreground">{field.hint}</p>
+      ) : null}
     </div>
   );
 };

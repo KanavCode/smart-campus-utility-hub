@@ -137,27 +137,114 @@ const validationSchemas = {
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
     sort: Joi.string().optional(),
-    order: Joi.string().valid('asc', 'desc').default('asc')
+    order: Joi.string().valid('asc', 'desc', 'ASC', 'DESC').default('asc')
   }),
 
-  // Forgot password
-  forgotPassword: Joi.object({
-    email: Joi.string().email().required()
+  // Timetable list/query validation
+  timetableQuery: Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+    sort: Joi.string().max(50).optional(),
+    order: Joi.string().valid('asc', 'desc', 'ASC', 'DESC').default('asc'),
+    department: Joi.string().max(100).optional(),
+    semester: Joi.number().integer().min(1).max(8).optional(),
+    room_type: Joi.string().max(50).optional(),
+    academic_year: Joi.string().max(20).optional(),
+    semester_type: Joi.string().max(20).optional()
   }),
 
-  // Reset password
-  resetPassword: Joi.object({
-    token: Joi.string().required(),
-    newPassword: Joi.string()
-      .min(8)
-      .required()
-      .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/),
-    confirmPassword: Joi.string()
-      .valid(Joi.ref('newPassword'))
-      .required()
-      .messages({
-        'any.only': 'Passwords do not match'
-      })
+  groupIdParam: Joi.object({
+    groupId: Joi.string().uuid().required()
+  }),
+
+  teacherIdParam: Joi.object({
+    teacherId: Joi.string().uuid().required()
+  }),
+
+  timetableTeacher: Joi.object({
+    teacher_code: Joi.string().min(1).max(20).required(),
+    full_name: Joi.string().min(2).max(100).required(),
+    department: Joi.string().max(100).required(),
+    email: Joi.string().email().required(),
+    phone: Joi.string().max(20).allow('', null).optional()
+  }),
+
+  timetableSubject: Joi.object({
+    subject_code: Joi.string().min(1).max(20).required(),
+    subject_name: Joi.string().min(2).max(100).required(),
+    hours_per_week: Joi.number().integer().min(1).max(20).required(),
+    course_type: Joi.string().valid('Theory', 'Practical', 'Lab').required(),
+    department: Joi.string().max(100).required(),
+    semester: Joi.number().integer().min(1).max(8).required()
+  }),
+
+  timetableRoom: Joi.object({
+    room_code: Joi.string().min(1).max(20).required(),
+    room_name: Joi.string().min(2).max(100).required(),
+    capacity: Joi.number().integer().min(1).required(),
+    room_type: Joi.string().max(50).required(),
+    floor_number: Joi.number().integer().min(0).required(),
+    building: Joi.string().min(1).max(100).required()
+  }),
+
+  timetableGroup: Joi.object({
+    group_code: Joi.string().min(1).max(20).required(),
+    group_name: Joi.string().min(2).max(100).required(),
+    strength: Joi.number().integer().min(1).required(),
+    department: Joi.string().max(100).required(),
+    semester: Joi.number().integer().min(1).max(8).required(),
+    academic_year: Joi.string().min(4).max(20).required()
+  }),
+
+  assignTeacherSubject: Joi.object({
+    teacher_id: Joi.string().uuid().required(),
+    subject_id: Joi.string().uuid().required(),
+    priority: Joi.number().integer().min(1).optional()
+  }),
+
+  assignSubjectGroup: Joi.object({
+    subject_id: Joi.string().uuid().required(),
+    group_id: Joi.string().uuid().required()
+  }),
+
+  generateTimetable: Joi.object({
+    groups: Joi.array().items(Joi.object()).min(1).required(),
+    days: Joi.array().items(Joi.string()).min(1).required(),
+    periods_per_day: Joi.number().integer().min(1).required(),
+    lunch_break_period: Joi.number().integer().min(1).optional(),
+    academic_year: Joi.string().min(4).max(20).required(),
+    semester_type: Joi.string().min(1).max(20).required(),
+    preferences: Joi.object().optional()
+  }),
+
+  // Event list query validation
+  eventQuery: Joi.object({
+    search: Joi.string().max(100).optional(),
+    tag: Joi.string().max(50).optional(),
+    club_id: Joi.number().integer().positive().optional(),
+    department: Joi.string().max(100).optional(),
+    is_featured: Joi.string().valid('true', 'false').optional(),
+    upcoming: Joi.string().valid('true', 'false').optional(),
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(10),
+    sort: Joi.string().valid('start_time', 'title', 'created_at').default('start_time'),
+    order: Joi.string().valid('asc', 'desc', 'ASC', 'DESC').default('ASC')
+  }),
+
+  // Club list query validation
+  clubQuery: Joi.object({
+    category: Joi.string().max(50).optional(),
+    search: Joi.string().max(100).optional(),
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(10),
+    sort: Joi.string().valid('name', 'category', 'created_at').default('name'),
+    order: Joi.string().valid('asc', 'desc', 'ASC', 'DESC').default('ASC')
+  }),
+
+  // Elective list query validation
+  electiveQuery: Joi.object({
+    department: Joi.string().max(100).optional(),
+    semester: Joi.number().integer().min(1).max(8).optional()
   })
 };
 

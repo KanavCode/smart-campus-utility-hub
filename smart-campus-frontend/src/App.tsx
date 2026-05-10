@@ -6,16 +6,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ConnectivityProvider } from "@/contexts/ConnectivityContext";
 import { LoadingProvider } from "@/contexts/LoadingContext";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { OfflineBanner } from "@/components/layout/OfflineBanner";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
-
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 const StudentDashboard = lazy(() => import("./pages/student/Dashboard"));
 const Timetable = lazy(() => import("./pages/student/Timetable"));
@@ -71,236 +70,235 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
-        <LoadingProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <LoadingSpinner />
-          <BrowserRouter>
-            <RoutePreloader />
-            <Suspense fallback={<RouteFallback />}>
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<Landing />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/unauthorized" element={<Unauthorized />} />
+        <ConnectivityProvider>
+          <LoadingProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <LoadingSpinner />
+              <BrowserRouter>
+                <OfflineBanner />
+                <RoutePreloader />
+                <Suspense fallback={<RouteFallback />}>
+                  <Routes>
+                    {/* Public Routes */}
+                    <Route path="/" element={<Landing />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/unauthorized" element={<Unauthorized />} />
 
-                {/* Password Recovery Routes */}
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
+                    {/* Student Routes */}
+                    <Route
+                      path="/student/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <StudentDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <StudentDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/student/my-timetable"
+                      element={
+                        <ProtectedRoute>
+                          <Timetable />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/my-timetable"
+                      element={
+                        <ProtectedRoute>
+                          <Timetable />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/student/events"
+                      element={
+                        <ProtectedRoute>
+                          <EventsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/events"
+                      element={
+                        <ProtectedRoute>
+                          <EventsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/student/electives"
+                      element={
+                        <ProtectedRoute>
+                          <Electives />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/electives"
+                      element={
+                        <ProtectedRoute>
+                          <Electives />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/student/profile"
+                      element={
+                        <ProtectedRoute>
+                          <StudentProfile />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/profile"
+                      element={
+                        <ProtectedRoute>
+                          <StudentProfile />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/student/saved-events"
+                      element={
+                        <ProtectedRoute>
+                          <SavedEvents />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/saved-events"
+                      element={
+                        <ProtectedRoute>
+                          <SavedEvents />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/student/clubs"
+                      element={
+                        <ProtectedRoute>
+                          <StudentClubs />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/clubs"
+                      element={
+                        <ProtectedRoute>
+                          <StudentClubs />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Student Routes */}
-                <Route
-                  path="/student/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <StudentDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <StudentDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/student/my-timetable"
-                  element={
-                    <ProtectedRoute>
-                      <Timetable />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/my-timetable"
-                  element={
-                    <ProtectedRoute>
-                      <Timetable />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/student/events"
-                  element={
-                    <ProtectedRoute>
-                      <EventsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/events"
-                  element={
-                    <ProtectedRoute>
-                      <EventsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/student/electives"
-                  element={
-                    <ProtectedRoute>
-                      <Electives />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/electives"
-                  element={
-                    <ProtectedRoute>
-                      <Electives />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/student/profile"
-                  element={
-                    <ProtectedRoute>
-                      <StudentProfile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <StudentProfile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/student/saved-events"
-                  element={
-                    <ProtectedRoute>
-                      <SavedEvents />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/saved-events"
-                  element={
-                    <ProtectedRoute>
-                      <SavedEvents />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/student/clubs"
-                  element={
-                    <ProtectedRoute>
-                      <StudentClubs />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/clubs"
-                  element={
-                    <ProtectedRoute>
-                      <StudentClubs />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Admin Routes */}
+                    <Route
+                      path="/admin/dashboard"
+                      element={
+                        <ProtectedRoute adminOnly>
+                          <AdminDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/users"
+                      element={
+                        <ProtectedRoute adminOnly>
+                          <Users />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/events"
+                      element={
+                        <ProtectedRoute adminOnly>
+                          <Events />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/electives"
+                      element={
+                        <ProtectedRoute adminOnly>
+                          <AdminElectives />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/timetable"
+                      element={
+                        <ProtectedRoute adminOnly>
+                          <TimetableManagement />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/subjects"
+                      element={
+                        <ProtectedRoute adminOnly>
+                          <Subjects />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/clubs"
+                      element={
+                        <ProtectedRoute adminOnly>
+                          <Clubs />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/teachers"
+                      element={
+                        <ProtectedRoute adminOnly>
+                          <Teachers />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/rooms"
+                      element={
+                        <ProtectedRoute adminOnly>
+                          <Rooms />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/settings"
+                      element={
+                        <ProtectedRoute adminOnly>
+                          <Settings />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/profile"
+                      element={
+                        <ProtectedRoute adminOnly>
+                          <AdminProfile />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Admin Routes */}
-                <Route
-                  path="/admin/dashboard"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/users"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <Users />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/events"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <Events />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/electives"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <AdminElectives />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/timetable"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <TimetableManagement />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/subjects"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <Subjects />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/clubs"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <Clubs />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/teachers"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <Teachers />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/rooms"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <Rooms />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/settings"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <Settings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/profile"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <AdminProfile />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* Catch-all */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <Chatbot />
-            </Suspense>
-          </BrowserRouter>
-        </TooltipProvider>
-        </LoadingProvider>
+                    {/* Catch-all */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                  <Chatbot />
+                </Suspense>
+              </BrowserRouter>
+            </TooltipProvider>
+          </LoadingProvider>
+        </ConnectivityProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>

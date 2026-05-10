@@ -8,8 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 import { eventsService, Event } from '@/services/eventService';
+import { useConnectivity } from '@/contexts/ConnectivityContext';
 
 export default function EventsPage() {
+  const { isOnline } = useConnectivity();
   const [events, setEvents] = useState<Event[]>([]);
   const [savedEventIds, setSavedEventIds] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
@@ -168,7 +170,7 @@ export default function EventsPage() {
                 <Button
                   onClick={handleApplyFilters}
                   className="w-full bg-accent text-accent-foreground"
-                  disabled={isLoading}
+                  disabled={isLoading || !isOnline}
                 >
                   {isLoading ? (
                     <>
@@ -216,11 +218,11 @@ export default function EventsPage() {
                     <CardTitle className="flex items-start justify-between gap-2">
                       <span className="flex-1">{event.title}</span>
                       <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleSaveEvent(event.id)}
-                        disabled={isSavingMap.get(event.id) || false}
-                        className="flex-shrink-0"
+                        whileHover={isOnline ? { scale: 1.1 } : {}}
+                        whileTap={isOnline ? { scale: 0.9 } : {}}
+                        onClick={() => isOnline && handleSaveEvent(event.id)}
+                        disabled={isSavingMap.get(event.id) || !isOnline}
+                        className={`flex-shrink-0 ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <Bookmark
                           className={`h-5 w-5 transition-colors ${

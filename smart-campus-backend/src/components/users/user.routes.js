@@ -63,6 +63,7 @@ router.put(
 router.post(
   '/change-password',
   verifyToken,
+  authLimiter,
   userController.changePassword
 );
 
@@ -105,6 +106,17 @@ router.delete(
   verifyAdmin,
   validate(validationSchemas.idParam, 'params'),
   userController.deleteUser
+);
+
+// SSO Routes
+router.get(
+  '/sso/:provider',
+  userController.ssoRedirect
+);
+
+router.get(
+  '/sso/:provider/callback',
+  userController.ssoCallback
 );
 
 module.exports = router;

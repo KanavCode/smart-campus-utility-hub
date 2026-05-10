@@ -25,6 +25,7 @@ export interface FieldConfig {
   gridCol?: 1 | 2 | 3; // For layout (default 1)
   className?: string;
   disabled?: boolean;
+  hint?: string; // Optional helper text shown below the input
 }
 
 export interface CrudService {
