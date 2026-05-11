@@ -53,7 +53,7 @@ class Teacher {
                  metadata->>'teacher_code' AS teacher_code,
                  metadata->>'phone' AS phone,
                  created_at, updated_at`,
-      [full_name, department, email, JSON.stringify(metadata)]
+      [full_name, email, department, JSON.stringify(metadata)]
     );
     return result.rows[0];
   }
