@@ -31,6 +31,25 @@ class UserModel {
   }
 
   /**
+   * Create a new user via SSO
+   * @param {Object} userData - User data from SSO provider
+   * @returns {Promise<Object>} Created user
+   */
+  static async createSSO(userData) {
+    const { full_name, email, role, auth_provider, provider_id } = userData;
+    
+    const sql = `
+      INSERT INTO users (full_name, email, role, auth_provider, provider_id)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, full_name, email, role, department, cgpa, semester, created_at
+    `;
+
+    const values = [full_name, email, role || 'student', auth_provider, provider_id];
+    const result = await query(sql, values);
+    return result.rows[0];
+  }
+
+  /**
    * Find user by email
    * @param {string} email - User email
    * @param {boolean} includePassword - Whether to include password_hash
@@ -38,8 +57,8 @@ class UserModel {
    */
   static async findByEmail(email, includePassword = false) {
     const fields = includePassword 
-      ? 'id, full_name, email, password_hash, role, department, cgpa, semester, is_active, created_at'
-      : 'id, full_name, email, role, department, cgpa, semester, is_active, created_at';
+      ? 'id, full_name, email, password_hash, role, department, cgpa, semester, is_active, created_at, auth_provider, provider_id'
+      : 'id, full_name, email, role, department, cgpa, semester, is_active, created_at, auth_provider, provider_id';
     
     const sql = `SELECT ${fields} FROM users WHERE email = $1`;
     const result = await query(sql, [email]);

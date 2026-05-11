@@ -43,9 +43,13 @@ CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255),
     role user_role NOT NULL DEFAULT 'student',
     department VARCHAR(100),
+    
+    -- SSO fields
+    auth_provider VARCHAR(50) DEFAULT 'local',
+    provider_id VARCHAR(255),
     
     -- Student-specific fields for elective selection
     cgpa DECIMAL(3,2) CHECK (cgpa IS NULL OR (cgpa >= 0 AND cgpa <= 10)),

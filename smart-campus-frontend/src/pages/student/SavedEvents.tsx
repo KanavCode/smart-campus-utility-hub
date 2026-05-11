@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, MapPin, Clock, Bookmark, AlertCircle, Loader } from 'lucide-react';
+import { Calendar, MapPin, Clock, Bookmark, AlertCircle, Loader, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { eventsService, SavedEvent } from '@/services/eventService';
 
@@ -23,8 +23,8 @@ export default function SavedEvents() {
       setError(null);
       const response = await eventsService.getMySaved();
       setSavedEvents(response.data?.events || []);
-    } catch (error: unknown) {
-      const e = error as { message?: string };
+    } catch (err: unknown) {
+      const e = err as { message?: string };
       const errorMsg = e?.message || 'Failed to load saved events';
       setError(errorMsg);
       toast.error(errorMsg);
@@ -66,12 +66,23 @@ export default function SavedEvents() {
 
           <Card className="glass border-destructive/50 bg-destructive/10">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-3 text-destructive">
-                <AlertCircle className="h-6 w-6" />
-                <div>
-                  <h3 className="font-semibold">Error Loading Saved Events</h3>
-                  <p className="text-sm">{error}</p>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3 text-destructive">
+                  <AlertCircle className="h-6 w-6" />
+                  <div>
+                    <h3 className="font-semibold">Error Loading Saved Events</h3>
+                    <p className="text-sm">{error}</p>
+                  </div>
                 </div>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={loadSavedEvents}
+                  className="shrink-0"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
               </div>
             </CardContent>
           </Card>

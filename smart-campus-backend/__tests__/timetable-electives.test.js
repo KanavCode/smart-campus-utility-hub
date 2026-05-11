@@ -41,6 +41,7 @@ describe('Timetable API Tests', () => {
           { id: '123e4567-e89b-12d3-a456-426614174001', full_name: 'Prof. Johnson', department: 'Mathematics' }
         ]
       });
+      query.mockResolvedValueOnce({ rows: [{ count: '2' }] }); // count query
 
       const response = await request(app).get('/api/timetable/teachers');
 
@@ -52,6 +53,7 @@ describe('Timetable API Tests', () => {
 
     test('should filter teachers by department', async () => {
       query.mockResolvedValueOnce({ rows: [] });
+      query.mockResolvedValueOnce({ rows: [{ count: '0' }] }); // count query
 
       const response = await request(app)
         .get('/api/timetable/teachers')
@@ -68,6 +70,7 @@ describe('Timetable API Tests', () => {
           { id: '123e4567-e89b-12d3-a456-426614174000', subject_name: 'Data Structures', course_type: 'Theory' }
         ]
       });
+      query.mockResolvedValueOnce({ rows: [{ count: '1' }] }); // count query
 
       const response = await request(app).get('/api/timetable/subjects');
 

@@ -1,7 +1,53 @@
 const { query } = require('../../config/db');
 const { asyncHandler, ApiError } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
+const { parsePagination, parseInteger } = require('../../utils/request');
 const timetableReadService = require('./timetable.read.service');
+
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
+
+/**
+ * Validates and parses page, limit, sort, and order query params.
+ * Throws ApiError 400 for invalid values.
+ *
+ * @param {object} queryParams - req.query
+ * @param {string} table       - Key into ALLOWED_SORT (e.g. 'teachers')
+ */
+const validatePaginationSort = (queryParams, table) => {
+  const { page: rawPage = '1', limit: rawLimit = String(DEFAULT_LIMIT), sort, order } = queryParams;
+
+  if (queryParams.page !== undefined && parseInteger(rawPage) === null) {
+    throw new ApiError(400, 'page must be a positive integer');
+  }
+
+  if (queryParams.limit !== undefined && parseInteger(rawLimit) === null) {
+    throw new ApiError(400, `limit must be a positive integer no greater than ${MAX_LIMIT}`);
+  }
+
+  const { page, limit, offset } = parsePagination(rawPage, rawLimit);
+
+  if (!Number.isInteger(page) || page < 1) {
+    throw new ApiError(400, 'page must be a positive integer');
+  }
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) {
+    throw new ApiError(400, `limit must be a positive integer no greater than ${MAX_LIMIT}`);
+  }
+
+
+
+  const allowedFields = timetableReadService.ALLOWED_SORT[table];
+  if (sort && !allowedFields.includes(sort)) {
+    throw new ApiError(400, `Invalid sort field. Allowed values: ${allowedFields.join(', ')}`);
+  }
+
+  const normalizedOrder = order ? order.toLowerCase() : 'asc';
+  if (!['asc', 'desc'].includes(normalizedOrder)) {
+    throw new ApiError(400, 'order must be "asc" or "desc"');
+  }
+
+  return { page, limit, offset, sort, order: normalizedOrder };
+};
 
 /**
  * Timetable Controller
@@ -16,11 +62,12 @@ const timetableReadService = require('./timetable.read.service');
  */
 const getAllTeachers = asyncHandler(async (req, res) => {
   const { department } = req.query;
-  const teachers = await timetableReadService.listTeachers({ department });
+  const { page, limit, offset, sort, order } = validatePaginationSort(req.query, 'teachers');
+  const { rows: teachers, total } = await timetableReadService.listTeachers({ department, sort, order, limit, offset });
   
   res.json({
     success: true,
-    data: { teachers, count: teachers.length }
+    data: { teachers, count: teachers.length, total, page, limit }
   });
 });
 
@@ -30,11 +77,12 @@ const getAllTeachers = asyncHandler(async (req, res) => {
  */
 const getAllSubjects = asyncHandler(async (req, res) => {
   const { department, semester } = req.query;
-  const subjects = await timetableReadService.listSubjects({ department, semester });
+  const { page, limit, offset, sort, order } = validatePaginationSort(req.query, 'subjects');
+  const { rows: subjects, total } = await timetableReadService.listSubjects({ department, semester, sort, order, limit, offset });
   
   res.json({
     success: true,
-    data: { subjects, count: subjects.length }
+    data: { subjects, count: subjects.length, total, page, limit }
   });
 });
 
@@ -44,11 +92,12 @@ const getAllSubjects = asyncHandler(async (req, res) => {
  */
 const getAllRooms = asyncHandler(async (req, res) => {
   const { room_type } = req.query;
-  const rooms = await timetableReadService.listRooms({ room_type });
+  const { page, limit, offset, sort, order } = validatePaginationSort(req.query, 'rooms');
+  const { rows: rooms, total } = await timetableReadService.listRooms({ room_type, sort, order, limit, offset });
   
   res.json({
     success: true,
-    data: { rooms, count: rooms.length }
+    data: { rooms, count: rooms.length, total, page, limit }
   });
 });
 
@@ -58,11 +107,12 @@ const getAllRooms = asyncHandler(async (req, res) => {
  */
 const getAllGroups = asyncHandler(async (req, res) => {
   const { department, semester } = req.query;
-  const groups = await timetableReadService.listGroups({ department, semester });
+  const { page, limit, offset, sort, order } = validatePaginationSort(req.query, 'student_groups');
+  const { rows: groups, total } = await timetableReadService.listGroups({ department, semester, sort, order, limit, offset });
   
   res.json({
     success: true,
-    data: { groups, count: groups.length }
+    data: { groups, count: groups.length, total, page, limit }
   });
 });
 
