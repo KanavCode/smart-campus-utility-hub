@@ -128,13 +128,21 @@ class UserModel {
       }
     }
 
-    // Handle metadata updates via jsonb_set
+    // Handle metadata updates via a single chained jsonb_set expression
+    let metadataExpression = `COALESCE(metadata, '{}'::jsonb)`;
+    let hasMetadataUpdates = false;
+
     for (const key of metadataFields) {
       if (updates[key] !== undefined) {
-        fields.push(`metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{${key}}', $${paramCounter}::jsonb)`);
+        metadataExpression = `jsonb_set(${metadataExpression}, '{${key}}', $${paramCounter}::jsonb)`;
         values.push(JSON.stringify(updates[key]));
         paramCounter++;
+        hasMetadataUpdates = true;
       }
+    }
+
+    if (hasMetadataUpdates) {
+      fields.push(`metadata = ${metadataExpression}`);
     }
 
     if (fields.length === 0) {
