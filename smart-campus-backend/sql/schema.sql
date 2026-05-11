@@ -14,8 +14,9 @@
 -- =====================================================================
 -- EXTENSIONS
 -- =====================================================================
--- gen_random_uuid() is built-in for PG 13+ / Supabase.
--- Keep uuid-ossp as a fallback for older PG versions.
+-- Enable pgcrypto for gen_random_uuid() in local/dev PostgreSQL installs.
+-- Keep uuid-ossp as a fallback for older PG versions / alternate UUID funcs.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =====================================================================
