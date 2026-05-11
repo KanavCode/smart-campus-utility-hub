@@ -70,7 +70,7 @@ const corsOptions = {
       ? (process.env.CORS_ORIGINS || '')
           .split(',')
           .map((origin) => origin.trim())
-      : ['http://localhost:5173'], // Only Vite dev server in development
+      : ['http://localhost:5173', 'http://localhost:8080', 'http://localhost:3000'], // Allow multiple Vite ports
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -148,6 +148,19 @@ app.use('/api/timetable', timetableRoutes);
 
 // Electives routes
 app.use('/api/electives', electiveRoutes);
+
+// Test Socket endpoint
+app.get('/api/test-socket', (req, res) => {
+  const type = req.query.type || 'EVENT_CREATED';
+  notificationService.broadcast(type, {
+    message: `Test notification for ${type}`,
+    title: 'Test Title',
+    courseName: 'Test Course',
+    action: 'TEST_ACTION',
+    time: new Date().toISOString()
+  });
+  res.json({ success: true, message: `Broadcasted ${type} successfully` });
+});
 
 // Admin settings routes
 app.use("/api/settings", settingsRoutes);

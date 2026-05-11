@@ -15,7 +15,7 @@ class NotificationService {
       cors: {
         origin: process.env.NODE_ENV === 'production'
           ? (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim())
-          : ['http://localhost:5173'],
+          : ['http://localhost:5173', 'http://localhost:8080', 'http://localhost:3000'],
         methods: ['GET', 'POST'],
         credentials: true
       }
