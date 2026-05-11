@@ -1,16 +1,16 @@
-const jwt = require("jsonwebtoken");
-const { logger } = require("../config/db");
+const jwt = require('jsonwebtoken');
+const { logger } = require('../config/db');
 
 const getJwtSecret = () => {
   if (process.env.JWT_SECRET) {
     return process.env.JWT_SECRET;
   }
 
-  if (process.env.NODE_ENV === "test") {
-    return "test-jwt-secret";
+  if (process.env.NODE_ENV === 'test') {
+    return 'test-jwt-secret';
   }
 
-  throw new Error("JWT_SECRET is not configured");
+  throw new Error('JWT_SECRET is not configured');
 };
 
 /**
@@ -20,20 +20,20 @@ const getJwtSecret = () => {
 const verifyToken = (req, res, next) => {
   try {
     // Get token from Authorization header
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1]; // Format: "Bearer TOKEN"
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Format: "Bearer TOKEN"
 
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized: No token provided.",
+        message: 'Unauthorized: No token provided.',
       });
     }
 
     // Verify token
     jwt.verify(token, getJwtSecret(), (err, decoded) => {
       if (err) {
-        logger.warn("JWT verification failed", {
+        logger.warn('JWT verification failed', {
           errorType: err.name,
           message: err.message,
           url: req.originalUrl,
@@ -42,9 +42,9 @@ const verifyToken = (req, res, next) => {
         });
 
         const message =
-          err.name === "TokenExpiredError"
-            ? "Unauthorized: Token has expired."
-            : "Unauthorized: Invalid token.";
+          err.name === 'TokenExpiredError'
+            ? 'Unauthorized: Token has expired.'
+            : 'Unauthorized: Invalid token.';
 
         return res.status(401).json({
           success: false,
@@ -54,17 +54,17 @@ const verifyToken = (req, res, next) => {
 
       // Attach user info to request
       req.user = decoded;
-      logger.debug("Token verified", {
+      logger.debug('Token verified', {
         userId: decoded.id,
         role: decoded.role,
       });
       next();
     });
   } catch (error) {
-    logger.error("Token verification error:", error);
+    logger.error('Token verification error:', error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error during authentication.",
+      message: 'Internal server error during authentication.',
     });
   }
 };
@@ -77,21 +77,21 @@ const verifyAdmin = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
-      message: "Unauthorized: Authentication required.",
+      message: 'Unauthorized: Authentication required.',
     });
   }
 
-  if (req.user.role === "admin") {
+  if (req.user.role === 'admin') {
     next();
   } else {
-    logger.warn("Non-admin access attempt", {
+    logger.warn('Non-admin access attempt', {
       userId: req.user.id,
       role: req.user.role,
     });
 
     return res.status(403).json({
       success: false,
-      message: "Forbidden: Requires admin privileges.",
+      message: 'Forbidden: Requires admin privileges.',
     });
   }
 };
@@ -104,16 +104,16 @@ const verifyStudent = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
-      message: "Unauthorized: Authentication required.",
+      message: 'Unauthorized: Authentication required.',
     });
   }
 
-  if (req.user.role === "student" || req.user.role === "admin") {
+  if (req.user.role === 'student' || req.user.role === 'admin') {
     next();
   } else {
     return res.status(403).json({
       success: false,
-      message: "Forbidden: Requires student privileges.",
+      message: 'Forbidden: Requires student privileges.',
     });
   }
 };
@@ -126,16 +126,16 @@ const verifyFaculty = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
-      message: "Unauthorized: Authentication required.",
+      message: 'Unauthorized: Authentication required.',
     });
   }
 
-  if (req.user.role === "faculty" || req.user.role === "admin") {
+  if (req.user.role === 'faculty' || req.user.role === 'admin') {
     next();
   } else {
     return res.status(403).json({
       success: false,
-      message: "Forbidden: Requires faculty privileges.",
+      message: 'Forbidden: Requires faculty privileges.',
     });
   }
 };
@@ -148,7 +148,7 @@ const verifyFaculty = (req, res, next) => {
  */
 const generateToken = (
   payload,
-  expiresIn = process.env.JWT_EXPIRES_IN || "7d",
+  expiresIn = process.env.JWT_EXPIRES_IN || '7d',
 ) => {
   return jwt.sign(payload, getJwtSecret(), { expiresIn });
 };
@@ -158,8 +158,8 @@ const generateToken = (
  * Useful for endpoints that work for both authenticated and unauthenticated users
  */
 const optionalAuth = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
     req.user = null;
