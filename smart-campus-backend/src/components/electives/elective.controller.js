@@ -1,8 +1,6 @@
 const { asyncHandler } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
-const { query } = require('../../config/db');
 const electiveService = require('./elective.service');
-const UserModel = require('../users/user.model');
 
 /**
  * Electives Controller
