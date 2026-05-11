@@ -14,14 +14,14 @@ interface TimetableSlot {
   id: string;
   day_of_week: string;
   period_number: number;
-  // Backend returns FLAT fields (not nested objects)
-  subject_name: string;
-  subject_code: string;
+  // Backend may return FLAT fields or nested related objects
+  subject_name?: string;
+  subject_code?: string;
   course_type?: string;
-  teacher_name: string;
-  teacher_code: string;
-  room_name: string;
-  room_code: string;
+  teacher_name?: string;
+  teacher_code?: string;
+  room_name?: string;
+  room_code?: string;
   academic_year?: string;
   semester_type?: string;
   // Support nested shape as fallback
