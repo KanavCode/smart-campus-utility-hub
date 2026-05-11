@@ -162,6 +162,37 @@ class TimetableSlot {
     return result.rows[0];
   }
 
+  static async bulkCreate(slots) {
+    if (!slots || slots.length === 0) return [];
+
+    const values = [];
+    const placeholders = [];
+    let counter = 1;
+
+    slots.forEach((slot) => {
+      placeholders.push(`($${counter++}, $${counter++}, $${counter++}, $${counter++}, $${counter++}, $${counter++}, $${counter++}, $${counter++})`);
+      values.push(
+        slot.day_of_week,
+        slot.period_number,
+        slot.teacher_id,
+        slot.subject_id,
+        slot.group_id,
+        slot.room_id,
+        slot.academic_year,
+        slot.semester_type
+      );
+    });
+
+    const sql = `
+      INSERT INTO timetable_slots 
+      (day_of_week, period_number, teacher_id, subject_id, group_id, room_id, academic_year, semester_type)
+      VALUES ${placeholders.join(', ')} RETURNING *
+    `;
+
+    const result = await query(sql, values);
+    return result.rows;
+  }
+
   static async clearTimetable(academic_year, semester_type) {
     await query(
       'DELETE FROM timetable_slots WHERE academic_year = $1 AND semester_type = $2',
@@ -193,6 +224,30 @@ class TimetableSlot {
       [teacherId]
     );
     return result.rows;
+  }
+
+  static async update(id, slotData) {
+    const { day_of_week, period_number, teacher_id, subject_id, room_id } = slotData;
+    const result = await query(
+      `UPDATE timetable_slots 
+       SET day_of_week = COALESCE($1, day_of_week), 
+           period_number = COALESCE($2, period_number), 
+           teacher_id = COALESCE($3, teacher_id), 
+           subject_id = COALESCE($4, subject_id), 
+           room_id = COALESCE($5, room_id),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $6 AND is_active = true RETURNING *`,
+      [day_of_week, period_number, teacher_id, subject_id, room_id, id]
+    );
+    return result.rows[0];
+  }
+
+  static async delete(id) {
+    const result = await query(
+      'UPDATE timetable_slots SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *',
+      [id]
+    );
+    return result.rows[0];
   }
 }
 

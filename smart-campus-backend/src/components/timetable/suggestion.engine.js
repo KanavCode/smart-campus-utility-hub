@@ -160,15 +160,15 @@ class SuggestionEngine {
    */
   getReasonForSlot(slot, originalDay, originalPeriod, score) {
     if (Math.abs(slot.period - originalPeriod) <= 1) {
-      return `Same day, adjacent period - minimal disruption`;
+      return 'Same day, adjacent period - minimal disruption';
     }
     if (slot.day === originalDay) {
-      return `Same day, different period - preserves schedule flow`;
+      return 'Same day, different period - preserves schedule flow';
     }
     if (score >= 7) {
-      return `Good alternative - high optimization score`;
+      return 'Good alternative - high optimization score';
     }
-    return `Alternative slot - available and suitable`;
+    return 'Alternative slot - available and suitable';
   }
 }
 
