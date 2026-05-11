@@ -4,7 +4,7 @@ const { asyncHandler, ApiError } = require("../../middleware/errorHandler");
 const { logger } = require("../../config/db");
 
 /**
- * Events Controller
+ * Events Controller (v2.0 — UUID-based)
  * Handles all event-related HTTP requests
  */
 
@@ -104,7 +104,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
 
   // Ensure we always use a safe, whitelisted column name for ORDER BY.
   const safeSortField = sortFieldMap[sortField] || 'e.start_time';
-  
+
   let sql = 'SELECT e.*, c.name as club_name, COUNT(*) OVER() as total_count FROM events e LEFT JOIN clubs c ON e.club_id = c.id WHERE 1=1';
   const values = [];
   let paramCounter = 1;
@@ -123,14 +123,10 @@ const getAllEvents = asyncHandler(async (req, res) => {
     paramCounter++;
   }
 
-  // Filter by club
+  // Filter by club (UUID)
   if (club_id) {
-    const clubIdNum = parseInt(club_id);
-    if (isNaN(clubIdNum) || clubIdNum < 1) {
-      throw new ApiError(400, "Invalid club ID");
-    }
     sql += ` AND e.club_id = $${paramCounter}`;
-    values.push(clubIdNum);
+    values.push(club_id);
     paramCounter++;
   }
 
@@ -157,7 +153,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
 
   const result = await query(sql, values);
   const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
-  
+
   sendSuccess(res, 200, 'Events fetched successfully', {
     events: result.rows,
     pagination: {
@@ -177,11 +173,6 @@ const getAllEvents = asyncHandler(async (req, res) => {
 const getEventById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const eventId = parseInt(id);
-  if (isNaN(eventId) || eventId < 1) {
-    throw new ApiError(400, "Invalid event ID");
-  }
-
   const sql = `
     SELECT e.*, c.name as club_name, c.description as club_description
     FROM events e
@@ -189,7 +180,7 @@ const getEventById = asyncHandler(async (req, res) => {
     WHERE e.id = $1
   `;
 
-  const result = await query(sql, [eventId]);
+  const result = await query(sql, [id]);
 
   if (result.rows.length === 0) {
     throw new ApiError(404, "Event not found");
@@ -218,11 +209,6 @@ const updateEvent = asyncHandler(async (req, res) => {
     tags,
   } = req.body;
 
-  const eventId = parseInt(id);
-  if (isNaN(eventId) || eventId < 1) {
-    throw new ApiError(400, "Invalid event ID");
-  }
-
   const sql = `
     UPDATE events
     SET title = $1, description = $2, location = $3, start_time = $4, end_time = $5,
@@ -241,7 +227,7 @@ const updateEvent = asyncHandler(async (req, res) => {
     target_department,
     is_featured,
     tags,
-    eventId,
+    id,
   ];
   const result = await query(sql, values);
 
@@ -263,13 +249,8 @@ const updateEvent = asyncHandler(async (req, res) => {
 const deleteEvent = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const eventId = parseInt(id);
-  if (isNaN(eventId) || eventId < 1) {
-    throw new ApiError(400, "Invalid event ID");
-  }
-
   const result = await query("DELETE FROM events WHERE id = $1 RETURNING *", [
-    eventId,
+    id,
   ]);
 
   if (result.rowCount === 0) {
@@ -289,14 +270,9 @@ const saveEvent = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id;
 
-  const eventId = parseInt(id);
-  if (isNaN(eventId) || eventId < 1) {
-    throw new ApiError(400, "Invalid event ID");
-  }
-
   // Check if event exists
   const eventCheck = await query("SELECT id FROM events WHERE id = $1", [
-    eventId,
+    id,
   ]);
   if (eventCheck.rows.length === 0) {
     throw new ApiError(404, "Event not found");
@@ -305,7 +281,7 @@ const saveEvent = asyncHandler(async (req, res) => {
   // Check if already saved
   const existingCheck = await query(
     "SELECT * FROM saved_events WHERE user_id = $1 AND event_id = $2",
-    [userId, eventId],
+    [userId, id],
   );
 
   if (existingCheck.rows.length > 0) {
@@ -315,7 +291,7 @@ const saveEvent = asyncHandler(async (req, res) => {
   // Save the event
   await query("INSERT INTO saved_events (user_id, event_id) VALUES ($1, $2)", [
     userId,
-    eventId,
+    id,
   ]);
 
   logger.info("Event saved", { eventId: id, userId });
@@ -331,14 +307,9 @@ const unsaveEvent = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id;
 
-  const eventId = parseInt(id);
-  if (isNaN(eventId) || eventId < 1) {
-    throw new ApiError(400, "Invalid event ID");
-  }
-
   const result = await query(
     "DELETE FROM saved_events WHERE user_id = $1 AND event_id = $2 RETURNING *",
-    [userId, eventId],
+    [userId, id],
   );
 
   if (result.rowCount === 0) {

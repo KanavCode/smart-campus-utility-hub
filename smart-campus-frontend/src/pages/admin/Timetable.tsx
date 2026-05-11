@@ -40,7 +40,7 @@ export default function TimetableManagement() {
   // Loading and filtering states
   const [isLoading, setIsLoading] = useState(false);
   const [departmentFilter, setDepartmentFilter] = useState('');
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState('2024-25');
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState('2025-26');
   const [selectedSemesterType, setSelectedSemesterType] = useState('odd');
   const [selectedDays, setSelectedDays] = useState(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
   const [periodsPerDay, setPeriodsPerDay] = useState(7);
@@ -100,7 +100,7 @@ export default function TimetableManagement() {
     try {
       setIsLoading(true);
       const result = await timetableService.generateTimetable(generationData);
-      setTimetableSlots(result.data?.slots || []);
+      setTimetableSlots(result.data?.timetable || result.data?.slots || []);
       setIsDraft(true);
       toast.success('Draft timetable generated!');
     } catch (error: any) {
@@ -595,8 +595,8 @@ export default function TimetableManagement() {
                             {room.room_type}
                           </span>
                         </td>
-                        <td className="p-2">{room.building}</td>
-                        <td className="p-2">{room.floor_number || '-'}</td>
+                        <td className="p-2">{(room as any).amenities?.building || room.building || '-'}</td>
+                        <td className="p-2">{(room as any).amenities?.floor_number || room.floor_number || '-'}</td>
                         <td className="p-2 flex gap-2">
                           <Button
                             size="sm"

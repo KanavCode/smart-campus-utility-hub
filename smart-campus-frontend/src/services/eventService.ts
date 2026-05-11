@@ -12,7 +12,7 @@ export interface CreateEventData {
   location: string;
   start_time: string;
   end_time: string;
-  club_id?: number | null;
+  club_id?: string | null;
   target_department?: string;
   is_featured?: boolean;
   tags?: string[];
@@ -60,7 +60,7 @@ export const eventsService = {
   getAll: async (filters: {
     search?: string;
     tag?: string;
-    club_id?: string | number;
+    club_id?: string;
     department?: string;
     is_featured?: string;
     upcoming?: string;
@@ -83,7 +83,7 @@ export const eventsService = {
   /**
    * Get single event by ID with club and events details
    */
-  getById: async (eventId: string | number): Promise<ApiResponse<{ event: Event }>> => {
+  getById: async (eventId: string): Promise<ApiResponse<{ event: Event }>> => {
     try {
       const data = asApiData(await api.get(`/events/${eventId}`));
       return data;
@@ -114,7 +114,7 @@ export const eventsService = {
    * Update an existing event (Admin only)
    */
   update: async (
-    id: string | number,
+    id: string,
     eventData: Partial<CreateEventData>
   ): Promise<ApiResponse<{ event: Event }>> => {
     try {
@@ -134,7 +134,7 @@ export const eventsService = {
   /**
    * Delete an event (Admin only)
    */
-  delete: async (id: string | number): Promise<{ success: boolean }> => {
+  delete: async (id: string): Promise<{ success: boolean }> => {
     try {
       const data = asApiData(await api.delete(`/events/${id}`));
       return data;
@@ -146,7 +146,7 @@ export const eventsService = {
   /**
    * Save an event for current user
    */
-  save: async (eventId: string | number): Promise<{ success: boolean }> => {
+  save: async (eventId: string): Promise<{ success: boolean }> => {
     try {
       const data = asApiData(await api.post(`/events/${eventId}/save`));
       return data;
@@ -158,7 +158,7 @@ export const eventsService = {
   /**
    * Remove event from saved list
    */
-  unsave: async (eventId: string | number): Promise<{ success: boolean }> => {
+  unsave: async (eventId: string): Promise<{ success: boolean }> => {
     try {
       const data = asApiData(await api.delete(`/events/${eventId}/save`));
       return data;

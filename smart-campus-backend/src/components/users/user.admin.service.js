@@ -1,30 +1,36 @@
 const UserModel = require('./user.model');
 const { ApiError } = require('../../middleware/errorHandler');
-const { parseInteger, parsePagination } = require('../../utils/request');
+
+/**
+ * Admin Service (v2.0 — UUID-based)
+ * All user IDs are now UUIDs, not integers.
+ */
 
 const listUsers = async ({ role, department, is_active, page = 1, limit = 50 }) => {
-  const pagination = parsePagination(page, limit);
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
+  const offset = (pageNum - 1) * limitNum;
 
   const users = await UserModel.findAll({
     role,
     department,
     is_active,
-    limit: pagination.limit,
-    offset: pagination.offset
+    limit: limitNum,
+    offset
   });
 
   return {
     users,
     pagination: {
-      page: pagination.page,
-      limit: pagination.limit,
+      page: pageNum,
+      limit: limitNum,
       count: users.length
     }
   };
 };
 
 const getUserById = async ({ id }) => {
-  const user = await UserModel.findById(parseInteger(id));
+  const user = await UserModel.findById(id);
 
   if (!user) {
     throw new ApiError(404, 'User not found');
@@ -34,11 +40,7 @@ const getUserById = async ({ id }) => {
 };
 
 const updateUserByAdmin = async ({ id, updates }) => {
-  const targetId = parseInteger(id);
-
-  if (Number.isNaN(targetId)) {
-    throw new ApiError(400, 'Invalid user id');
-  }
+  const targetId = id;
 
   if (updates.role === 'student') {
     const hasCgpa = Object.prototype.hasOwnProperty.call(updates, 'cgpa');
@@ -64,30 +66,27 @@ const updateUserByAdmin = async ({ id, updates }) => {
 };
 
 const deactivateUser = async ({ id }) => {
-  const targetId = parseInteger(id);
-  const success = await UserModel.deactivate(targetId);
+  const success = await UserModel.deactivate(id);
 
   if (!success) {
     throw new ApiError(404, 'User not found');
   }
 
-  return targetId;
+  return id;
 };
 
 const deleteUser = async ({ id, requesterId }) => {
-  const targetId = parseInteger(id);
-
-  if (targetId === requesterId) {
+  if (id === requesterId) {
     throw new ApiError(400, 'You cannot delete your own account');
   }
 
-  const success = await UserModel.delete(targetId);
+  const success = await UserModel.delete(id);
 
   if (!success) {
     throw new ApiError(404, 'User not found');
   }
 
-  return targetId;
+  return id;
 };
 
 module.exports = {

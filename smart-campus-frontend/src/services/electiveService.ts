@@ -4,7 +4,7 @@ import { Elective, ApiResponse } from '@/types';
 
 export interface StudentChoice {
   preference_rank: number;
-  id: number;
+  id: string;
   subject_name: string;
   description: string;
   max_students: number;
@@ -13,9 +13,9 @@ export interface StudentChoice {
 }
 
 export interface StudentAllocation {
-  id: number;
-  student_id: number;
-  elective_id: number;
+  id: string;
+  student_id: string;
+  elective_id: string;
   allocation_round: number;
   subject_name: string;
   description: string;
@@ -49,7 +49,7 @@ export const electiveService = {
   /**
    * Get specific elective by ID (public endpoint)
    */
-  getById: async (id: number): Promise<Elective> => {
+  getById: async (id: string): Promise<Elective> => {
     try {
       const data = asApiData(await api.get(`/electives/${id}`));
       return getPayload<Elective>(data, 'elective') as Elective;
@@ -79,7 +79,7 @@ export const electiveService = {
   /**
    * Update elective (admin only)
    */
-  update: async (id: number, electiveData: Partial<Elective>): Promise<Elective> => {
+  update: async (id: string, electiveData: Partial<Elective>): Promise<Elective> => {
     try {
       const data = asApiData(await api.put(`/electives/${id}`, electiveData));
       return getPayload<Elective>(data, 'elective') as Elective;
@@ -91,7 +91,7 @@ export const electiveService = {
   /**
    * Delete elective (admin only)
    */
-  delete: async (id: number): Promise<void> => {
+  delete: async (id: string): Promise<void> => {
     try {
       await api.delete(`/electives/${id}`);
     } catch (error) {

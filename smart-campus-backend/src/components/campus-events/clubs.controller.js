@@ -4,7 +4,7 @@ const { asyncHandler, ApiError } = require("../../middleware/errorHandler");
 const { logger } = require("../../config/db");
 
 /**
- * Clubs Controller
+ * Clubs Controller (v2.0 — UUID-based)
  * Handles all club-related HTTP requests
  */
 
@@ -112,13 +112,8 @@ const getAllClubs = asyncHandler(async (req, res) => {
 const getClubById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const clubId = parseInt(id);
-  if (isNaN(clubId) || clubId < 1) {
-    throw new ApiError(400, "Invalid club ID");
-  }
-
   // Get club details
-  const clubResult = await query("SELECT * FROM clubs WHERE id = $1", [clubId]);
+  const clubResult = await query("SELECT * FROM clubs WHERE id = $1", [id]);
 
   if (clubResult.rows.length === 0) {
     throw new ApiError(404, "Club not found");
@@ -127,7 +122,7 @@ const getClubById = asyncHandler(async (req, res) => {
   // Get club's events
   const eventsResult = await query(
     "SELECT * FROM events WHERE club_id = $1 ORDER BY start_time DESC",
-    [clubId],
+    [id],
   );
 
   sendSuccess(res, 200, "Club fetched successfully", {
@@ -144,11 +139,6 @@ const updateClub = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { name, description, contact_email, category } = req.body;
 
-  const clubId = parseInt(id);
-  if (isNaN(clubId) || clubId < 1) {
-    throw new ApiError(400, "Invalid club ID");
-  }
-
   const sql = `
     UPDATE clubs
     SET name = $1, description = $2, contact_email = $3, category = $4
@@ -161,7 +151,7 @@ const updateClub = asyncHandler(async (req, res) => {
     description,
     contact_email,
     category,
-    clubId,
+    id,
   ]);
 
   if (result.rows.length === 0) {
@@ -180,13 +170,8 @@ const updateClub = asyncHandler(async (req, res) => {
 const deleteClub = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const clubId = parseInt(id);
-  if (isNaN(clubId) || clubId < 1) {
-    throw new ApiError(400, "Invalid club ID");
-  }
-
   const result = await query("DELETE FROM clubs WHERE id = $1 RETURNING *", [
-    clubId,
+    id,
   ]);
 
   if (result.rowCount === 0) {

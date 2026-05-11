@@ -1,6 +1,10 @@
 const { query, transaction } = require('../../config/db');
 const { ApiError } = require('../../middleware/errorHandler');
-const { parseInteger } = require('../../utils/request');
+
+/**
+ * Elective Service (v2.0 — UUID-based)
+ * All IDs are now UUIDs. Removed parseInteger calls.
+ */
 
 const createElective = async ({ subject_name, description, max_students, department, semester }) => {
   const sql = `
@@ -26,7 +30,7 @@ const listElectives = async ({ department, semester }) => {
 
   if (semester) {
     sql += ` AND semester = $${paramCounter}`;
-    values.push(parseInteger(semester));
+    values.push(parseInt(semester));
     paramCounter++;
   }
 
@@ -37,7 +41,7 @@ const listElectives = async ({ department, semester }) => {
 };
 
 const getElectiveById = async (id) => {
-  const result = await query('SELECT * FROM electives WHERE id = $1', [parseInteger(id)]);
+  const result = await query('SELECT * FROM electives WHERE id = $1', [id]);
 
   if (result.rows.length === 0) {
     throw new ApiError(404, 'Elective not found');
@@ -54,8 +58,7 @@ const updateElective = async (id, { subject_name, description, max_students, dep
     RETURNING *
   `;
 
-  const parsedId = parseInteger(id);
-  const result = await query(sql, [subject_name, description, max_students, department, semester, parsedId]);
+  const result = await query(sql, [subject_name, description, max_students, department, semester, id]);
 
   if (result.rows.length === 0) {
     throw new ApiError(404, 'Elective not found');
@@ -65,7 +68,7 @@ const updateElective = async (id, { subject_name, description, max_students, dep
 };
 
 const deleteElective = async (id) => {
-  const result = await query('DELETE FROM electives WHERE id = $1 RETURNING id', [parseInteger(id)]);
+  const result = await query('DELETE FROM electives WHERE id = $1 RETURNING id', [id]);
 
   if (result.rowCount === 0) {
     throw new ApiError(404, 'Elective not found');
@@ -80,7 +83,7 @@ const submitChoices = async ({ choices, userId }) => {
 
   if (allChoicesUseIds) {
     normalizedChoices = choices.map((choice) => ({
-      elective_id: parseInteger(choice.elective_id),
+      elective_id: choice.elective_id,
       preference_rank: choice.preference_rank,
       subject_name: choice.subject_name
     }));
@@ -153,7 +156,10 @@ const allocateElectives = async () => {
     await client.query('DELETE FROM allocated_electives');
 
     const studentsResult = await client.query(
-      'SELECT id, full_name, email, cgpa FROM users WHERE role = $1 AND cgpa IS NOT NULL ORDER BY cgpa DESC',
+      `SELECT id, full_name, email, metadata->>'cgpa' AS cgpa
+       FROM users
+       WHERE role = $1 AND metadata->>'cgpa' IS NOT NULL
+       ORDER BY (metadata->>'cgpa')::decimal DESC`,
       ['student']
     );
 
@@ -190,7 +196,7 @@ const allocateElectives = async () => {
 
           results.push({
             student_name: student.full_name,
-            cgpa: student.cgpa,
+            cgpa: parseFloat(student.cgpa),
             allocated_elective: electiveName,
             preference_rank: choicesResult.rows.indexOf(choice) + 1
           });
@@ -203,7 +209,7 @@ const allocateElectives = async () => {
       if (!allocated) {
         results.push({
           student_name: student.full_name,
-          cgpa: student.cgpa,
+          cgpa: parseFloat(student.cgpa),
           allocated_elective: 'None (No seat available)',
           preference_rank: null
         });

@@ -19,21 +19,30 @@ interface TimetableSlot {
   id: string;
   day_of_week: string;
   period_number: number;
-  subject: {
+  // Backend may return FLAT fields or nested related objects
+  subject_name?: string;
+  subject_code?: string;
+  course_type?: string;
+  teacher_name?: string;
+  teacher_code?: string;
+  room_name?: string;
+  room_code?: string;
+  academic_year?: string;
+  semester_type?: string;
+  // Support nested shape as fallback
+  subject?: {
     subject_code: string;
     subject_name: string;
     course_type: string;
   };
-  teacher: {
+  teacher?: {
     teacher_code: string;
     full_name: string;
   };
-  room: {
+  room?: {
     room_code: string;
     room_name: string;
   };
-  academic_year: string;
-  semester_type: string;
 }
 
 interface TimetableGrid {
@@ -57,7 +66,7 @@ export default function StudentTimetable() {
   const [error, setError] = useState<string>('');
   const [selectedGroup, setSelectedGroup] = useState<string>('');
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('2024-25');
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('2025-26');
   const [selectedSemesterType, setSelectedSemesterType] = useState<string>('odd');
   const { isOnline } = useConnectivity();
 
@@ -159,7 +168,7 @@ export default function StudentTimetable() {
         throw new Error(response.error || 'Failed to load timetable');
       }
 
-      const slots: TimetableSlot[] = response.data?.slots || [];
+      const slots: TimetableSlot[] = response.data?.timetable || response.data?.slots || [];
 
       // Create grid structure
       const grid: TimetableGrid = {};
@@ -214,21 +223,29 @@ export default function StudentTimetable() {
       );
     }
 
-    const isLab = slot.subject.course_type === 'Lab' || slot.subject.course_type === 'Practical';
+    // Support both flat (backend v2.0) and nested (legacy) response shapes
+    const subjectCode = slot.subject_code || slot.subject?.subject_code || '';
+    const subjectName = slot.subject_name || slot.subject?.subject_name || '';
+    const courseType = slot.course_type || slot.subject?.course_type || '';
+    const teacherName = slot.teacher_name || slot.teacher?.full_name || '';
+    const roomCode = slot.room_code || slot.room?.room_code || '';
+    const roomName = slot.room_name || slot.room?.room_name || '';
+
+    const isLab = courseType === 'Lab' || courseType === 'Practical';
 
     return (
       <div className="space-y-1">
         <div className="flex items-center gap-1">
           {isLab && <Beaker className="h-3 w-3 text-accent flex-shrink-0" />}
-          <div className="font-semibold text-xs line-clamp-1" title={slot.subject.subject_name}>
-            {slot.subject.subject_code}
+          <div className="font-semibold text-xs line-clamp-1" title={subjectName}>
+            {subjectCode}
           </div>
         </div>
-        <div className="text-[10px] text-muted-foreground line-clamp-1" title={slot.teacher.full_name}>
-          {slot.teacher.full_name}
+        <div className="text-[10px] text-muted-foreground line-clamp-1" title={teacherName}>
+          {teacherName}
         </div>
-        <div className="text-[10px] text-accent line-clamp-1" title={slot.room.room_name}>
-          {slot.room.room_code}
+        <div className="text-[10px] text-accent line-clamp-1" title={roomName}>
+          {roomCode}
         </div>
       </div>
     );
@@ -280,9 +297,9 @@ export default function StudentTimetable() {
               className="px-4 py-2 rounded-lg bg-card border border-border text-sm min-w-[140px] focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
               disabled={loading || !isOnline}
             >
-              <option value="2024-25">2024-25</option>
-              <option value="2023-24">2023-24</option>
               <option value="2025-26">2025-26</option>
+              <option value="2024-25">2024-25</option>
+              <option value="2026-27">2026-27</option>
             </select>
 
             {/* Semester Type Selector */}

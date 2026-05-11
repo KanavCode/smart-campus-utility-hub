@@ -65,7 +65,7 @@ router.get(
   '/users/:id',
   verifyToken,
   verifyAdmin,
-  validate(validationSchemas.idParam, 'params'),
+  validate(validationSchemas.uuidParam, 'params'),
   userController.getUserById
 );
 
@@ -73,7 +73,7 @@ router.put(
   '/users/:id',
   verifyToken,
   verifyAdmin,
-  validate(validationSchemas.idParam, 'params'),
+  validate(validationSchemas.uuidParam, 'params'),
   validate(validationSchemas.adminUpdateUser),
   userController.updateUserByAdmin
 );
@@ -82,7 +82,7 @@ router.patch(
   '/users/:id/deactivate',
   verifyToken,
   verifyAdmin,
-  validate(validationSchemas.idParam, 'params'),
+  validate(validationSchemas.uuidParam, 'params'),
   userController.deactivateUser
 );
 
@@ -90,7 +90,7 @@ router.delete(
   '/users/:id',
   verifyToken,
   verifyAdmin,
-  validate(validationSchemas.idParam, 'params'),
+  validate(validationSchemas.uuidParam, 'params'),
   userController.deleteUser
 );
 

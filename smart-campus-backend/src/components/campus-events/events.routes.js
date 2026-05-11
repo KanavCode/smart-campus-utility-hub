@@ -11,16 +11,16 @@ const { validate, validationSchemas } = require('../../middleware/validation');
 
 // Public routes
 router.get('/', validate(validationSchemas.eventQuery, 'query'), eventsController.getAllEvents);
-router.get('/:id', validate(validationSchemas.idParam, 'params'), eventsController.getEventById);
+router.get('/:id', validate(validationSchemas.uuidParam, 'params'), eventsController.getEventById);
 
 // Protected routes (authentication required)
 router.get('/saved/my-events', verifyToken, eventsController.getSavedEvents);
-router.post('/:id/save', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.saveEvent);
-router.delete('/:id/save', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.unsaveEvent);
+router.post('/:id/save', verifyToken, validate(validationSchemas.uuidParam, 'params'), eventsController.saveEvent);
+router.delete('/:id/save', verifyToken, validate(validationSchemas.uuidParam, 'params'), eventsController.unsaveEvent);
 
 // Admin-only routes
 router.post('/', verifyToken, verifyAdmin, validate(validationSchemas.createEvent), eventsController.createEvent);
-router.put('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), validate(validationSchemas.createEvent), eventsController.updateEvent);
-router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), eventsController.deleteEvent);
+router.put('/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), validate(validationSchemas.createEvent), eventsController.updateEvent);
+router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), eventsController.deleteEvent);
 
 module.exports = router;

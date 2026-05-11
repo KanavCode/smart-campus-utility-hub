@@ -63,7 +63,7 @@ const corsOptions = {
       ? (process.env.CORS_ORIGINS || "")
           .split(",")
           .map((origin) => origin.trim())
-      : ["http://localhost:5173"], // Only Vite dev server in development
+      : ["http://localhost:5173", "http://localhost:8080", "http://localhost:8081"], // Vite dev server (multiple ports)
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],

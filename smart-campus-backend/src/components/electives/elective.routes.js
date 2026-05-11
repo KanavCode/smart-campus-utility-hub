@@ -18,12 +18,12 @@ router.get('/my/choices', verifyToken, verifyStudent, electiveController.getMyCh
 router.get('/my/allocation', verifyToken, verifyStudent, electiveController.getMyAllocation);
 
 // Routes using ID param — must come AFTER '/my/...'
-router.get('/:id', validate(validationSchemas.idParam, 'params'), electiveController.getElectiveById);
+router.get('/:id', validate(validationSchemas.uuidParam, 'params'), electiveController.getElectiveById);
 
 // Admin routes
 router.post('/', verifyToken, verifyAdmin, validate(validationSchemas.createElective), electiveController.createElective);
-router.put('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), validate(validationSchemas.createElective), electiveController.updateElective);
-router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), electiveController.deleteElective);
+router.put('/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), validate(validationSchemas.createElective), electiveController.updateElective);
+router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), electiveController.deleteElective);
 router.post('/allocate', verifyToken, verifyAdmin, electiveController.allocateElectives);
 
 module.exports = router;

@@ -2,32 +2,45 @@ const { query, transaction } = require('../../config/db');
 const bcrypt = require('bcryptjs');
 
 /**
- * User Model
- * Handles all database operations for users
+ * User Model (v2.0 — Supabase-Ready)
+ * Handles all database operations for the unified users table.
+ *
+ * Role-specific data lives in the `metadata` JSONB column:
+ *   Student : { cgpa, semester, auth_provider }
+ *   Faculty : { teacher_code, phone, auth_provider }
+ *   Admin   : { auth_provider }
+ *   SSO     : { auth_provider, provider_id }
  */
 
 class UserModel {
   /**
-   * Create a new user
+   * Create a new user (local auth)
    * @param {Object} userData - User data
    * @returns {Promise<Object>} Created user (without password)
    */
   static async create(userData) {
     const { full_name, email, password, role, department, cgpa, semester } = userData;
-    
+
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
+    // Build role-specific metadata
+    const metadata = { auth_provider: 'local' };
+    if (role === 'student') {
+      metadata.cgpa = cgpa;
+      metadata.semester = semester;
+    }
+
     const sql = `
-      INSERT INTO users (full_name, email, password_hash, role, department, cgpa, semester)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, full_name, email, role, department, cgpa, semester, created_at
+      INSERT INTO users (full_name, email, password_hash, role, department, metadata)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, full_name, email, role, department, metadata, is_active, created_at
     `;
 
-    const values = [full_name, email, password_hash, role || 'student', department, cgpa, semester];
+    const values = [full_name, email, password_hash, role || 'student', department, JSON.stringify(metadata)];
     const result = await query(sql, values);
-    return result.rows[0];
+    return UserModel._flattenUser(result.rows[0]);
   }
 
   /**
@@ -37,16 +50,21 @@ class UserModel {
    */
   static async createSSO(userData) {
     const { full_name, email, role, auth_provider, provider_id } = userData;
-    
+
+    const metadata = {
+      auth_provider: auth_provider,
+      provider_id: provider_id
+    };
+
     const sql = `
-      INSERT INTO users (full_name, email, role, auth_provider, provider_id)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, full_name, email, role, department, cgpa, semester, created_at
+      INSERT INTO users (full_name, email, role, metadata)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, full_name, email, role, department, metadata, is_active, created_at
     `;
 
-    const values = [full_name, email, role || 'student', auth_provider, provider_id];
+    const values = [full_name, email, role || 'student', JSON.stringify(metadata)];
     const result = await query(sql, values);
-    return result.rows[0];
+    return UserModel._flattenUser(result.rows[0]);
   }
 
   /**
@@ -56,84 +74,75 @@ class UserModel {
    * @returns {Promise<Object|null>} User object or null
    */
   static async findByEmail(email, includePassword = false) {
-    const fields = includePassword 
-      ? 'id, full_name, email, password_hash, role, department, cgpa, semester, is_active, created_at, auth_provider, provider_id'
-      : 'id, full_name, email, role, department, cgpa, semester, is_active, created_at, auth_provider, provider_id';
-    
+    const fields = includePassword
+      ? 'id, full_name, email, password_hash, role, department, metadata, is_active, created_at'
+      : 'id, full_name, email, role, department, metadata, is_active, created_at';
+
     const sql = `SELECT ${fields} FROM users WHERE email = $1`;
     const result = await query(sql, [email]);
-    return result.rows[0] || null;
+    if (result.rows.length === 0) return null;
+
+    const user = UserModel._flattenUser(result.rows[0]);
+    if (includePassword) {
+      user.password_hash = result.rows[0].password_hash;
+    }
+    return user;
   }
 
   /**
-   * Find user by ID
-   * @param {number} id - User ID
+   * Find user by ID (UUID)
+   * @param {string} id - User UUID
    * @returns {Promise<Object|null>} User object or null
    */
   static async findById(id) {
     const sql = `
-      SELECT id, full_name, email, role, department, cgpa, semester, is_active, created_at, updated_at
-      FROM users 
+      SELECT id, full_name, email, role, department, metadata, is_active, created_at, updated_at
+      FROM users
       WHERE id = $1
     `;
     const result = await query(sql, [id]);
-    return result.rows[0] || null;
+    if (result.rows.length === 0) return null;
+    return UserModel._flattenUser(result.rows[0]);
   }
 
   /**
    * Update user profile
-   * @param {number} id - User ID
+   * @param {string} id - User UUID
    * @param {Object} updates - Fields to update
    * @returns {Promise<Object>} Updated user
    */
   static async update(id, updates) {
-    const allowedFields = ['full_name', 'department', 'cgpa', 'semester'];
+    // Separate top-level fields from metadata fields
+    const topLevelAllowed = ['full_name', 'department'];
+    const metadataFields = ['cgpa', 'semester'];
+
     const fields = [];
     const values = [];
     let paramCounter = 1;
 
     for (const [key, value] of Object.entries(updates)) {
-      if (allowedFields.includes(key) && value !== undefined) {
+      if (topLevelAllowed.includes(key) && value !== undefined) {
         fields.push(`${key} = $${paramCounter}`);
         values.push(value);
         paramCounter++;
       }
     }
 
-    if (fields.length === 0) {
-      throw new Error('No valid fields to update');
+    // Handle metadata updates via a single chained jsonb_set expression
+    let metadataExpression = `COALESCE(metadata, '{}'::jsonb)`;
+    let hasMetadataUpdates = false;
+
+    for (const key of metadataFields) {
+      if (updates[key] !== undefined) {
+        metadataExpression = `jsonb_set(${metadataExpression}, '{${key}}', $${paramCounter}::jsonb)`;
+        values.push(JSON.stringify(updates[key]));
+        paramCounter++;
+        hasMetadataUpdates = true;
+      }
     }
 
-    values.push(id);
-    const sql = `
-      UPDATE users 
-      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $${paramCounter}
-      RETURNING id, full_name, email, role, department, cgpa, semester, updated_at
-    `;
-
-    const result = await query(sql, values);
-    return result.rows[0];
-  }
-
-  /**
-   * Admin update of user fields
-   * @param {number} id - User ID
-   * @param {Object} updates - Admin-editable fields
-   * @returns {Promise<Object>} Updated user
-   */
-  static async updateByAdmin(id, updates) {
-    const allowedFields = ['full_name', 'email', 'role', 'department', 'cgpa', 'semester', 'is_active'];
-    const fields = [];
-    const values = [];
-    let paramCounter = 1;
-
-    for (const [key, value] of Object.entries(updates)) {
-      if (allowedFields.includes(key) && value !== undefined) {
-        fields.push(`${key} = $${paramCounter}`);
-        values.push(value);
-        paramCounter++;
-      }
+    if (hasMetadataUpdates) {
+      fields.push(`metadata = ${metadataExpression}`);
     }
 
     if (fields.length === 0) {
@@ -145,16 +154,77 @@ class UserModel {
       UPDATE users
       SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
       WHERE id = $${paramCounter}
-      RETURNING id, full_name, email, role, department, cgpa, semester, is_active, updated_at
+      RETURNING id, full_name, email, role, department, metadata, is_active, updated_at
     `;
 
     const result = await query(sql, values);
-    return result.rows[0] || null;
+    if (result.rows.length === 0) return null;
+    return UserModel._flattenUser(result.rows[0]);
+  }
+
+  /**
+   * Admin update of user fields
+   * @param {string} id - User UUID
+   * @param {Object} updates - Admin-editable fields
+   * @returns {Promise<Object>} Updated user
+   */
+  static async updateByAdmin(id, updates) {
+    const topLevelAllowed = ['full_name', 'email', 'role', 'department', 'is_active'];
+    const metadataFields = ['cgpa', 'semester'];
+
+    const fields = [];
+    const values = [];
+    let paramCounter = 1;
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (topLevelAllowed.includes(key) && value !== undefined) {
+        fields.push(`${key} = $${paramCounter}`);
+        values.push(value);
+        paramCounter++;
+      }
+    }
+
+    let metadataExpr = `COALESCE(metadata, '{}'::jsonb)`;
+    let hasMetadataUpdates = false;
+
+    for (const key of metadataFields) {
+      if (updates[key] !== undefined) {
+        hasMetadataUpdates = true;
+        const val = updates[key];
+        if (val === null) {
+          metadataExpr = `(${metadataExpr} - '${key}')`;
+        } else {
+          metadataExpr = `jsonb_set(${metadataExpr}, '{${key}}', $${paramCounter}::jsonb)`;
+          values.push(JSON.stringify(val));
+          paramCounter++;
+        }
+      }
+    }
+
+    if (hasMetadataUpdates) {
+      fields.push(`metadata = ${metadataExpr}`);
+    }
+
+    if (fields.length === 0) {
+      throw new Error('No valid fields to update');
+    }
+
+    values.push(id);
+    const sql = `
+      UPDATE users
+      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $${paramCounter}
+      RETURNING id, full_name, email, role, department, metadata, is_active, updated_at
+    `;
+
+    const result = await query(sql, values);
+    if (result.rows.length === 0) return null;
+    return UserModel._flattenUser(result.rows[0]);
   }
 
   /**
    * Change user password
-   * @param {number} id - User ID
+   * @param {string} id - User UUID
    * @param {string} oldPassword - Current password
    * @param {string} newPassword - New password
    * @returns {Promise<boolean>} Success status
@@ -208,7 +278,7 @@ class UserModel {
    */
   static async findAll(filters = {}) {
     const { role, department, is_active, limit = 50, offset = 0 } = filters;
-    let sql = 'SELECT id, full_name, email, role, department, cgpa, semester, is_active, created_at FROM users WHERE 1=1';
+    let sql = 'SELECT id, full_name, email, role, department, metadata, is_active, created_at FROM users WHERE 1=1';
     const values = [];
     let paramCounter = 1;
 
@@ -234,12 +304,12 @@ class UserModel {
     values.push(limit, offset);
 
     const result = await query(sql, values);
-    return result.rows;
+    return result.rows.map(UserModel._flattenUser);
   }
 
   /**
    * Deactivate user account
-   * @param {number} id - User ID
+   * @param {string} id - User UUID
    * @returns {Promise<boolean>} Success status
    */
   static async deactivate(id) {
@@ -250,13 +320,34 @@ class UserModel {
 
   /**
    * Delete user account
-   * @param {number} id - User ID
+   * @param {string} id - User UUID
    * @returns {Promise<boolean>} Success status
    */
   static async delete(id) {
     const sql = 'DELETE FROM users WHERE id = $1';
     const result = await query(sql, [id]);
     return result.rowCount > 0;
+  }
+
+  /**
+   * Flatten metadata JSONB into top-level fields for API backward compatibility.
+   * The API still returns cgpa, semester, auth_provider, provider_id as top-level keys.
+   * @param {Object} row - Raw database row
+   * @returns {Object} Flattened user object
+   */
+  static _flattenUser(row) {
+    if (!row) return null;
+    const { metadata, ...rest } = row;
+    const meta = metadata || {};
+    return {
+      ...rest,
+      cgpa: meta.cgpa ?? null,
+      semester: meta.semester ?? null,
+      auth_provider: meta.auth_provider ?? 'local',
+      provider_id: meta.provider_id ?? null,
+      // Preserve raw metadata for frontend that wants it
+      metadata
+    };
   }
 }
 

@@ -160,13 +160,18 @@ const getTimetableByTeacher = asyncHandler(async (req, res) => {
 const createTeacher = asyncHandler(async (req, res) => {
   const { teacher_code, full_name, department, email, phone } = req.body;
   
+  const metadata = { teacher_code, phone: phone || null, auth_provider: 'local' };
+  
   const sql = `
-    INSERT INTO teachers (teacher_code, full_name, department, email, phone)
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING *
+    INSERT INTO users (full_name, email, department, role, metadata)
+    VALUES ($1, $2, $3, 'faculty', $4)
+    RETURNING id, full_name, email, department, is_active,
+              metadata->>'teacher_code' AS teacher_code,
+              metadata->>'phone' AS phone,
+              created_at, updated_at
   `;
   
-  const result = await query(sql, [teacher_code, full_name, department, email, phone]);
+  const result = await query(sql, [full_name, email, department, JSON.stringify(metadata)]);
   
   logger.info('Teacher created', { teacherId: result.rows[0].id, createdBy: req.user.id });
   
@@ -208,13 +213,20 @@ const createSubject = asyncHandler(async (req, res) => {
 const createRoom = asyncHandler(async (req, res) => {
   const { room_code, room_name, capacity, room_type, floor_number, building } = req.body;
   
+  const amenities = {
+    has_projector: req.body.has_projector || false,
+    has_computer: req.body.has_computer || false,
+    floor_number: floor_number || null,
+    building: building || null
+  };
+  
   const sql = `
-    INSERT INTO rooms (room_code, room_name, capacity, room_type, floor_number, building)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    INSERT INTO rooms (room_code, room_name, capacity, room_type, amenities)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING *
   `;
   
-  const result = await query(sql, [room_code, room_name, capacity, room_type, floor_number, building]);
+  const result = await query(sql, [room_code, room_name, capacity, room_type, JSON.stringify(amenities)]);
   
   logger.info('Room created', { roomId: result.rows[0].id, createdBy: req.user.id });
   
@@ -257,14 +269,19 @@ const updateTeacher = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { teacher_code, full_name, department, email, phone } = req.body;
 
+  const metadata = { teacher_code, phone: phone || null, auth_provider: 'local' };
+
   const sql = `
-    UPDATE teachers
-    SET teacher_code = $1, full_name = $2, department = $3, email = $4, phone = $5, updated_at = CURRENT_TIMESTAMP
-    WHERE id = $6 AND is_active = true
-    RETURNING *
+    UPDATE users
+    SET full_name = $1, department = $2, email = $3, metadata = $4, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $5 AND role = 'faculty' AND is_active = true
+    RETURNING id, full_name, email, department, is_active,
+              metadata->>'teacher_code' AS teacher_code,
+              metadata->>'phone' AS phone,
+              created_at, updated_at
   `;
 
-  const result = await query(sql, [teacher_code, full_name, department, email, phone, id]);
+  const result = await query(sql, [full_name, department, email, JSON.stringify(metadata), id]);
   if (result.rowCount === 0) {
     throw new ApiError(404, 'Teacher not found');
   }
@@ -315,14 +332,21 @@ const updateRoom = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { room_code, room_name, capacity, room_type, floor_number, building } = req.body;
 
+  const amenities = {
+    has_projector: req.body.has_projector || false,
+    has_computer: req.body.has_computer || false,
+    floor_number: floor_number || null,
+    building: building || null
+  };
+
   const sql = `
     UPDATE rooms
-    SET room_code = $1, room_name = $2, capacity = $3, room_type = $4, floor_number = $5, building = $6, updated_at = CURRENT_TIMESTAMP
-    WHERE id = $7 AND is_active = true
+    SET room_code = $1, room_name = $2, capacity = $3, room_type = $4, amenities = $5, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $6 AND is_active = true
     RETURNING *
   `;
 
-  const result = await query(sql, [room_code, room_name, capacity, room_type, floor_number, building, id]);
+  const result = await query(sql, [room_code, room_name, capacity, room_type, JSON.stringify(amenities), id]);
   if (result.rowCount === 0) {
     throw new ApiError(404, 'Room not found');
   }
@@ -344,9 +368,9 @@ const deleteTeacher = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const sql = `
-    UPDATE teachers
+    UPDATE users
     SET is_active = false, updated_at = CURRENT_TIMESTAMP
-    WHERE id = $1 AND is_active = true
+    WHERE id = $1 AND role = 'faculty' AND is_active = true
     RETURNING id
   `;
 

@@ -1,23 +1,41 @@
 const { query } = require('../../config/db');
 
 /**
- * Teacher Model
+ * Teacher Model (v2.0)
+ * Teachers are now stored in the `users` table with role = 'faculty'.
+ * Faculty-specific fields (teacher_code, phone) live in users.metadata JSONB.
  */
 class Teacher {
   static async findById(id) {
-    const result = await query('SELECT * FROM teachers WHERE id = $1 AND is_active = true', [id]);
+    const result = await query(
+      `SELECT id, full_name, email, department, is_active,
+              metadata->>'teacher_code' AS teacher_code,
+              metadata->>'phone' AS phone,
+              created_at, updated_at
+       FROM users
+       WHERE id = $1 AND role = 'faculty' AND is_active = true`,
+      [id]
+    );
     return result.rows[0];
   }
 
   static async findAll() {
-    const result = await query('SELECT * FROM teachers WHERE is_active = true ORDER BY full_name');
+    const result = await query(
+      `SELECT id, full_name, email, department, is_active,
+              metadata->>'teacher_code' AS teacher_code,
+              metadata->>'phone' AS phone,
+              created_at, updated_at
+       FROM users
+       WHERE role = 'faculty' AND is_active = true
+       ORDER BY full_name`
+    );
     return result.rows;
   }
 
   static async getUnavailability(teacherId) {
     const result = await query(
-      `SELECT * FROM teacher_unavailability 
-       WHERE teacher_id = $1 
+      `SELECT * FROM teacher_unavailability
+       WHERE teacher_id = $1
        AND (is_permanent = true OR (start_date <= CURRENT_DATE AND end_date >= CURRENT_DATE))`,
       [teacherId]
     );
@@ -26,35 +44,60 @@ class Teacher {
 
   static async create(teacherData) {
     const { teacher_code, full_name, department, email, phone } = teacherData;
+    const metadata = { teacher_code, phone: phone || null, auth_provider: 'local' };
+
     const result = await query(
-      `INSERT INTO teachers (teacher_code, full_name, department, email, phone)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [teacher_code, full_name, department, email, phone]
+      `INSERT INTO users (full_name, email, department, role, metadata)
+       VALUES ($1, $2, $3, 'faculty', $4)
+       RETURNING id, full_name, email, department, is_active,
+                 metadata->>'teacher_code' AS teacher_code,
+                 metadata->>'phone' AS phone,
+                 created_at, updated_at`,
+      [full_name, email, department, JSON.stringify(metadata)]
     );
     return result.rows[0];
   }
 }
 
 /**
- * Subject Model
+ * Subject Model (v2.0)
+ * Scheduling hints (requires_consecutive, max_periods_per_day) now live in scheduling JSONB.
  */
 class Subject {
   static async findById(id) {
-    const result = await query('SELECT * FROM subjects WHERE id = $1 AND is_active = true', [id]);
+    const result = await query(
+      `SELECT id, subject_code, subject_name, hours_per_week, course_type,
+              department, semester, is_active,
+              COALESCE((scheduling->>'requires_consecutive')::boolean, false) AS requires_consecutive_periods,
+              COALESCE((scheduling->>'max_periods_per_day')::int, 2) AS max_periods_per_day,
+              created_at, updated_at
+       FROM subjects WHERE id = $1 AND is_active = true`,
+      [id]
+    );
     return result.rows[0];
   }
 
   static async findAll() {
-    const result = await query('SELECT * FROM subjects WHERE is_active = true ORDER BY subject_name');
+    const result = await query(
+      `SELECT id, subject_code, subject_name, hours_per_week, course_type,
+              department, semester, is_active,
+              COALESCE((scheduling->>'requires_consecutive')::boolean, false) AS requires_consecutive_periods,
+              COALESCE((scheduling->>'max_periods_per_day')::int, 2) AS max_periods_per_day,
+              created_at, updated_at
+       FROM subjects WHERE is_active = true ORDER BY subject_name`
+    );
     return result.rows;
   }
 
   static async getSubjectTeachers(subjectId) {
     const result = await query(
-      `SELECT t.* FROM teachers t
-       JOIN teacher_subject_assignments tsa ON t.id = tsa.teacher_id
-       WHERE tsa.subject_id = $1 AND t.is_active = true AND tsa.is_active = true
-       ORDER BY tsa.priority ASC, t.full_name`,
+      `SELECT u.id, u.full_name, u.email, u.department, u.is_active,
+              u.metadata->>'teacher_code' AS teacher_code,
+              u.metadata->>'phone' AS phone
+       FROM users u
+       JOIN teacher_subject_assignments tsa ON u.id = tsa.teacher_id
+       WHERE tsa.subject_id = $1 AND u.is_active = true AND tsa.is_active = true
+       ORDER BY tsa.priority ASC, u.full_name`,
       [subjectId]
     );
     return result.rows;
@@ -72,21 +115,44 @@ class Subject {
 }
 
 /**
- * Room Model
+ * Room Model (v2.0)
+ * Amenities (has_projector, has_computer, floor_number, building) now live in amenities JSONB.
  */
 class Room {
   static async findById(id) {
-    const result = await query('SELECT * FROM rooms WHERE id = $1 AND is_active = true', [id]);
+    const result = await query(
+      `SELECT id, room_code, room_name, capacity, room_type, is_active,
+              COALESCE((amenities->>'has_projector')::boolean, false) AS has_projector,
+              COALESCE((amenities->>'has_computer')::boolean, false) AS has_computer,
+              (amenities->>'floor_number')::int AS floor_number,
+              amenities->>'building' AS building,
+              created_at, updated_at
+       FROM rooms WHERE id = $1 AND is_active = true`,
+      [id]
+    );
     return result.rows[0];
   }
 
   static async findAll() {
-    const result = await query('SELECT * FROM rooms WHERE is_active = true ORDER BY room_name');
+    const result = await query(
+      `SELECT id, room_code, room_name, capacity, room_type, is_active,
+              COALESCE((amenities->>'has_projector')::boolean, false) AS has_projector,
+              COALESCE((amenities->>'has_computer')::boolean, false) AS has_computer,
+              (amenities->>'floor_number')::int AS floor_number,
+              amenities->>'building' AS building,
+              created_at, updated_at
+       FROM rooms WHERE is_active = true ORDER BY room_name`
+    );
     return result.rows;
   }
 
   static async findSuitableRooms(courseType, requiredCapacity) {
-    let sql = 'SELECT * FROM rooms WHERE is_active = true AND capacity >= $1';
+    let sql = `SELECT id, room_code, room_name, capacity, room_type, is_active,
+                      COALESCE((amenities->>'has_projector')::boolean, false) AS has_projector,
+                      COALESCE((amenities->>'has_computer')::boolean, false) AS has_computer,
+                      (amenities->>'floor_number')::int AS floor_number,
+                      amenities->>'building' AS building
+               FROM rooms WHERE is_active = true AND capacity >= $1`;
     const params = [requiredCapacity];
 
     if (courseType === 'Lab' || courseType === 'Practical') {
@@ -101,18 +167,31 @@ class Room {
   }
 
   static async create(roomData) {
-    const { room_code, room_name, capacity, room_type, floor_number, building } = roomData;
+    const { room_code, room_name, capacity, room_type, floor_number, building, has_projector, has_computer } = roomData;
+    const amenities = {
+      has_projector: has_projector || false,
+      has_computer: has_computer || false,
+      floor_number: floor_number || null,
+      building: building || null
+    };
+
     const result = await query(
-      `INSERT INTO rooms (room_code, room_name, capacity, room_type, floor_number, building)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [room_code, room_name, capacity, room_type, floor_number, building]
+      `INSERT INTO rooms (room_code, room_name, capacity, room_type, amenities)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, room_code, room_name, capacity, room_type, is_active,
+                 COALESCE((amenities->>'has_projector')::boolean, false) AS has_projector,
+                 COALESCE((amenities->>'has_computer')::boolean, false) AS has_computer,
+                 (amenities->>'floor_number')::int AS floor_number,
+                 amenities->>'building' AS building,
+                 created_at, updated_at`,
+      [room_code, room_name, capacity, room_type, JSON.stringify(amenities)]
     );
     return result.rows[0];
   }
 }
 
 /**
- * StudentGroup Model
+ * StudentGroup Model (v2.0 — unchanged structure, just UUID PKs)
  */
 class StudentGroup {
   static async findById(id) {
@@ -127,7 +206,11 @@ class StudentGroup {
 
   static async getGroupSubjects(groupId) {
     const result = await query(
-      `SELECT s.* FROM subjects s
+      `SELECT s.id, s.subject_code, s.subject_name, s.hours_per_week, s.course_type,
+              s.department, s.semester, s.is_active,
+              COALESCE((s.scheduling->>'requires_consecutive')::boolean, false) AS requires_consecutive_periods,
+              COALESCE((s.scheduling->>'max_periods_per_day')::int, 2) AS max_periods_per_day
+       FROM subjects s
        JOIN subject_class_assignments sca ON s.id = sca.subject_id
        WHERE sca.group_id = $1 AND s.is_active = true AND sca.is_active = true
        ORDER BY s.subject_name`,
@@ -148,13 +231,14 @@ class StudentGroup {
 }
 
 /**
- * TimetableSlot Model
+ * TimetableSlot Model (v2.0)
+ * teacher_id now references users.id instead of the old teachers.id
  */
 class TimetableSlot {
   static async create(slotData) {
     const { day_of_week, period_number, teacher_id, subject_id, group_id, room_id, academic_year, semester_type } = slotData;
     const result = await query(
-      `INSERT INTO timetable_slots 
+      `INSERT INTO timetable_slots
        (day_of_week, period_number, teacher_id, subject_id, group_id, room_id, academic_year, semester_type)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
       [day_of_week, period_number, teacher_id, subject_id, group_id, room_id, academic_year, semester_type]
@@ -172,17 +256,17 @@ class TimetableSlot {
   static async findByGroup(groupId, academic_year = null, semester_type = null) {
     let sql = 'SELECT * FROM timetable_slots WHERE group_id = $1 AND is_active = true';
     const params = [groupId];
-    
+
     if (academic_year) {
       params.push(academic_year);
       sql += ` AND academic_year = $${params.length}`;
     }
-    
+
     if (semester_type) {
       params.push(semester_type);
       sql += ` AND semester_type = $${params.length}`;
     }
-    
+
     const result = await query(sql, params);
     return result.rows;
   }

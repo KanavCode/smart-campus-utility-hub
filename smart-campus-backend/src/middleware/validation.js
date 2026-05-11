@@ -2,7 +2,9 @@ const Joi = require('joi');
 const { ApiError } = require('./errorHandler');
 
 /**
- * Validation middleware factory
+ * Validation middleware factory (v2.0)
+ * Updated for UUID-based IDs and ENUM-typed categories.
+ *
  * @param {Object} schema - Joi validation schema
  * @param {string} property - Property to validate ('body', 'query', 'params')
  * @returns {Function} Middleware function
@@ -18,7 +20,7 @@ const validate = (schema, property = 'body') => {
       const errorMessage = error.details
         .map(detail => detail.message)
         .join(', ');
-      
+
       return next(new ApiError(400, errorMessage, error.details));
     }
 
@@ -27,6 +29,7 @@ const validate = (schema, property = 'body') => {
     next();
   };
 };
+
 // Core elective subjects
 const allowedSubjects = [
   'Artificial Intelligence',
@@ -40,6 +43,9 @@ const allowedSubjects = [
   'Mobile Computing',
   'Computer Vision & Applications',
 ];
+
+// Club category ENUM values (must match the club_category type in schema.sql)
+const clubCategories = ['technical', 'cultural', 'sports', 'entrepreneurship', 'social', 'academic'];
 
 
 // Common validation schemas
@@ -80,25 +86,25 @@ const validationSchemas = {
     is_active: Joi.boolean().optional()
   }).min(1),
 
-  // Event creation
+  // Event creation — club_id is now UUID
   createEvent: Joi.object({
     title: Joi.string().min(3).max(150).required(),
     description: Joi.string().optional(),
     location: Joi.string().max(255).optional(),
     start_time: Joi.date().iso().required(),
     end_time: Joi.date().iso().greater(Joi.ref('start_time')).required(),
-    club_id: Joi.number().integer().required(),
+    club_id: Joi.string().uuid().required(),
     target_department: Joi.string().max(100).optional(),
     is_featured: Joi.boolean().default(false),
     tags: Joi.array().items(Joi.string()).optional()
   }),
 
-  // Club creation
+  // Club creation — category is now a strict ENUM
   createClub: Joi.object({
     name: Joi.string().min(2).max(100).required(),
     description: Joi.string().optional(),
     contact_email: Joi.string().email().optional(),
-    category: Joi.string().max(50).optional()
+    category: Joi.string().valid(...clubCategories).default('technical')
   }),
 
   // Elective creation
@@ -110,26 +116,20 @@ const validationSchemas = {
     semester: Joi.number().integer().min(1).max(8).optional()
   }),
 
-  // Elective choices submission
+  // Elective choices submission — elective_id is now UUID
   submitChoices: Joi.object({
     choices: Joi.array().items(
       Joi.object({
-        elective_id: Joi.number().integer().positive(),
+        elective_id: Joi.string().uuid(),
         subject_name: Joi.string().valid(...allowedSubjects),
         preference_rank: Joi.number().integer().min(1).max(5).required()
       }).or('elective_id', 'subject_name')
     ).min(1).max(5).required()
   }),
 
-
-  // UUID parameter validation
+  // UUID parameter validation (used for all entity IDs now)
   uuidParam: Joi.object({
     id: Joi.string().uuid().required()
-  }),
-
-  // Integer ID parameter validation
-  idParam: Joi.object({
-    id: Joi.number().integer().positive().required()
   }),
 
   // Pagination query validation
@@ -150,7 +150,7 @@ const validationSchemas = {
     semester: Joi.number().integer().min(1).max(8).optional(),
     room_type: Joi.string().max(50).optional(),
     academic_year: Joi.string().max(20).optional(),
-    semester_type: Joi.string().max(20).optional()
+    semester_type: Joi.string().valid('odd', 'even', 'summer').optional()
   }),
 
   groupIdParam: Joi.object({
@@ -182,9 +182,11 @@ const validationSchemas = {
     room_code: Joi.string().min(1).max(20).required(),
     room_name: Joi.string().min(2).max(100).required(),
     capacity: Joi.number().integer().min(1).required(),
-    room_type: Joi.string().max(50).required(),
-    floor_number: Joi.number().integer().min(0).required(),
-    building: Joi.string().min(1).max(100).required()
+    room_type: Joi.string().valid('Classroom', 'Lab', 'Auditorium', 'Seminar_Hall').required(),
+    floor_number: Joi.number().integer().min(0).optional(),
+    building: Joi.string().min(1).max(100).optional(),
+    has_projector: Joi.boolean().default(false),
+    has_computer: Joi.boolean().default(false)
   }),
 
   timetableGroup: Joi.object({
@@ -213,15 +215,15 @@ const validationSchemas = {
     periods_per_day: Joi.number().integer().min(1).required(),
     lunch_break_period: Joi.number().integer().min(1).optional(),
     academic_year: Joi.string().min(4).max(20).required(),
-    semester_type: Joi.string().min(1).max(20).required(),
+    semester_type: Joi.string().valid('odd', 'even', 'summer').required(),
     preferences: Joi.object().optional()
   }),
 
-  // Event list query validation
+  // Event list query validation — club_id is now UUID
   eventQuery: Joi.object({
     search: Joi.string().max(100).optional(),
     tag: Joi.string().max(50).optional(),
-    club_id: Joi.number().integer().positive().optional(),
+    club_id: Joi.string().uuid().optional(),
     department: Joi.string().max(100).optional(),
     is_featured: Joi.string().valid('true', 'false').optional(),
     upcoming: Joi.string().valid('true', 'false').optional(),
@@ -231,9 +233,9 @@ const validationSchemas = {
     order: Joi.string().valid('asc', 'desc', 'ASC', 'DESC').default('ASC')
   }),
 
-  // Club list query validation
+  // Club list query validation — category restricted to ENUM
   clubQuery: Joi.object({
-    category: Joi.string().max(50).optional(),
+    category: Joi.string().valid(...clubCategories).optional(),
     search: Joi.string().max(100).optional(),
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(10),
