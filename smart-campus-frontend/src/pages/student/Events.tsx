@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader } from 'lucide-react';
+import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { eventsService, Event } from '@/services/eventService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
@@ -81,6 +81,34 @@ export default function EventsPage() {
       toast.error(e?.message || 'Failed to save event');
     } finally {
       setIsSavingMap(new Map(isSavingMap).set(eventId, false));
+    }
+  };
+
+  const handleShareEvent = async (event: Event) => {
+    const shareData = {
+      title: event.title,
+      text: `📅 ${event.title}\n🕐 ${new Date(event.start_time).toLocaleString()}\n📍 ${event.location}${event.description ? `\n\n${event.description}` : ''}`,
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err: unknown) {
+        // User cancelled the share — not an error worth toasting
+        if (err instanceof Error && err.name !== 'AbortError') {
+          toast.error('Failed to share event');
+        }
+      }
+    } else {
+      // Clipboard fallback for browsers without Web Share API support
+      try {
+        const fallbackText = `${shareData.title}\n${shareData.text}\n${shareData.url}`;
+        await navigator.clipboard.writeText(fallbackText);
+        toast.success('Event details copied to clipboard!');
+      } catch {
+        toast.error('Unable to share or copy event details');
+      }
     }
   };
 
@@ -217,21 +245,37 @@ export default function EventsPage() {
                   <CardHeader>
                     <CardTitle className="flex items-start justify-between gap-2">
                       <span className="flex-1">{event.title}</span>
-                      <motion.button
-                        whileHover={isOnline ? { scale: 1.1 } : {}}
-                        whileTap={isOnline ? { scale: 0.9 } : {}}
-                        onClick={() => isOnline && handleSaveEvent(event.id)}
-                        disabled={isSavingMap.get(event.id) || !isOnline}
-                        className={`flex-shrink-0 ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        <Bookmark
-                          className={`h-5 w-5 transition-colors ${
-                            savedEventIds.has(event.id)
-                              ? 'text-primary fill-primary'
-                              : 'text-muted-foreground'
-                          }`}
-                        />
-                      </motion.button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Share Button */}
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleShareEvent(event)}
+                          title="Share event"
+                          aria-label={`Share ${event.title}`}
+                        >
+                          <Share2 className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                        </motion.button>
+
+                        {/* Bookmark Button */}
+                        <motion.button
+                          whileHover={isOnline ? { scale: 1.1 } : {}}
+                          whileTap={isOnline ? { scale: 0.9 } : {}}
+                          onClick={() => isOnline && handleSaveEvent(event.id)}
+                          disabled={isSavingMap.get(event.id) || !isOnline}
+                          className={`flex-shrink-0 ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          title={savedEventIds.has(event.id) ? 'Remove from saved' : 'Save event'}
+                          aria-label={savedEventIds.has(event.id) ? `Unsave ${event.title}` : `Save ${event.title}`}
+                        >
+                          <Bookmark
+                            className={`h-5 w-5 transition-colors ${
+                              savedEventIds.has(event.id)
+                                ? 'text-primary fill-primary'
+                                : 'text-muted-foreground'
+                            }`}
+                          />
+                        </motion.button>
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3 flex-1 flex flex-col">
