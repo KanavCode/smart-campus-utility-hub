@@ -10,9 +10,10 @@ import CampusExplorer from '@/components/landing/CampusExplorer';
 import DayInLife from '@/components/landing/DayInLife';
 import SmartCore from '@/components/landing/SmartCore';
 import { useParallax } from '@/hooks/useScrollAnimation';
-
+import { useTranslation } from "react-i18next";
 export default function Landing() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   // --- Scroll Tracking Setup ---
@@ -73,7 +74,12 @@ export default function Landing() {
 
 
 
-  const titleWords = ['Your', 'Entire', 'Campus,', 'Unified.'];
+  const titleWords = [
+  t("hero.title1"),
+  t("hero.title2"),
+  t("hero.title3"),
+  t("hero.title4"),
+];
   
   const features = [
     {
@@ -165,6 +171,7 @@ export default function Landing() {
             className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8"
           >
             Streamline your campus operations with intelligent scheduling, elective management, and seamless event coordination.
+            {t("hero.subtitle")}
           </motion.p>
 
           <motion.div
@@ -178,7 +185,7 @@ export default function Landing() {
               size="lg"
               className="bg-primary text-primary-foreground font-semibold glow-primary-hover group"
             >
-              Get Started
+              {t("hero.getStarted")}
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </MagneticShimmerButton>
             <Button
@@ -192,7 +199,7 @@ export default function Landing() {
                 whileTap={{ scale: 0.98 }}
                 transition={{ type: 'spring', stiffness: 400 }}
               >
-                Learn More
+                {t("hero.learnMore")}
               </motion.button>
             </Button>
           </motion.div>
