@@ -11,11 +11,12 @@ const { apiLimiter } = require('./middleware/rateLimiter.middleware');
 const notificationService = require('./services/notification.service');
 
 // Import routes
-const userRoutes = require('./components/users/user.routes');
-const eventsRoutes = require('./components/campus-events/events.routes');
-const clubsRoutes = require('./components/campus-events/clubs.routes');
-const timetableRoutes = require('./components/timetable/timetable.routes');
-const electiveRoutes = require('./components/electives/elective.routes');
+const userRoutes = require("./components/users/user.routes");
+const eventsRoutes = require("./components/campus-events/events.routes");
+const clubsRoutes = require("./components/campus-events/clubs.routes");
+const timetableRoutes = require("./components/timetable/timetable.routes");
+const electiveRoutes = require("./components/electives/elective.routes");
+const settingsRoutes = require("./components/settings/settings.routes");
 
 // Create Express application
 const app = express();
@@ -161,6 +162,9 @@ app.get('/api/test-socket', (req, res) => {
   res.json({ success: true, message: `Broadcasted ${type} successfully` });
 });
 
+// Admin settings routes
+app.use("/api/settings", settingsRoutes);
+
 // =====================================================================
 // ERROR HANDLING
 // =====================================================================
@@ -221,3 +225,4 @@ if (require.main === module) {
 
 // Export app for testing
 module.exports = app;
+
