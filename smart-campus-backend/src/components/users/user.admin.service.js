@@ -2,12 +2,13 @@ const UserModel = require('./user.model');
 const { ApiError } = require('../../middleware/errorHandler');
 const { parseInteger, parsePagination } = require('../../utils/request');
 
-const listUsers = async ({ role, department, page = 1, limit = 50 }) => {
+const listUsers = async ({ role, department, is_active, page = 1, limit = 50 }) => {
   const pagination = parsePagination(page, limit);
 
   const users = await UserModel.findAll({
     role,
     department,
+    is_active,
     limit: pagination.limit,
     offset: pagination.offset
   });
