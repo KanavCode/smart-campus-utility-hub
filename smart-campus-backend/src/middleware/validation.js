@@ -104,7 +104,7 @@ const validationSchemas = {
     name: Joi.string().min(2).max(100).required(),
     description: Joi.string().optional(),
     contact_email: Joi.string().email().optional(),
-    category: Joi.string().valid(...clubCategories).required()
+    category: Joi.string().valid(...clubCategories).default('technical')
   }),
 
   // Elective creation
