@@ -95,6 +95,25 @@ export default function StudentDashboard() {
   const profileCompletion = 75; // TODO: Calculate based on filled fields
   const dashboardLoading = eventsLoading || timetableLoading;
   const hasEmptyDay = !dashboardLoading && savedEvents.length === 0 && todayClasses.length === 0;
+  const calculateProfileCompletion = () => {
+    if (!user) return 0;
+
+    const completionChecks: boolean[] = [
+      Boolean(user.full_name?.trim()),
+      Boolean(user.email?.trim()),
+      Boolean(user.department?.trim())
+    ];
+
+    if (user.role === 'student') {
+      completionChecks.push(user.cgpa !== null && user.cgpa !== undefined);
+      completionChecks.push(user.semester !== null && user.semester !== undefined);
+    }
+
+    const completedFields = completionChecks.filter(Boolean).length;
+    return Math.round((completedFields / completionChecks.length) * 100);
+  };
+
+  const profileCompletion = calculateProfileCompletion();
 
   const renderStatCardSkeleton = () => (
     <Card className="glass border-muted">
