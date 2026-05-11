@@ -184,17 +184,25 @@ class UserModel {
       }
     }
 
+    let metadataExpr = `COALESCE(metadata, '{}'::jsonb)`;
+    let hasMetadataUpdates = false;
+
     for (const key of metadataFields) {
       if (updates[key] !== undefined) {
+        hasMetadataUpdates = true;
         const val = updates[key];
         if (val === null) {
-          fields.push(`metadata = metadata - '${key}'`);
+          metadataExpr = `(${metadataExpr} - '${key}')`;
         } else {
-          fields.push(`metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{${key}}', $${paramCounter}::jsonb)`);
+          metadataExpr = `jsonb_set(${metadataExpr}, '{${key}}', $${paramCounter}::jsonb)`;
           values.push(JSON.stringify(val));
           paramCounter++;
         }
       }
+    }
+
+    if (hasMetadataUpdates) {
+      fields.push(`metadata = ${metadataExpr}`);
     }
 
     if (fields.length === 0) {
