@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS clubs CASCADE;
 DROP TABLE IF EXISTS allocated_electives CASCADE;
 DROP TABLE IF EXISTS student_choices CASCADE;
 DROP TABLE IF EXISTS electives CASCADE;
+DROP TABLE IF EXISTS system_settings CASCADE;
 DROP TABLE IF EXISTS timetable_slots CASCADE;
 DROP TABLE IF EXISTS teacher_unavailability CASCADE;
 DROP TABLE IF EXISTS subject_class_assignments CASCADE;
@@ -58,6 +59,19 @@ CREATE TABLE users (
     -- Metadata
     is_active BOOLEAN DEFAULT true,
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================================
+-- 1A. SYSTEM SETTINGS (Admin Module)
+-- =====================================================================
+CREATE TABLE system_settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    academic_year VARCHAR(9) NOT NULL,
+    current_semester VARCHAR(20) NOT NULL,
+    campus_name VARCHAR(150) NOT NULL,
+    updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -276,6 +290,7 @@ CREATE TABLE timetable_slots (
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_department ON users(department);
+CREATE INDEX idx_system_settings_updated_by ON system_settings(updated_by);
 
 -- Events indexes
 CREATE INDEX idx_events_club ON events(club_id);
@@ -320,6 +335,10 @@ CREATE TRIGGER update_users_updated_at
     BEFORE UPDATE ON users 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_system_settings_updated_at
+    BEFORE UPDATE ON system_settings
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_teachers_updated_at 
     BEFORE UPDATE ON teachers 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -352,6 +371,10 @@ INSERT INTO users (full_name, email, password_hash, role, department) VALUES
 INSERT INTO clubs (name, description, category, contact_email) VALUES 
 ('Tech Club', 'Innovation and Technology', 'Technical', 'tech@smartcampus.edu'),
 ('Drama Club', 'Theater and Performing Arts', 'Cultural', 'drama@smartcampus.edu');
+
+-- Insert default system settings
+INSERT INTO system_settings (id, academic_year, current_semester, campus_name) VALUES
+(1, '2024-2025', 'Fall', 'Smart Campus University');
 
 
 -- =====================================================================

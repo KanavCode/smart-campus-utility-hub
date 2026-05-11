@@ -69,6 +69,13 @@ const validationSchemas = {
     semester: Joi.number().integer().min(1).max(8).optional()
   }),
 
+  // Admin settings update
+  updateSettings: Joi.object({
+    academic_year: Joi.string().pattern(/^\d{4}-\d{4}$/).required(),
+    current_semester: Joi.string().valid('Fall', 'Spring', 'Summer').required(),
+    campus_name: Joi.string().min(2).max(150).required()
+  }),
+
   // Admin update user
   adminUpdateUser: Joi.object({
     full_name: Joi.string().min(2).max(100).optional(),
