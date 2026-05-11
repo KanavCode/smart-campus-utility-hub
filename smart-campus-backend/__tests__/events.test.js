@@ -32,6 +32,7 @@ describe('Campus Events API Tests', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    query.mockResolvedValue({ rows: [], rowCount: 0 });
   });
 
   describe('GET /api/events', () => {
@@ -214,6 +215,7 @@ describe('Clubs API Tests', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    query.mockResolvedValue({ rows: [], rowCount: 0 });
   });
 
   describe('GET /api/clubs', () => {

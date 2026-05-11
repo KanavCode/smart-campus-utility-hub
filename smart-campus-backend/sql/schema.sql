@@ -15,8 +15,10 @@ DROP TABLE IF EXISTS saved_events CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
 DROP TABLE IF EXISTS clubs CASCADE;
 DROP TABLE IF EXISTS allocated_electives CASCADE;
+DROP TABLE IF EXISTS elective_waitlist CASCADE;
 DROP TABLE IF EXISTS student_choices CASCADE;
 DROP TABLE IF EXISTS electives CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS system_settings CASCADE;
 DROP TABLE IF EXISTS timetable_slots CASCADE;
 DROP TABLE IF EXISTS teacher_unavailability CASCADE;
@@ -153,7 +155,38 @@ CREATE TABLE allocated_electives (
 );
 
 -- =====================================================================
--- 8. TEACHERS (Timetable Module)
+-- 8. ELECTIVE WAITLIST (Auto-enrollment queue)
+-- =====================================================================
+CREATE TABLE elective_waitlist (
+    id SERIAL PRIMARY KEY,
+    student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    elective_id INTEGER REFERENCES electives(id) ON DELETE CASCADE,
+    preference_rank INTEGER CHECK (preference_rank BETWEEN 1 AND 5),
+    status VARCHAR(20) NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'allocated', 'skipped', 'removed')),
+    allocated_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (student_id, elective_id)
+);
+
+-- =====================================================================
+-- 9. USER NOTIFICATIONS (In-app + email delivery state)
+-- =====================================================================
+CREATE TABLE notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    event_type VARCHAR(50) NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    message TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    is_read BOOLEAN DEFAULT false,
+    read_at TIMESTAMP,
+    email_status VARCHAR(20) DEFAULT 'pending' CHECK (email_status IN ('pending', 'sent', 'failed', 'skipped')),
+    email_sent_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================================
+-- 10. TEACHERS (Timetable Module)
 -- =====================================================================
 CREATE TABLE teachers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -168,7 +201,7 @@ CREATE TABLE teachers (
 );
 
 -- =====================================================================
--- 9. SUBJECTS (Timetable Module)
+-- 11. SUBJECTS (Timetable Module)
 -- =====================================================================
 CREATE TABLE subjects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -186,7 +219,7 @@ CREATE TABLE subjects (
 );
 
 -- =====================================================================
--- 10. ROOMS (Timetable Module)
+-- 12. ROOMS (Timetable Module)
 -- =====================================================================
 CREATE TABLE rooms (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -204,7 +237,7 @@ CREATE TABLE rooms (
 );
 
 -- =====================================================================
--- 11. STUDENT GROUPS (Timetable Module)
+-- 13. STUDENT GROUPS (Timetable Module)
 -- =====================================================================
 CREATE TABLE student_groups (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -220,7 +253,7 @@ CREATE TABLE student_groups (
 );
 
 -- =====================================================================
--- 12. TEACHER-SUBJECT ASSIGNMENTS (Many-to-Many)
+-- 14. TEACHER-SUBJECT ASSIGNMENTS (Many-to-Many)
 -- =====================================================================
 CREATE TABLE teacher_subject_assignments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -233,7 +266,7 @@ CREATE TABLE teacher_subject_assignments (
 );
 
 -- =====================================================================
--- 13. SUBJECT-CLASS ASSIGNMENTS (Many-to-Many)
+-- 15. SUBJECT-CLASS ASSIGNMENTS (Many-to-Many)
 -- =====================================================================
 CREATE TABLE subject_class_assignments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -245,7 +278,7 @@ CREATE TABLE subject_class_assignments (
 );
 
 -- =====================================================================
--- 14. TEACHER UNAVAILABILITY (Soft Constraints)
+-- 16. TEACHER UNAVAILABILITY (Soft Constraints)
 -- =====================================================================
 CREATE TABLE teacher_unavailability (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -260,7 +293,7 @@ CREATE TABLE teacher_unavailability (
 );
 
 -- =====================================================================
--- 15. TIMETABLE SLOTS (Generated Timetables)
+-- 17. TIMETABLE SLOTS (Generated Timetables)
 -- =====================================================================
 CREATE TABLE timetable_slots (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -302,6 +335,10 @@ CREATE INDEX idx_electives_department ON electives(department);
 CREATE INDEX idx_electives_semester ON electives(semester);
 CREATE INDEX idx_student_choices_student ON student_choices(student_id);
 CREATE INDEX idx_allocated_electives_student ON allocated_electives(student_id);
+CREATE INDEX idx_elective_waitlist_student ON elective_waitlist(student_id);
+CREATE INDEX idx_elective_waitlist_elective_status ON elective_waitlist(elective_id, status);
+CREATE INDEX idx_notifications_user_created ON notifications(user_id, created_at DESC);
+CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read);
 
 -- Timetable indexes
 CREATE INDEX idx_teachers_department ON teachers(department);

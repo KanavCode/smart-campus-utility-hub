@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Beaker, Loader2, AlertCircle, RefreshCw, Calendar } from 'lucide-react';
+import { Beaker, Loader2, AlertCircle, RefreshCw, Calendar, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { timetableService } from '@/services/timetableService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
@@ -207,6 +207,36 @@ export default function StudentTimetable() {
     fetchTimetable(requestId);
   };
 
+  const handleExportCalendar = async (): Promise<void> => {
+    if (!selectedGroup || !isSelectedGroupValid) {
+      toast.error('Please select a valid group first');
+      return;
+    }
+
+    try {
+      const blob = await timetableService.exportGroupTimetableIcal(
+        selectedGroup,
+        selectedAcademicYear,
+        selectedSemesterType
+      );
+      if (!blob) {
+        throw new Error('Calendar export returned no data');
+      }
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `timetable-${selectedAcademicYear}-${selectedSemesterType}.ics`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      toast.success('Calendar exported successfully');
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      toast.error(e?.message || 'Failed to export calendar');
+    }
+  };
+
   const getCellContent = (slot: TimetableSlot | null): JSX.Element => {
     if (!slot) {
       return (
@@ -306,6 +336,17 @@ export default function StudentTimetable() {
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
+            </Button>
+
+            <Button
+              onClick={handleExportCalendar}
+              disabled={loading || !selectedGroup || !isOnline}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export .ics
             </Button>
             
             {!isOnline && (

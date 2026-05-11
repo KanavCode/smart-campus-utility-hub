@@ -163,6 +163,18 @@ export const timetableService = {
     }
   },
 
+  exportGroupTimetableIcal: async (groupId: string, academicYear = '2024-25', semesterType = 'odd') => {
+    try {
+      const query = `?academic_year=${encodeURIComponent(academicYear)}&semester_type=${encodeURIComponent(semesterType)}`;
+      const response = await api.get(`/timetable/group/${groupId}/ical${query}`, {
+        responseType: 'blob',
+      });
+      return response.data as Blob;
+    } catch (error: unknown) {
+      withServiceError(error, 'Failed to export timetable calendar');
+    }
+  },
+
   /**
    * Get schedule for a specific teacher
    * GET /api/timetable/teacher/:teacherId?academic_year=2024-25&semester_type=odd

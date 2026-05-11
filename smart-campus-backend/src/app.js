@@ -17,6 +17,7 @@ const clubsRoutes = require("./components/campus-events/clubs.routes");
 const timetableRoutes = require("./components/timetable/timetable.routes");
 const electiveRoutes = require("./components/electives/elective.routes");
 const settingsRoutes = require("./components/settings/settings.routes");
+const notificationsRoutes = require("./components/notifications/notifications.routes");
 
 // Create Express application
 const app = express();
@@ -164,6 +165,7 @@ app.get('/api/test-socket', (req, res) => {
 
 // Admin settings routes
 app.use("/api/settings", settingsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // =====================================================================
 // ERROR HANDLING

@@ -252,6 +252,16 @@ const validationSchemas = {
   electiveQuery: Joi.object({
     department: Joi.string().max(100).optional(),
     semester: Joi.number().integer().min(1).max(8).optional()
+  }),
+
+  processWaitlist: Joi.object({
+    elective_id: Joi.number().integer().positive().optional()
+  }),
+
+  notificationsQuery: Joi.object({
+    unread_only: Joi.string().valid('true', 'false').optional(),
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20)
   })
 };
 
