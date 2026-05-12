@@ -633,6 +633,51 @@ const deleteTimetableSlot = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Get timetable as iCalendar subscription file (.ics)
+ * GET /api/timetable/calendar/:groupId
+ */
+const getTimetableAsIcs = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const { academic_year = '2024-25', semester_type = 'odd' } = req.query;
+
+  if (!groupId) {
+    throw new ApiError(400, 'Group ID is required');
+  }
+
+  // Fetch timetable slots
+  const slots = await timetableReadService.getGroupTimetable({
+    groupId,
+    academic_year,
+    semester_type
+  });
+
+  if (!slots || slots.length === 0) {
+    throw new ApiError(404, 'No timetable slots found for this group');
+  }
+
+  // Fetch group info
+  const groupResult = await query(
+    'SELECT group_name FROM student_groups WHERE id = $1 AND is_active = true',
+    [groupId]
+  );
+
+  if (groupResult.rowCount === 0) {
+    throw new ApiError(404, 'Group not found');
+  }
+
+  const groupName = groupResult.rows[0].group_name;
+
+  // Generate iCalendar
+  const IcsCalendarService = require('./timetable.ics.service');
+  const icsContent = IcsCalendarService.generateIcs(slots, groupName, academic_year);
+
+  // Return .ics file
+  res.setHeader('Content-Type', 'text/calendar;charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${groupName}_timetable.ics"`);
+  res.send(icsContent);
+});
+
 module.exports = {
   getAllTeachers,
   getAllSubjects,
@@ -640,6 +685,7 @@ module.exports = {
   getAllGroups,
   getTimetableByGroup,
   getTimetableByTeacher,
+  getTimetableAsIcs,
   createTeacher,
   createSubject,
   createRoom,
