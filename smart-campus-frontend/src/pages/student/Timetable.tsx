@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Beaker, Loader2, AlertCircle, RefreshCw, Calendar } from 'lucide-react';
+import { Beaker, Loader2, AlertCircle, RefreshCw, Calendar, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { timetableService } from '@/services/timetableService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
@@ -209,76 +209,34 @@ export default function StudentTimetable() {
     fetchTimetable(requestId);
   };
 
-  const handleDownloadCalendar = async (): Promise<void> => {
+  const handleExportCalendar = async (): Promise<void> => {
     if (!selectedGroup || !isSelectedGroupValid) {
       toast.error('Please select a valid group first');
       return;
     }
 
     try {
-      setIsSyncLoading(true);
-      const result = await timetableService.getCalendarSubscription(
+      const blob = await timetableService.exportGroupTimetableIcal(
         selectedGroup,
         selectedAcademicYear,
         selectedSemesterType
       );
-
-      if (result?.data) {
-        const url = window.URL.createObjectURL(result.data);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `timetable-${selectedGroup}.ics`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        toast.success('Calendar file downloaded successfully');
+      if (!blob) {
+        throw new Error('Calendar export returned no data');
       }
-    } catch (error: unknown) {
-      const e = error as { message?: string };
-      toast.error(e?.message || 'Failed to download calendar');
-    } finally {
-      setIsSyncLoading(false);
-      setShowSyncModal(false);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `timetable-${selectedAcademicYear}-${selectedSemesterType}.ics`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      toast.success('Calendar exported successfully');
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      toast.error(e?.message || 'Failed to export calendar');
     }
-  };
-
-  const handleCopySubscriptionUrl = async (): Promise<void> => {
-    if (!selectedGroup || !isSelectedGroupValid) {
-      toast.error('Please select a valid group first');
-      return;
-    }
-
-    try {
-      const url = timetableService.getCalendarSubscriptionUrl(
-        selectedGroup,
-        selectedAcademicYear,
-        selectedSemesterType
-      );
-
-      await navigator.clipboard.writeText(url);
-      toast.success('Subscription URL copied to clipboard');
-      setShowSyncModal(false);
-    } catch (error: unknown) {
-      toast.error('Failed to copy URL');
-    }
-  };
-
-  const handleAddToGoogleCalendar = (): void => {
-    if (!selectedGroup || !isSelectedGroupValid) {
-      toast.error('Please select a valid group first');
-      return;
-    }
-
-    const subscriptionUrl = timetableService.getCalendarSubscriptionUrl(
-      selectedGroup,
-      selectedAcademicYear,
-      selectedSemesterType
-    );
-
-    const googleCalendarUrl = `https://calendar.google.com/calendar/u/0/r/settings/addbyurl?url=${encodeURIComponent(subscriptionUrl)}`;
-    window.open(googleCalendarUrl, '_blank');
-    toast.success('Opening Google Calendar subscription...');
   };
 
   const getCellContent = (slot: TimetableSlot | null): JSX.Element => {
@@ -383,14 +341,14 @@ export default function StudentTimetable() {
             </Button>
 
             <Button
-              onClick={() => setShowSyncModal(true)}
+              onClick={handleExportCalendar}
               disabled={loading || !selectedGroup || !isOnline}
               variant="outline"
               size="sm"
               className="gap-2"
             >
-              <Calendar className="h-4 w-4" />
-              Sync to Calendar
+              <Download className="h-4 w-4" />
+              Export .ics
             </Button>
             
             {!isOnline && (

@@ -7,6 +7,60 @@ const notificationService = require('../../services/notification.service');
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
+const PERIOD_START_TIMES = {
+  1: '09:00',
+  2: '10:00',
+  3: '11:00',
+  4: '12:00',
+  5: '14:00',
+  6: '15:00',
+  7: '16:00',
+  8: '17:00',
+};
+
+const PERIOD_END_TIMES = {
+  1: '09:50',
+  2: '10:50',
+  3: '11:50',
+  4: '12:50',
+  5: '14:50',
+  6: '15:50',
+  7: '16:50',
+  8: '17:50',
+};
+
+const DAY_INDEX = {
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+};
+
+const escapeIcsText = (value) =>
+  String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/,/g, '\\,')
+    .replace(/;/g, '\\;');
+
+const formatDateTime = (date) =>
+  date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+/**
+ * Returns the next occurrence of a weekday in UTC.
+ * @param {number} weekdayIndex 1=Monday ... 7=Sunday
+ * @returns {Date}
+ */
+const nextWeekdayDateUtc = (weekdayIndex) => {
+  const now = new Date();
+  const base = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const today = base.getUTCDay() === 0 ? 7 : base.getUTCDay();
+  const diff = weekdayIndex >= today ? weekdayIndex - today : 7 - (today - weekdayIndex);
+  base.setUTCDate(base.getUTCDate() + diff);
+  return base;
+};
 
 /**
  * Validates and parses page, limit, sort, and order query params.
@@ -138,6 +192,72 @@ const getTimetableByGroup = asyncHandler(async (req, res) => {
       count: timetable.length 
     }
   });
+});
+
+/**
+ * Export group timetable in iCal format
+ * GET /api/timetable/group/:groupId/ical
+ */
+const exportGroupTimetableIcal = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const { academic_year, semester_type } = req.query;
+  const slots = await timetableReadService.getGroupTimetable({
+    groupId,
+    academic_year,
+    semester_type
+  });
+
+  const calendarLines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Smart Campus Utility Hub//Timetable Export//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `X-WR-CALNAME:${escapeIcsText(`Smart Campus Timetable (${academic_year || 'Current'})`)}`,
+  ];
+
+  const nowStamp = formatDateTime(new Date());
+  for (const slot of slots) {
+    const dayIndex = DAY_INDEX[slot.day_of_week];
+    if (!dayIndex) {
+      logger.warn('Skipping timetable slot with invalid day_of_week for iCal export', {
+        slotId: slot.id,
+        day_of_week: slot.day_of_week,
+      });
+      continue;
+    }
+
+    const startTime = PERIOD_START_TIMES[slot.period_number] || '09:00';
+    const endTime = PERIOD_END_TIMES[slot.period_number] || '09:50';
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    const firstDate = nextWeekdayDateUtc(dayIndex);
+
+    const startDate = new Date(firstDate);
+    startDate.setUTCHours(startHour, startMinute, 0, 0);
+    const endDate = new Date(firstDate);
+    endDate.setUTCHours(endHour, endMinute, 0, 0);
+
+    const summary = `${slot.subject_code} - ${slot.subject_name}`;
+    const description = `${slot.teacher_name} | ${slot.room_name}`;
+
+    calendarLines.push('BEGIN:VEVENT');
+    calendarLines.push(`UID:timetable-${slot.id}@smart-campus-utility-hub`);
+    calendarLines.push(`DTSTAMP:${nowStamp}`);
+    calendarLines.push(`DTSTART:${formatDateTime(startDate)}`);
+    calendarLines.push(`DTEND:${formatDateTime(endDate)}`);
+    calendarLines.push(`SUMMARY:${escapeIcsText(summary)}`);
+    calendarLines.push(`DESCRIPTION:${escapeIcsText(description)}`);
+    calendarLines.push(`LOCATION:${escapeIcsText(slot.room_name)}`);
+    calendarLines.push('RRULE:FREQ=WEEKLY;COUNT=16');
+    calendarLines.push('END:VEVENT');
+  }
+
+  calendarLines.push('END:VCALENDAR');
+
+  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="group-${groupId}-timetable.ics"`);
+  res.status(200).send(`${calendarLines.join('\r\n')}\r\n`);
 });
 
 /**
@@ -531,11 +651,19 @@ const generateTimetable = asyncHandler(async (req, res) => {
   // Save to database
   await saveTimetableToDatabase(result.timetable, academic_year, semester_type);
 
-  // Notify clients
-  notificationService.broadcast('TIMETABLE_GENERATED', {
+  await notificationService.notifyRole({
+    role: 'student',
+    eventType: 'TIMETABLE_GENERATED',
+    title: 'Timetable Generated',
     message: `A new timetable has been generated for ${academic_year} (${semester_type} semester)`,
-    academic_year,
-    semester_type
+    metadata: { academic_year, semester_type },
+    socketEvent: 'TIMETABLE_GENERATED',
+    socketPayload: {
+      message: `A new timetable has been generated for ${academic_year} (${semester_type} semester)`,
+      academic_year,
+      semester_type
+    },
+    sendEmail: true,
   });
 
   logger.info('Timetable generation completed', {
@@ -591,10 +719,18 @@ const updateTimetableSlot = asyncHandler(async (req, res) => {
 
   logger.info('Timetable slot updated', { slotId: id, updatedBy: req.user.id });
 
-  // Notify clients
-  notificationService.broadcast('SLOT_UPDATED', {
+  await notificationService.notifyRole({
+    role: 'student',
+    eventType: 'TIMETABLE_SLOT_UPDATED',
+    title: 'Timetable Slot Updated',
     message: `A class on ${slot.day_of_week} (Period ${slot.period_number}) has been updated`,
-    slot
+    metadata: { slotId: slot.id || id },
+    socketEvent: 'SLOT_UPDATED',
+    socketPayload: {
+      message: `A class on ${slot.day_of_week} (Period ${slot.period_number}) has been updated`,
+      slot
+    },
+    sendEmail: true,
   });
 
   res.json({
@@ -619,12 +755,20 @@ const deleteTimetableSlot = asyncHandler(async (req, res) => {
 
   logger.info('Timetable slot cancelled', { slotId: id, deletedBy: req.user.id });
 
-  // Notify clients
-  notificationService.broadcast('SLOT_CANCELLED', {
+  await notificationService.notifyRole({
+    role: 'student',
+    eventType: 'TIMETABLE_SLOT_CANCELLED',
+    title: 'Class Cancelled',
     message: `The class on ${slot.day_of_week} (Period ${slot.period_number}) has been cancelled`,
-    slotId: id,
-    day: slot.day_of_week,
-    period: slot.period_number
+    metadata: { slotId: id, day: slot.day_of_week, period: slot.period_number },
+    socketEvent: 'SLOT_CANCELLED',
+    socketPayload: {
+      message: `The class on ${slot.day_of_week} (Period ${slot.period_number}) has been cancelled`,
+      slotId: id,
+      day: slot.day_of_week,
+      period: slot.period_number
+    },
+    sendEmail: true,
   });
 
   res.json({
@@ -684,8 +828,8 @@ module.exports = {
   getAllRooms,
   getAllGroups,
   getTimetableByGroup,
+  exportGroupTimetableIcal,
   getTimetableByTeacher,
-  getTimetableAsIcs,
   createTeacher,
   createSubject,
   createRoom,

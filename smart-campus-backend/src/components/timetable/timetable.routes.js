@@ -14,7 +14,7 @@ router.get('/teachers', validate(validationSchemas.timetableQuery, 'query'), tim
 router.get('/subjects', validate(validationSchemas.timetableQuery, 'query'), timetableController.getAllSubjects);
 router.get('/rooms', validate(validationSchemas.timetableQuery, 'query'), timetableController.getAllRooms);
 router.get('/groups', validate(validationSchemas.timetableQuery, 'query'), timetableController.getAllGroups);
-router.get('/calendar/:groupId', validate(validationSchemas.groupIdParam, 'params'), timetableController.getTimetableAsIcs);
+router.get('/group/:groupId/ical', validate(validationSchemas.groupIdParam, 'params'), validate(validationSchemas.timetableQuery, 'query'), timetableController.exportGroupTimetableIcal);
 router.get('/group/:groupId', validate(validationSchemas.groupIdParam, 'params'), validate(validationSchemas.timetableQuery, 'query'), timetableController.getTimetableByGroup);
 router.get('/teacher/:teacherId', validate(validationSchemas.teacherIdParam, 'params'), validate(validationSchemas.timetableQuery, 'query'), timetableController.getTimetableByTeacher);
 router.get('/config', timetableController.getTimetableConfig);
