@@ -59,6 +59,8 @@ export default function StudentTimetable() {
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('2024-25');
   const [selectedSemesterType, setSelectedSemesterType] = useState<string>('odd');
+  const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
+  const [isSyncLoading, setIsSyncLoading] = useState<boolean>(false);
   const { isOnline } = useConnectivity();
 
   // Load cached data on mount
@@ -505,6 +507,67 @@ export default function StudentTimetable() {
               </div>
             </div>
           </Card>
+        )}
+
+        {/* Sync Modal */}
+        {showSyncModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-background border border-border rounded-lg shadow-lg max-w-md w-full p-6"
+            >
+              <h2 className="text-lg font-semibold mb-4">Sync to Calendar</h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                Add your timetable to your favorite calendar app:
+              </p>
+
+              <div className="space-y-3">
+                <Button
+                  onClick={handleDownloadCalendar}
+                  disabled={isSyncLoading}
+                  className="w-full gap-2 justify-start"
+                  variant="outline"
+                >
+                  {isSyncLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Calendar className="h-4 w-4" />
+                  )}
+                  Download (.ics file)
+                </Button>
+
+                <Button
+                  onClick={handleCopySubscriptionUrl}
+                  disabled={isSyncLoading}
+                  className="w-full gap-2 justify-start"
+                  variant="outline"
+                >
+                  <Calendar className="h-4 w-4" />
+                  Copy Subscription URL
+                </Button>
+
+                <Button
+                  onClick={handleAddToGoogleCalendar}
+                  disabled={isSyncLoading}
+                  className="w-full gap-2 justify-start"
+                  variant="outline"
+                >
+                  <Calendar className="h-4 w-4" />
+                  Add to Google Calendar
+                </Button>
+              </div>
+
+              <Button
+                onClick={() => setShowSyncModal(false)}
+                className="w-full mt-4"
+                variant="secondary"
+              >
+                Close
+              </Button>
+            </motion.div>
+          </div>
         )}
       </motion.div>
     </DashboardLayout>
