@@ -102,7 +102,7 @@ export default function StudentTimetable() {
   // Fetch available groups on component mount
   useEffect(() => {
     fetchAvailableGroups();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Fetch timetable config (lunch break periods) on component mount
@@ -134,7 +134,7 @@ export default function StudentTimetable() {
 
     const requestId = ++latestTimetableRequestIdRef.current;
     fetchTimetable(requestId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [selectedGroup, selectedAcademicYear, selectedSemesterType, isSelectedGroupValid]);
 
 
