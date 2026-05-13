@@ -1,44 +1,56 @@
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { useNavigate } from 'react-router-dom';
-import { GraduationCap } from 'lucide-react';
+  import { motion } from 'framer-motion';
+  import { Button } from '@/components/ui/button';
+  import { ThemeToggle } from '@/components/ThemeToggle';
+  import { useNavigate } from 'react-router-dom';
+  import { GraduationCap } from 'lucide-react';
+  import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 
-export const Navbar = () => {
+  export const Navbar = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
-  return (
-    <motion.nav
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50"
-    >
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <motion.div 
-          className="flex items-center gap-2 cursor-pointer"
-          whileHover={{ scale: 1.02 }}
-          onClick={() => navigate('/')}
-        >
-          <GraduationCap className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">Smart Campus Hub</span>
-        </motion.div>
-
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <Button
-            onClick={() => navigate('/auth')}
-            className="bg-primary text-primary-foreground font-medium glow-primary-hover"
-            asChild
+    return (
+      <motion.nav
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50"
+      >
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <motion.div 
+            className="flex items-center gap-2 cursor-pointer"
+            whileHover={{ scale: 1.02 }}
+            onClick={() => navigate('/')}
           >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
+            <GraduationCap className="h-8 w-8 text-primary" />
+            <span className="text-xl font-bold">
+  {t("navbar.title")}
+</span>
+          </motion.div>
+
+          <div className="flex items-center gap-3">
+            <select
+  onChange={(e) => i18n.changeLanguage(e.target.value)}
+  className="bg-background border border-border rounded-md px-2 py-1 text-sm"
+>
+  <option value="en">EN</option>
+  <option value="es">ES</option>
+</select>
+            <ThemeToggle />
+            <Button
+              onClick={() => navigate('/auth')}
+              className="bg-primary text-primary-foreground font-medium glow-primary-hover"
+              asChild
             >
-              Login / Signup
-            </motion.button>
-          </Button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {t("navbar.login")}
+              </motion.button>
+            </Button>
+          </div>
         </div>
-      </div>
-    </motion.nav>
-  );
-};
+      </motion.nav>
+    );
+  };

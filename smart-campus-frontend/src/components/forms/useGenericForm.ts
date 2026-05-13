@@ -21,7 +21,7 @@ export const useGenericForm = (
   );
   const [isLoading, setIsLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // const abortControllerRef = useRef<AbortController | null>(null);
 
   // Client-side inline errors (per-field, shown after touch)
   const [inlineErrors, setInlineErrors] = useState<Record<string, string>>({});
