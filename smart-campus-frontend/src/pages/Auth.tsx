@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { RegisterRequest } from '@/services/authService';
 import AuthBackground from '@/components/animations/AuthBackground';
 
+
 export default function Auth() {
   const navigate = useNavigate();
   const { login, register, loginWithToken } = useAuth();
@@ -37,6 +38,7 @@ export default function Auth() {
           
           // Clean up URL
           window.history.replaceState({}, document.title, window.location.pathname);
+          
           
           if (user?.role === 'admin') {
             navigate('/admin/dashboard');
