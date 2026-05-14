@@ -56,7 +56,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
       }
     };
-
     void initializeAuth();
   }, []);
 
@@ -70,7 +69,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(currentUser);
         setToken(COOKIE_AUTH_STATE);
         localStorage.setItem('user', JSON.stringify(currentUser));
-      } catch {
+      } 
+      catch { 
         setUser(null);
         setToken(null);
         localStorage.removeItem('user');
