@@ -91,7 +91,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "husky": "^9.1.7",
-    "lint-staged": "^16.1.0",
+    "lint-staged": "^17.0.4",
     "lovable-tagger": "^1.1.11",
     "postcss": "^8.5.6",
     "prettier": "^3.8.3",
