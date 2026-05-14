@@ -160,6 +160,20 @@ const getMyAllocation = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Get user's waitlist entries (Protected)
+ * GET /api/electives/my/waitlist
+ */
+const getMyWaitlist = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const waitlist = await electiveService.getMyWaitlist(userId);
+
+  res.json({
+    success: true,
+    data: { waitlist, count: waitlist.length }
+  });
+});
+
+/**
  * Run elective allocation algorithm (Admin only)
  * POST /api/electives/allocate
  */
@@ -178,6 +192,25 @@ const allocateElectives = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Process waitlist promotions (Admin only)
+ * POST /api/electives/waitlist/process
+ */
+const processWaitlist = asyncHandler(async (req, res) => {
+  const promotions = await electiveService.processWaitlist({
+    electiveId: req.body.elective_id,
+  });
+
+  res.json({
+    success: true,
+    message: 'Waitlist processed successfully',
+    data: {
+      promotions,
+      promotedCount: promotions.length
+    }
+  });
+});
+
 module.exports = {
   createElective,
   getAllElectives,
@@ -187,5 +220,7 @@ module.exports = {
   submitChoices,
   getMyChoices,
   getMyAllocation,
+  getMyWaitlist,
+  processWaitlist,
   allocateElectives
 };

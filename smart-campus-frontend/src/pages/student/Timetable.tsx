@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Beaker, Loader2, AlertCircle, RefreshCw, Calendar } from 'lucide-react';
+import { Beaker, Loader2, AlertCircle, RefreshCw, Calendar, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { timetableService } from '@/services/timetableService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
@@ -59,6 +59,8 @@ export default function StudentTimetable() {
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('2024-25');
   const [selectedSemesterType, setSelectedSemesterType] = useState<string>('odd');
+  const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
+  const [isSyncLoading, setIsSyncLoading] = useState<boolean>(false);
   const { isOnline } = useConnectivity();
 
   // Load cached data on mount
@@ -100,7 +102,7 @@ export default function StudentTimetable() {
   // Fetch available groups on component mount
   useEffect(() => {
     fetchAvailableGroups();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Fetch timetable config (lunch break periods) on component mount
@@ -132,7 +134,7 @@ export default function StudentTimetable() {
 
     const requestId = ++latestTimetableRequestIdRef.current;
     fetchTimetable(requestId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [selectedGroup, selectedAcademicYear, selectedSemesterType, isSelectedGroupValid]);
 
 
@@ -205,6 +207,36 @@ export default function StudentTimetable() {
 
     const requestId = ++latestTimetableRequestIdRef.current;
     fetchTimetable(requestId);
+  };
+
+  const handleExportCalendar = async (): Promise<void> => {
+    if (!selectedGroup || !isSelectedGroupValid) {
+      toast.error('Please select a valid group first');
+      return;
+    }
+
+    try {
+      const blob = await timetableService.exportGroupTimetableIcal(
+        selectedGroup,
+        selectedAcademicYear,
+        selectedSemesterType
+      );
+      if (!blob) {
+        throw new Error('Calendar export returned no data');
+      }
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `timetable-${selectedAcademicYear}-${selectedSemesterType}.ics`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      toast.success('Calendar exported successfully');
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      toast.error(e?.message || 'Failed to export calendar');
+    }
   };
 
   const getCellContent = (slot: TimetableSlot | null): JSX.Element => {
@@ -306,6 +338,17 @@ export default function StudentTimetable() {
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
+            </Button>
+
+            <Button
+              onClick={handleExportCalendar}
+              disabled={loading || !selectedGroup || !isOnline}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export .ics
             </Button>
             
             {!isOnline && (
@@ -464,6 +507,67 @@ export default function StudentTimetable() {
               </div>
             </div>
           </Card>
+        )}
+
+        {/* Sync Modal */}
+        {showSyncModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-background border border-border rounded-lg shadow-lg max-w-md w-full p-6"
+            >
+              <h2 className="text-lg font-semibold mb-4">Sync to Calendar</h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                Add your timetable to your favorite calendar app:
+              </p>
+
+              <div className="space-y-3">
+                <Button
+                  onClick={handleDownloadCalendar}
+                  disabled={isSyncLoading}
+                  className="w-full gap-2 justify-start"
+                  variant="outline"
+                >
+                  {isSyncLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Calendar className="h-4 w-4" />
+                  )}
+                  Download (.ics file)
+                </Button>
+
+                <Button
+                  onClick={handleCopySubscriptionUrl}
+                  disabled={isSyncLoading}
+                  className="w-full gap-2 justify-start"
+                  variant="outline"
+                >
+                  <Calendar className="h-4 w-4" />
+                  Copy Subscription URL
+                </Button>
+
+                <Button
+                  onClick={handleAddToGoogleCalendar}
+                  disabled={isSyncLoading}
+                  className="w-full gap-2 justify-start"
+                  variant="outline"
+                >
+                  <Calendar className="h-4 w-4" />
+                  Add to Google Calendar
+                </Button>
+              </div>
+
+              <Button
+                onClick={() => setShowSyncModal(false)}
+                className="w-full mt-4"
+                variant="secondary"
+              >
+                Close
+              </Button>
+            </motion.div>
+          </div>
         )}
       </motion.div>
     </DashboardLayout>

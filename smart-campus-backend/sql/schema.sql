@@ -15,8 +15,11 @@ DROP TABLE IF EXISTS saved_events CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
 DROP TABLE IF EXISTS clubs CASCADE;
 DROP TABLE IF EXISTS allocated_electives CASCADE;
+DROP TABLE IF EXISTS elective_waitlist CASCADE;
 DROP TABLE IF EXISTS student_choices CASCADE;
 DROP TABLE IF EXISTS electives CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS system_settings CASCADE;
 DROP TABLE IF EXISTS timetable_slots CASCADE;
 DROP TABLE IF EXISTS teacher_unavailability CASCADE;
 DROP TABLE IF EXISTS subject_class_assignments CASCADE;
@@ -62,6 +65,19 @@ CREATE TABLE users (
     -- Metadata
     is_active BOOLEAN DEFAULT true,
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================================
+-- 1A. SYSTEM SETTINGS (Admin Module)
+-- =====================================================================
+CREATE TABLE system_settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    academic_year VARCHAR(9) NOT NULL,
+    current_semester VARCHAR(20) NOT NULL,
+    campus_name VARCHAR(150) NOT NULL,
+    updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -143,7 +159,38 @@ CREATE TABLE allocated_electives (
 );
 
 -- =====================================================================
--- 8. TEACHERS (Timetable Module)
+-- 8. ELECTIVE WAITLIST (Auto-enrollment queue)
+-- =====================================================================
+CREATE TABLE elective_waitlist (
+    id SERIAL PRIMARY KEY,
+    student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    elective_id INTEGER REFERENCES electives(id) ON DELETE CASCADE,
+    preference_rank INTEGER CHECK (preference_rank BETWEEN 1 AND 5),
+    status VARCHAR(20) NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'allocated', 'skipped', 'removed')),
+    allocated_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (student_id, elective_id)
+);
+
+-- =====================================================================
+-- 9. USER NOTIFICATIONS (In-app + email delivery state)
+-- =====================================================================
+CREATE TABLE notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    event_type VARCHAR(50) NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    message TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    is_read BOOLEAN DEFAULT false,
+    read_at TIMESTAMP,
+    email_status VARCHAR(20) DEFAULT 'pending' CHECK (email_status IN ('pending', 'sent', 'failed', 'skipped')),
+    email_sent_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================================
+-- 10. TEACHERS (Timetable Module)
 -- =====================================================================
 CREATE TABLE teachers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -158,7 +205,7 @@ CREATE TABLE teachers (
 );
 
 -- =====================================================================
--- 9. SUBJECTS (Timetable Module)
+-- 11. SUBJECTS (Timetable Module)
 -- =====================================================================
 CREATE TABLE subjects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -176,7 +223,7 @@ CREATE TABLE subjects (
 );
 
 -- =====================================================================
--- 10. ROOMS (Timetable Module)
+-- 12. ROOMS (Timetable Module)
 -- =====================================================================
 CREATE TABLE rooms (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -194,7 +241,7 @@ CREATE TABLE rooms (
 );
 
 -- =====================================================================
--- 11. STUDENT GROUPS (Timetable Module)
+-- 13. STUDENT GROUPS (Timetable Module)
 -- =====================================================================
 CREATE TABLE student_groups (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -210,7 +257,7 @@ CREATE TABLE student_groups (
 );
 
 -- =====================================================================
--- 12. TEACHER-SUBJECT ASSIGNMENTS (Many-to-Many)
+-- 14. TEACHER-SUBJECT ASSIGNMENTS (Many-to-Many)
 -- =====================================================================
 CREATE TABLE teacher_subject_assignments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -223,7 +270,7 @@ CREATE TABLE teacher_subject_assignments (
 );
 
 -- =====================================================================
--- 13. SUBJECT-CLASS ASSIGNMENTS (Many-to-Many)
+-- 15. SUBJECT-CLASS ASSIGNMENTS (Many-to-Many)
 -- =====================================================================
 CREATE TABLE subject_class_assignments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -235,7 +282,7 @@ CREATE TABLE subject_class_assignments (
 );
 
 -- =====================================================================
--- 14. TEACHER UNAVAILABILITY (Soft Constraints)
+-- 16. TEACHER UNAVAILABILITY (Soft Constraints)
 -- =====================================================================
 CREATE TABLE teacher_unavailability (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -250,7 +297,7 @@ CREATE TABLE teacher_unavailability (
 );
 
 -- =====================================================================
--- 15. TIMETABLE SLOTS (Generated Timetables)
+-- 17. TIMETABLE SLOTS (Generated Timetables)
 -- =====================================================================
 CREATE TABLE timetable_slots (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -280,6 +327,7 @@ CREATE TABLE timetable_slots (
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_department ON users(department);
+CREATE INDEX idx_system_settings_updated_by ON system_settings(updated_by);
 
 -- Events indexes
 CREATE INDEX idx_events_club ON events(club_id);
@@ -291,6 +339,10 @@ CREATE INDEX idx_electives_department ON electives(department);
 CREATE INDEX idx_electives_semester ON electives(semester);
 CREATE INDEX idx_student_choices_student ON student_choices(student_id);
 CREATE INDEX idx_allocated_electives_student ON allocated_electives(student_id);
+CREATE INDEX idx_elective_waitlist_student ON elective_waitlist(student_id);
+CREATE INDEX idx_elective_waitlist_elective_status ON elective_waitlist(elective_id, status);
+CREATE INDEX idx_notifications_user_created ON notifications(user_id, created_at DESC);
+CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read);
 
 -- Timetable indexes
 CREATE INDEX idx_teachers_department ON teachers(department);
@@ -322,6 +374,10 @@ $$ language 'plpgsql';
 -- Apply triggers
 CREATE TRIGGER update_users_updated_at 
     BEFORE UPDATE ON users 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_system_settings_updated_at
+    BEFORE UPDATE ON system_settings
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_teachers_updated_at 
@@ -356,6 +412,10 @@ INSERT INTO users (full_name, email, password_hash, role, department) VALUES
 INSERT INTO clubs (name, description, category, contact_email) VALUES 
 ('Tech Club', 'Innovation and Technology', 'Technical', 'tech@smartcampus.edu'),
 ('Drama Club', 'Theater and Performing Arts', 'Cultural', 'drama@smartcampus.edu');
+
+-- Insert default system settings
+INSERT INTO system_settings (id, academic_year, current_semester, campus_name) VALUES
+(1, '2024-2025', 'Fall', 'Smart Campus University');
 
 
 -- =====================================================================

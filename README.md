@@ -71,13 +71,14 @@ University campuses face significant operational challenges with fragmented syst
 - **Automated Generation** - Backtracking algorithm for optimal scheduling
 - **Conflict Detection** - Real-time validation of scheduling conflicts
 - **Room Allocation** - Intelligent resource optimization
-- **Export Options** - Download timetables in multiple formats
+- **iCal Export** - Download group timetables as `.ics` calendar files
 - **Multi-View Support** - Day, week, and month views
 
 ### 📚 Elective Selection System
 
 - **CGPA-Based Allocation** - Fair distribution based on academic performance
 - **Preference Ranking** - Students can prioritize their choices
+- **Waitlist Auto-Enrollment** - Automatic promotion from waitlist when seats open
 - **Real-Time Availability** - Live seat count updates
 - **Subject Management** - Comprehensive subject catalog with:
   - Artificial Intelligence
@@ -335,20 +336,41 @@ Comprehensive API documentation is available in the backend directory:
 - `POST /api/auth/login` - User login
 
 #### Timetable
-- `GET /api/timetable` - Get timetable
+- `GET /api/timetable/teachers` - List teachers (supports pagination/sorting/filtering)
+- `GET /api/timetable/subjects` - List subjects
+- `GET /api/timetable/rooms` - List rooms
+- `GET /api/timetable/groups` - List student groups
+- `GET /api/timetable/group/:groupId` - Get timetable by group
+- `GET /api/timetable/teacher/:teacherId` - Get timetable by teacher
 - `POST /api/timetable/generate` - Generate timetable
-- `GET /api/timetable/conflicts` - Check conflicts
+- `GET /api/timetable/group/:groupId/ical` - Export group timetable as iCal
 
 #### Electives
 - `GET /api/electives` - Get available electives
-- `POST /api/electives/select` - Submit preferences
+- `GET /api/electives/:id` - Get elective details
+- `POST /api/electives/choices` - Submit preferences
+- `GET /api/electives/my/choices` - Get submitted preferences
+- `GET /api/electives/my/allocation` - Get current allocation
 - `POST /api/electives/allocate` - Admin allocation
+- `GET /api/electives/my/waitlist` - Get student waitlist status
+- `POST /api/electives/waitlist/process` - Process waitlist auto-enrollment (admin)
 
 #### Events
 - `GET /api/events` - Get all events
 - `POST /api/events` - Create event
 - `GET /api/events/:id` - Get event details
-- `POST /api/events/:id/rsvp` - RSVP to event
+- `POST /api/events/:id/save` - Save event for current user
+- `DELETE /api/events/:id/save` - Remove saved event
+- `GET /api/events/saved/my-events` - Get saved events
+
+#### Clubs
+- `GET /api/clubs` - Get all clubs
+- `GET /api/clubs/:id` - Get club details
+
+#### Notifications
+- `GET /api/notifications` - Get in-app notifications
+- `PATCH /api/notifications/:id/read` - Mark a notification as read
+- `PATCH /api/notifications/read-all` - Mark all notifications as read
 
 For detailed request/response examples, see [Backend API Documentation](./smart-campus-backend/README.md#-api-endpoints).
 
@@ -381,13 +403,13 @@ Intuitive elective selection interface with preference ranking.
 cd smart-campus-backend
 
 # Run all tests
-npm test
+JWT_SECRET=test npm test
 
 # Run tests in watch mode
-npm run test:watch
+JWT_SECRET=test npm run test:watch
 
 # Generate coverage report
-npm run test:coverage
+JWT_SECRET=test npm run test:coverage
 ```
 
 ### Frontend Tests
@@ -513,7 +535,7 @@ psql -U postgres -c "SELECT version();"
 **Frontend API Connection Failed**
 ```bash
 # Ensure backend is running on correct port
-# Verify VITE_API_URL in .env matches backend port
+# Verify VITE_API_BASE_URL in .env matches backend port
 # Check CORS configuration in backend
 ```
 
@@ -570,3 +592,4 @@ For more troubleshooting, see [Backend Troubleshooting Guide](./smart-campus-bac
 [Report Bug](https://github.com/KanavCode/smart-campus-utility-hub/issues) · [Request Feature](https://github.com/KanavCode/smart-campus-utility-hub/issues) · [Documentation](./smart-campus-backend/README.md) · [Contributing](./CONTRIBUTING.md)
 
 </div>
+---
