@@ -25,6 +25,20 @@ router.post(
   userController.login
 );
 
+router.post(
+  '/forgot-password',
+  authLimiter,
+  validate(validationSchemas.forgotPassword),
+  userController.forgotPassword
+);
+
+router.post(
+  '/reset-password',
+  authLimiter,
+  validate(validationSchemas.resetPassword),
+  userController.resetPassword
+);
+
 // Protected routes (authentication required)
 router.get(
   '/profile',

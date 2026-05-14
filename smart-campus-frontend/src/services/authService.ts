@@ -251,5 +251,47 @@ export const authService = {
   isStudent: (): boolean => {
     const user = authService.getStoredUser();
     return user?.role === 'student';
-  }
+    },
+
+    /**
+     * Request password reset link via email
+     */
+    forgotPassword: async (email: string): Promise<ApiResponse<{ message: string }>> => {
+      try {
+        const { data } = await api.post<ApiResponse<{ message: string }>>('/auth/forgot-password', { email });
+        return data;
+      } catch (error) {
+        const axiosError = error as AxiosError<ApiError>;
+        const errorMessage = 
+          axiosError.response?.data?.message || 
+          axiosError.message || 
+          'Failed to send password reset email. Please try again.';
+        throw { message: errorMessage } as ApiError;
+      }
+    },
+
+    /**
+     * Reset password using token from email link
+     */
+    resetPassword: async (
+      token: string,
+      newPassword: string,
+      confirmPassword: string
+    ): Promise<ApiResponse<{ message: string }>> => {
+      try {
+        const { data } = await api.post<ApiResponse<{ message: string }>>('/auth/reset-password', {
+          token,
+          newPassword,
+          confirmPassword
+        });
+        return data;
+      } catch (error) {
+        const axiosError = error as AxiosError<ApiError>;
+        const errorMessage = 
+          axiosError.response?.data?.message || 
+          axiosError.message || 
+          'Failed to reset password. Please check your information and try again.';
+        throw { message: errorMessage } as ApiError;
+      }
+    }
 };

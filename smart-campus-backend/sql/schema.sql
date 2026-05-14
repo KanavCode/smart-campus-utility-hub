@@ -58,6 +58,10 @@ CREATE TABLE users (
     cgpa DECIMAL(3,2) CHECK (cgpa IS NULL OR (cgpa >= 0 AND cgpa <= 10)),
     semester INTEGER CHECK (semester IS NULL OR (semester BETWEEN 1 AND 8)),
     
+    -- Password reset fields
+    reset_token VARCHAR(255),
+    reset_token_expiry TIMESTAMP,
+    
     -- Metadata
     is_active BOOLEAN DEFAULT true,
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

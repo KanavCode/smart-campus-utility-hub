@@ -61,6 +61,18 @@ const validationSchemas = {
     password: Joi.string().required()
   }),
 
+  // Forgot password
+  forgotPassword: Joi.object({
+    email: Joi.string().email().required()
+  }),
+
+  // Reset password
+  resetPassword: Joi.object({
+    token: Joi.string().required(),
+    newPassword: Joi.string().min(8).required(),
+    confirmPassword: Joi.string().required()
+  }),
+
   // Update profile
   updateProfile: Joi.object({
     full_name: Joi.string().min(2).max(100).optional(),
