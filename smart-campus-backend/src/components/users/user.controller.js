@@ -121,6 +121,34 @@ const deleteUser = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, 'User deleted successfully');
 });
 
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const resetBaseUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
+
+  const result = await userAuthService.forgotPassword({
+    email,
+    resetBaseUrl,
+  });
+
+  logger.info('Forgot password request', { email });
+
+  sendSuccess(res, 200, result.message);
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { token, newPassword, confirmPassword } = req.body;
+
+  const result = await userAuthService.resetPassword({
+    token,
+    newPassword,
+    confirmPassword,
+  });
+
+  logger.info('Password reset successful');
+
+  sendSuccess(res, 200, result.message);
+});
+
 /* SSO Redirect */
 const ssoRedirect = asyncHandler(async (req, res) => {
   const { provider } = req.params;
@@ -174,9 +202,9 @@ const ssoCallback = asyncHandler(async (req, res) => {
           }),
         });
         const tokenData = await tokenResponse.json();
-        
+
         if (!tokenData.access_token) {
-           throw new Error('Failed to get access token');
+          throw new Error('Failed to get access token');
         }
 
         const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -222,6 +250,8 @@ module.exports = {
   updateUserByAdmin,
   deactivateUser,
   deleteUser,
+  forgotPassword,
+  resetPassword,
   ssoRedirect,
-  ssoCallback
+  ssoCallback,
 };
