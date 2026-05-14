@@ -10,6 +10,7 @@ export const api = axios.create({
   timeout: 10000, // 10 second timeout
 });
 
+
 // Response interceptor for better error handling
 api.interceptors.response.use(
   (response) => response,
