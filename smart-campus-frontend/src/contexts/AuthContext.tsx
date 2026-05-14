@@ -9,6 +9,7 @@ import {
   PERMISSIONS 
 } from '@/utils/permissions';
 
+
 // User interface is now imported from @/types
 
 interface AuthContextType {
