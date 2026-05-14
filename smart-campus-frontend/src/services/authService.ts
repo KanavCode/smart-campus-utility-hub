@@ -15,6 +15,7 @@ export interface RegisterRequest {
   role: 'student' | 'admin';
   department?: string;
   // Student-specific fields
+  
   semester?: number;
   cgpa?: number;
 }
