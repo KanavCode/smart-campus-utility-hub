@@ -3,7 +3,7 @@ const { generateToken } = require('../../middleware/auth.middleware');
 const { ApiError } = require('../../middleware/errorHandler');
 
 const AUTH_COOKIE_NAME = 'authToken';
-const AUTH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const AUTH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days 
 
 const buildAuthCookieOptions = () => {
   const sameSite = process.env.AUTH_COOKIE_SAME_SITE || 'strict';
