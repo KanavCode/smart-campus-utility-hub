@@ -14,6 +14,7 @@ router.get('/teachers', validate(validationSchemas.timetableQuery, 'query'), tim
 router.get('/subjects', validate(validationSchemas.timetableQuery, 'query'), timetableController.getAllSubjects);
 router.get('/rooms', validate(validationSchemas.timetableQuery, 'query'), timetableController.getAllRooms);
 router.get('/groups', validate(validationSchemas.timetableQuery, 'query'), timetableController.getAllGroups);
+router.get('/group/:groupId/ical', validate(validationSchemas.groupIdParam, 'params'), validate(validationSchemas.timetableQuery, 'query'), timetableController.exportGroupTimetableIcal);
 router.get('/group/:groupId', validate(validationSchemas.groupIdParam, 'params'), validate(validationSchemas.timetableQuery, 'query'), timetableController.getTimetableByGroup);
 router.get('/teacher/:teacherId', validate(validationSchemas.teacherIdParam, 'params'), validate(validationSchemas.timetableQuery, 'query'), timetableController.getTimetableByTeacher);
 router.get('/config', timetableController.getTimetableConfig);
@@ -40,5 +41,9 @@ router.post('/assign/subject-group', verifyToken, verifyAdmin, validate(validati
 
 // Admin routes - timetable generation
 router.post('/generate', verifyToken, verifyAdmin, validate(validationSchemas.generateTimetable, 'body'), timetableController.generateTimetable);
+
+// Admin routes - manual slot management
+router.put('/slots/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), timetableController.updateTimetableSlot);
+router.delete('/slots/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), timetableController.deleteTimetableSlot);
 
 module.exports = router;

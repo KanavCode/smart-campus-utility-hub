@@ -23,10 +23,23 @@ export interface StudentAllocation {
 }
 
 export interface AllocationResult {
+  student_id?: number;
   student_name: string;
   cgpa: number;
   allocated_elective: string;
   preference_rank: number | null;
+}
+
+export interface WaitlistEntry {
+  id: number;
+  elective_id: number;
+  preference_rank: number;
+  status: 'waiting' | 'allocated' | 'skipped' | 'removed';
+  created_at: string;
+  allocated_at?: string | null;
+  subject_name: string;
+  department: string;
+  semester: number;
 }
 
 export const electiveService = {
@@ -135,6 +148,15 @@ export const electiveService = {
     }
   },
 
+  getMyWaitlist: async (): Promise<WaitlistEntry[]> => {
+    try {
+      const data = asApiData(await api.get('/electives/my/waitlist'));
+      return getPayloadArray<WaitlistEntry>(data, 'waitlist');
+    } catch (error) {
+      withServiceError(error, 'Failed to fetch your waitlist status');
+    }
+  },
+
   /**
    * Run elective allocation algorithm (admin only)
    */
@@ -144,6 +166,15 @@ export const electiveService = {
       return getPayloadArray<AllocationResult>(data, 'allocationResults');
     } catch (error: any) {
       withServiceError(error, 'Failed to run allocation');
+    }
+  },
+
+  processWaitlist: async (electiveId?: number): Promise<{ promotedCount: number }> => {
+    try {
+      const data = asApiData(await api.post('/electives/waitlist/process', electiveId ? { elective_id: electiveId } : {}));
+      return (data as { data: { promotedCount: number } }).data;
+    } catch (error: any) {
+      withServiceError(error, 'Failed to process waitlist');
     }
   },
 };

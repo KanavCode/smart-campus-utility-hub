@@ -3,8 +3,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { AxiosError } from 'axios';
-import { ApiError } from '@/types';
 import { extractZodErrors, extractApiErrors, mergeErrors } from '@/lib/errorHandling';
 import { FieldConfig, CrudService, UseGenericFormReturn } from './types';
 
@@ -23,7 +21,7 @@ export const useGenericForm = (
   );
   const [isLoading, setIsLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // const abortControllerRef = useRef<AbortController | null>(null);
 
   // Client-side inline errors (per-field, shown after touch)
   const [inlineErrors, setInlineErrors] = useState<Record<string, string>>({});
@@ -31,9 +29,6 @@ export const useGenericForm = (
   const [apiFieldErrors, setApiFieldErrors] = useState<Record<string, string>>({});
   // Tracks which fields the user has interacted with
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
-
-  // Abort controller so in-flight requests can be cancelled on unmount
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Build validation schema from fields if not provided
   const buildDefaultSchema = () => {
@@ -96,13 +91,6 @@ export const useGenericForm = (
     },
     [schema]
   );
-
-  // Cancel any in-flight request on unmount
-  useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, []);
 
   // Cleanup abort controller on unmount
   useEffect(() => {
@@ -248,7 +236,7 @@ export const useGenericForm = (
       abortControllerRef.current.abort();
     }
   }, []);
-  const mergedErrors = mergeErrors(inlineErrors, fieldErrors);
+  const mergedErrors = mergeErrors(inlineErrors, mergeErrors(apiFieldErrors, fieldErrors));
 
   return {
     formData,

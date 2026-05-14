@@ -124,7 +124,7 @@ export default function Users() {
     };
 
     run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [filters.role, filters.department, filters.is_active]);
 
   // Server-side dataset to display (client-side search is applied on top)

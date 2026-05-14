@@ -163,6 +163,18 @@ export const timetableService = {
     }
   },
 
+  exportGroupTimetableIcal: async (groupId: string, academicYear = '2024-25', semesterType = 'odd') => {
+    try {
+      const query = `?academic_year=${encodeURIComponent(academicYear)}&semester_type=${encodeURIComponent(semesterType)}`;
+      const response = await api.get(`/timetable/group/${groupId}/ical${query}`, {
+        responseType: 'blob',
+      });
+      return response.data as Blob;
+    } catch (error: unknown) {
+      withServiceError(error, 'Failed to export timetable calendar');
+    }
+  },
+
   /**
    * Get schedule for a specific teacher
    * GET /api/timetable/teacher/:teacherId?academic_year=2024-25&semester_type=odd
@@ -332,5 +344,40 @@ export const timetableService = {
     } catch (error: unknown) {
       withServiceError(error, 'Failed to generate timetable');
     }
+  },
+
+  /**
+   * Get timetable as iCalendar subscription file (.ics)
+   * GET /api/timetable/calendar/:groupId
+   */
+  getCalendarSubscription: async (
+    groupId: string,
+    academicYear = '2024-25',
+    semesterType = 'odd'
+  ) => {
+    try {
+      const query = `?academic_year=${encodeURIComponent(academicYear)}&semester_type=${encodeURIComponent(semesterType)}`;
+      const { data } = await api.get(`/timetable/calendar/${groupId}${query}`, {
+        responseType: 'blob'
+      });
+      return {
+        success: true,
+        data: data
+      };
+    } catch (error: unknown) {
+      withServiceError(error, 'Failed to fetch calendar subscription');
+    }
+  },
+
+  /**
+   * Get calendar subscription URL for direct subscription
+   */
+  getCalendarSubscriptionUrl: (
+    groupId: string,
+    academicYear = '2024-25',
+    semesterType = 'odd'
+  ): string => {
+    const baseUrl = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '') || `${window.location.protocol}//${window.location.host}`;
+    return `${baseUrl}/api/timetable/calendar/${groupId}?academic_year=${encodeURIComponent(academicYear)}&semester_type=${encodeURIComponent(semesterType)}`;
   },
 };

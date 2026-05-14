@@ -5,7 +5,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { electiveService, Elective } from '@/services/electiveService';
+import { electiveService, Elective, StudentAllocation, WaitlistEntry } from '@/services/electiveService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
 import { toast } from 'sonner';
 
@@ -27,11 +27,12 @@ export default function Electives() {
   const { user } = useAuth();
   const { isOnline } = useConnectivity();
   
-  const [displaySubjects, setDisplaySubjects] = useState<unknown[]>(AVAILABLE_SUBJECTS);
+  const [displaySubjects, setDisplaySubjects] = useState<Elective[]>(AVAILABLE_SUBJECTS);
   const [selectedChoices, setSelectedChoices] = useState<(Elective | null)[]>(Array(5).fill(null));
   const [draggedItem, setDraggedItem] = useState<Elective | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [allocation, setAllocation] = useState<unknown>(null);
+  const [allocation, setAllocation] = useState<StudentAllocation | null>(null);
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +46,11 @@ export default function Electives() {
         setIsLoading(true);
         setError(null);
 
-        // Use hardcoded subjects for display
-        setDisplaySubjects(AVAILABLE_SUBJECTS as any);
+        const electives = await electiveService.getAll({
+          department: user?.department,
+          semester: user?.semester || undefined,
+        });
+        setDisplaySubjects(electives.length > 0 ? electives : AVAILABLE_SUBJECTS);
 
         // Load user's existing choices if any
         try {
@@ -72,6 +76,13 @@ export default function Electives() {
           }
         } catch {
           // No allocation yet, that's okay
+        }
+
+        try {
+          const waitlistData = await electiveService.getMyWaitlist();
+          setWaitlist(waitlistData);
+        } catch {
+          // No waitlist status yet
         }
       } catch (err: unknown) {
         const e = err as { message?: string };
@@ -257,6 +268,24 @@ export default function Electives() {
               </CardContent>
             </Card>
           </motion.div>
+        )}
+
+        {waitlist.length > 0 && (
+          <Card className="glass border-amber-500/30 bg-amber-500/5">
+            <CardHeader>
+              <CardTitle className="text-amber-500">Waitlist Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {waitlist.map((entry) => (
+                  <div key={entry.id} className="flex items-center justify-between text-sm border-b border-border/40 pb-2">
+                    <span>{entry.preference_rank}. {entry.subject_name}</span>
+                    <span className="capitalize font-medium">{entry.status}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <div className="grid lg:grid-cols-2 gap-6">

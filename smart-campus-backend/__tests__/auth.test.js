@@ -302,6 +302,74 @@ describe('Authentication API Tests', () => {
       expect(response.status).toBe(403);
       expect(response.body.success).toBe(false);
     });
+
+    test('should allow admin to fetch system settings', async () => {
+      const { generateToken } = require('../src/middleware/auth.middleware');
+      const adminToken = generateToken({ id: 2, email: 'admin@example.com', role: 'admin' });
+
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            academic_year: '2024-2025',
+            current_semester: 'Fall',
+            campus_name: 'Smart Campus University'
+          }
+        ]
+      });
+
+      const response = await request(app)
+        .get('/api/settings')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.settings.academic_year).toBe('2024-2025');
+    });
+
+    test('should allow admin to update system settings', async () => {
+      const { generateToken } = require('../src/middleware/auth.middleware');
+      const adminToken = generateToken({ id: 2, email: 'admin@example.com', role: 'admin' });
+
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            academic_year: '2025-2026',
+            current_semester: 'Spring',
+            campus_name: 'Smart Campus University'
+          }
+        ]
+      });
+
+      const response = await request(app)
+        .put('/api/settings')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          academic_year: '2025-2026',
+          current_semester: 'Spring',
+          campus_name: 'Smart Campus University'
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.settings.current_semester).toBe('Spring');
+    });
+
+    test('should validate settings payload for admin updates', async () => {
+      const { generateToken } = require('../src/middleware/auth.middleware');
+      const adminToken = generateToken({ id: 2, email: 'admin@example.com', role: 'admin' });
+
+      const response = await request(app)
+        .put('/api/settings')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          academic_year: '2025',
+          current_semester: 'Monsoon',
+          campus_name: ''
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
   });
 });
 

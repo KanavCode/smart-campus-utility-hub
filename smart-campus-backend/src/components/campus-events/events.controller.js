@@ -1,7 +1,8 @@
-const { sendSuccess } = require("../../utils/response");
-const { query } = require("../../config/db");
-const { asyncHandler, ApiError } = require("../../middleware/errorHandler");
-const { logger } = require("../../config/db");
+const { sendSuccess } = require('../../utils/response');
+const { query } = require('../../config/db');
+const { asyncHandler, ApiError } = require('../../middleware/errorHandler');
+const { logger } = require('../../config/db');
+const notificationService = require('../../services/notification.service');
 
 /**
  * Events Controller
@@ -45,15 +46,29 @@ const createEvent = asyncHandler(async (req, res) => {
   const result = await query(sql, values);
 
   if (!result.rows || result.rows.length === 0) {
-    throw new ApiError(500, "Failed to create event");
+    throw new ApiError(500, 'Failed to create event');
   }
 
-  logger.info("Event created", {
+  logger.info('Event created', {
     eventId: result.rows[0].id,
     createdBy: req.user.id,
   });
 
-  sendSuccess(res, 201, "Event created successfully", {
+  await notificationService.notifyRole({
+    role: 'student',
+    eventType: 'EVENT_CREATED',
+    title: 'New Campus Event',
+    message: `New event: ${result.rows[0].title}`,
+    metadata: { eventId: result.rows[0].id },
+    socketEvent: 'EVENT_CREATED',
+    socketPayload: {
+      message: `New event: ${result.rows[0].title}`,
+      event: result.rows[0]
+    },
+    sendEmail: true,
+  });
+
+  sendSuccess(res, 201, 'Event created successfully', {
     event: result.rows[0],
   });
 });
@@ -73,8 +88,8 @@ const getAllEvents = asyncHandler(async (req, res) => {
     upcoming,
     page = 1,
     limit = 10,
-    sort = "start_time",
-    order = "ASC",
+    sort = 'start_time',
+    order = 'ASC',
   } = req.query;
 
   const pageNum = parseInt(page);
@@ -82,10 +97,10 @@ const getAllEvents = asyncHandler(async (req, res) => {
 
   // Validate parsed integers
   if (isNaN(pageNum) || pageNum < 1) {
-    throw new ApiError(400, "Invalid page number");
+    throw new ApiError(400, 'Invalid page number');
   }
   if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-    throw new ApiError(400, "Invalid limit. Must be between 1 and 100");
+    throw new ApiError(400, 'Invalid limit. Must be between 1 and 100');
   }
 
   const offset = (pageNum - 1) * limitNum;
@@ -127,7 +142,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
   if (club_id) {
     const clubIdNum = parseInt(club_id);
     if (isNaN(clubIdNum) || clubIdNum < 1) {
-      throw new ApiError(400, "Invalid club ID");
+      throw new ApiError(400, 'Invalid club ID');
     }
     sql += ` AND e.club_id = $${paramCounter}`;
     values.push(clubIdNum);
@@ -179,7 +194,7 @@ const getEventById = asyncHandler(async (req, res) => {
 
   const eventId = parseInt(id);
   if (isNaN(eventId) || eventId < 1) {
-    throw new ApiError(400, "Invalid event ID");
+    throw new ApiError(400, 'Invalid event ID');
   }
 
   const sql = `
@@ -192,10 +207,10 @@ const getEventById = asyncHandler(async (req, res) => {
   const result = await query(sql, [eventId]);
 
   if (result.rows.length === 0) {
-    throw new ApiError(404, "Event not found");
+    throw new ApiError(404, 'Event not found');
   }
 
-  sendSuccess(res, 200, "Event fetched successfully", {
+  sendSuccess(res, 200, 'Event fetched successfully', {
     event: result.rows[0],
   });
 });
@@ -220,7 +235,7 @@ const updateEvent = asyncHandler(async (req, res) => {
 
   const eventId = parseInt(id);
   if (isNaN(eventId) || eventId < 1) {
-    throw new ApiError(400, "Invalid event ID");
+    throw new ApiError(400, 'Invalid event ID');
   }
 
   const sql = `
@@ -246,12 +261,26 @@ const updateEvent = asyncHandler(async (req, res) => {
   const result = await query(sql, values);
 
   if (result.rows.length === 0) {
-    throw new ApiError(404, "Event not found");
+    throw new ApiError(404, 'Event not found');
   }
 
-  logger.info("Event updated", { eventId: id, updatedBy: req.user.id });
+  logger.info('Event updated', { eventId: id, updatedBy: req.user.id });
 
-  sendSuccess(res, 200, "Event updated successfully", {
+  await notificationService.notifyRole({
+    role: 'student',
+    eventType: 'EVENT_UPDATED',
+    title: 'Campus Event Updated',
+    message: `Event updated: ${result.rows[0].title}`,
+    metadata: { eventId: result.rows[0].id },
+    socketEvent: 'EVENT_UPDATED',
+    socketPayload: {
+      message: `Event updated: ${result.rows[0].title}`,
+      event: result.rows[0]
+    },
+    sendEmail: true,
+  });
+
+  sendSuccess(res, 200, 'Event updated successfully', {
     event: result.rows[0],
   });
 });
@@ -265,20 +294,20 @@ const deleteEvent = asyncHandler(async (req, res) => {
 
   const eventId = parseInt(id);
   if (isNaN(eventId) || eventId < 1) {
-    throw new ApiError(400, "Invalid event ID");
+    throw new ApiError(400, 'Invalid event ID');
   }
 
-  const result = await query("DELETE FROM events WHERE id = $1 RETURNING *", [
+  const result = await query('DELETE FROM events WHERE id = $1 RETURNING *', [
     eventId,
   ]);
 
   if (result.rowCount === 0) {
-    throw new ApiError(404, "Event not found");
+    throw new ApiError(404, 'Event not found');
   }
 
-  logger.info("Event deleted", { eventId: id, deletedBy: req.user.id });
+  logger.info('Event deleted', { eventId: id, deletedBy: req.user.id });
 
-  sendSuccess(res, 200, "Event deleted successfully");
+  sendSuccess(res, 200, 'Event deleted successfully');
 });
 
 /**
@@ -291,36 +320,36 @@ const saveEvent = asyncHandler(async (req, res) => {
 
   const eventId = parseInt(id);
   if (isNaN(eventId) || eventId < 1) {
-    throw new ApiError(400, "Invalid event ID");
+    throw new ApiError(400, 'Invalid event ID');
   }
 
   // Check if event exists
-  const eventCheck = await query("SELECT id FROM events WHERE id = $1", [
+  const eventCheck = await query('SELECT id FROM events WHERE id = $1', [
     eventId,
   ]);
   if (eventCheck.rows.length === 0) {
-    throw new ApiError(404, "Event not found");
+    throw new ApiError(404, 'Event not found');
   }
 
   // Check if already saved
   const existingCheck = await query(
-    "SELECT * FROM saved_events WHERE user_id = $1 AND event_id = $2",
+    'SELECT * FROM saved_events WHERE user_id = $1 AND event_id = $2',
     [userId, eventId],
   );
 
   if (existingCheck.rows.length > 0) {
-    throw new ApiError(400, "Event already saved");
+    throw new ApiError(400, 'Event already saved');
   }
 
   // Save the event
-  await query("INSERT INTO saved_events (user_id, event_id) VALUES ($1, $2)", [
+  await query('INSERT INTO saved_events (user_id, event_id) VALUES ($1, $2)', [
     userId,
     eventId,
   ]);
 
-  logger.info("Event saved", { eventId: id, userId });
+  logger.info('Event saved', { eventId: id, userId });
 
-  sendSuccess(res, 200, "Event saved successfully");
+  sendSuccess(res, 200, 'Event saved successfully');
 });
 
 /**
@@ -333,21 +362,21 @@ const unsaveEvent = asyncHandler(async (req, res) => {
 
   const eventId = parseInt(id);
   if (isNaN(eventId) || eventId < 1) {
-    throw new ApiError(400, "Invalid event ID");
+    throw new ApiError(400, 'Invalid event ID');
   }
 
   const result = await query(
-    "DELETE FROM saved_events WHERE user_id = $1 AND event_id = $2 RETURNING *",
+    'DELETE FROM saved_events WHERE user_id = $1 AND event_id = $2 RETURNING *',
     [userId, eventId],
   );
 
   if (result.rowCount === 0) {
-    throw new ApiError(404, "Event not in saved list");
+    throw new ApiError(404, 'Event not in saved list');
   }
 
-  logger.info("Event unsaved", { eventId: id, userId });
+  logger.info('Event unsaved', { eventId: id, userId });
 
-  sendSuccess(res, 200, "Event removed from saved list");
+  sendSuccess(res, 200, 'Event removed from saved list');
 });
 
 /**
@@ -368,7 +397,7 @@ const getSavedEvents = asyncHandler(async (req, res) => {
 
   const result = await query(sql, [userId]);
 
-  sendSuccess(res, 200, "Saved events fetched successfully", {
+  sendSuccess(res, 200, 'Saved events fetched successfully', {
     events: result.rows,
     count: result.rows.length,
   });
