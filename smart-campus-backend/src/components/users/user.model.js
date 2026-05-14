@@ -258,6 +258,87 @@ class UserModel {
     const result = await query(sql, [id]);
     return result.rowCount > 0;
   }
+
+  /**
+   * Save password reset token for user
+   * @param {string} email - User email
+   * @param {string} resetToken - Secure reset token
+   * @param {Date} expiryTime - Token expiry timestamp
+   * @returns {Promise<boolean>} Success status
+   */
+  static async saveResetToken(email, resetToken, expiryTime) {
+    const sql = `
+      UPDATE users 
+      SET reset_token = $1, reset_token_expiry = $2, updated_at = CURRENT_TIMESTAMP
+      WHERE email = $3
+    `;
+    const result = await query(sql, [resetToken, expiryTime, email]);
+    return result.rowCount > 0;
+  }
+
+  /**
+   * Find user by reset token
+   * @param {string} resetToken - Reset token
+   * @returns {Promise<Object|null>} User object or null
+   */
+  static async findByResetToken(resetToken) {
+    const sql = `
+      SELECT id, full_name, email, role, reset_token_expiry, is_active
+      FROM users 
+      WHERE reset_token = $1 AND reset_token_expiry > CURRENT_TIMESTAMP
+    `;
+    const result = await query(sql, [resetToken]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Reset user password using reset token
+   * @param {string} resetToken - Reset token
+   * @param {string} newPassword - New password
+   * @returns {Promise<boolean>} Success status
+   */
+  static async resetPasswordWithToken(resetToken, newPassword) {
+    return await transaction(async (client) => {
+      // Verify token exists and hasn't expired
+      const userResult = await client.query(
+        `SELECT id FROM users 
+         WHERE reset_token = $1 AND reset_token_expiry > CURRENT_TIMESTAMP`,
+        [resetToken]
+      );
+
+      if (userResult.rows.length === 0) {
+        throw new Error('Invalid or expired reset token');
+      }
+
+      // Hash new password
+      const salt = await bcrypt.genSalt(10);
+      const password_hash = await bcrypt.hash(newPassword, salt);
+
+      // Update password and clear reset token
+      await client.query(
+        `UPDATE users 
+         SET password_hash = $1, reset_token = NULL, reset_token_expiry = NULL, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2`,
+        [password_hash, userResult.rows[0].id]
+      );
+
+      return true;
+    });
+  }
+
+  /**
+   * Clear expired reset tokens
+   * @returns {Promise<number>} Number of tokens cleared
+   */
+  static async clearExpiredTokens() {
+    const sql = `
+      UPDATE users 
+      SET reset_token = NULL, reset_token_expiry = NULL
+      WHERE reset_token_expiry IS NOT NULL AND reset_token_expiry <= CURRENT_TIMESTAMP
+    `;
+    const result = await query(sql);
+    return result.rowCount;
+  }
 }
 
 module.exports = UserModel;

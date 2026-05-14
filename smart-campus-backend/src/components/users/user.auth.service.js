@@ -1,6 +1,9 @@
+const crypto = require('crypto');
 const UserModel = require('./user.model');
 const { generateToken } = require('../../middleware/auth.middleware');
 const { ApiError } = require('../../middleware/errorHandler');
+const { logger } = require('../../config/db');
+const { sendPasswordResetEmail, sendPasswordResetConfirmation } = require('../../utils/emailService');
 
 const AUTH_COOKIE_NAME = 'authToken';
 const AUTH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days 
@@ -121,6 +124,75 @@ const changePasswordById = async (userId, { oldPassword, newPassword }) => {
   await UserModel.changePassword(userId, oldPassword, newPassword);
 };
 
+const forgotPassword = async ({ email, resetBaseUrl }) => {
+  const user = await UserModel.findByEmail(email);
+  if (!user) {
+    logger.info('Forgot password request for non-existent email', { email });
+    return {
+      message: 'If this email is registered, you will receive a password reset link.',
+    };
+  }
+
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+  const expiryTime = new Date(Date.now() + 15 * 60 * 1000);
+
+  await UserModel.saveResetToken(email, resetTokenHash, expiryTime);
+
+  const resetLink = `${resetBaseUrl}/reset-password?token=${resetToken}`;
+  await sendPasswordResetEmail(email, resetToken, resetLink);
+
+  logger.info('Password reset email sent', { email });
+  return {
+    message: 'If this email is registered, you will receive a password reset link.',
+  };
+};
+
+const resetPassword = async ({ token, newPassword, confirmPassword }) => {
+  if (!token) {
+    throw new ApiError(400, 'Reset token is required');
+  }
+
+  if (!newPassword || !confirmPassword) {
+    throw new ApiError(400, 'New password and confirmation are required');
+  }
+
+  if (newPassword !== confirmPassword) {
+    throw new ApiError(400, 'Passwords do not match');
+  }
+
+  if (newPassword.length < 8) {
+    throw new ApiError(400, 'Password must be at least 8 characters long');
+  }
+
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;
+  if (!passwordRegex.test(newPassword)) {
+    throw new ApiError(
+      400,
+      'Password must contain uppercase, lowercase, number, and special character'
+    );
+  }
+
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const user = await UserModel.findByResetToken(tokenHash);
+
+  if (!user) {
+    throw new ApiError(400, 'Invalid or expired reset token');
+  }
+
+  if (!user.is_active) {
+    throw new ApiError(403, 'Account is deactivated. Please contact support.');
+  }
+
+  await UserModel.resetPasswordWithToken(tokenHash, newPassword);
+  await sendPasswordResetConfirmation(user.email, user.full_name);
+
+  logger.info('Password reset successful', { userId: user.id, email: user.email });
+  return {
+    message: 'Password reset successful. You can now log in with your new password.',
+  };
+};
+
 const handleSSOLogin = async ({ email, full_name, auth_provider, provider_id }) => {
   let user = await UserModel.findByEmail(email);
 
@@ -159,6 +231,8 @@ module.exports = {
   getProfileById,
   updateProfileById,
   changePasswordById,
+  forgotPassword,
+  resetPassword,
   handleSSOLogin,
   AUTH_COOKIE_NAME,
   buildAuthCookieOptions,
