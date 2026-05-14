@@ -9,7 +9,6 @@ const { authLimiter } = require('../../middleware/rateLimiter.middleware');
  * User Routes
  * Base path: /api/auth and /api/users
  */
-
 // Public routes (no authentication required)
 router.post(
   '/register',
