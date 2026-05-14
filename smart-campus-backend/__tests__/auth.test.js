@@ -3,6 +3,7 @@
  * Tests user registration, login, and profile management
  */
 
+
 const request = require('supertest');
 const app = require('../src/app');
 
