@@ -7,6 +7,7 @@ const getJwtSecret = () => {
     return process.env.JWT_SECRET;
   }
 
+  
   if (process.env.NODE_ENV === 'test') {
     return 'test-jwt-secret';
   }
