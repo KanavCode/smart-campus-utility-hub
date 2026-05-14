@@ -65,7 +65,9 @@ jobs:
           cache-dependency-path: smart-campus-frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          rm -f package-lock.json
+          npm install
 
       - name: Run ESLint
         run: npm run lint
