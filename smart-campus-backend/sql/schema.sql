@@ -101,7 +101,8 @@ CREATE TABLE events (
     target_department VARCHAR(100),
     is_featured BOOLEAN DEFAULT FALSE,
     tags TEXT[],
-     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    image_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =====================================================================
@@ -380,3 +381,5 @@ INSERT INTO system_settings (id, academic_year, current_semester, campus_name) V
 -- =====================================================================
 -- SCHEMA CREATION COMPLETE
 -- =====================================================================
+ALTER TABLE events
+ADD COLUMN IF NOT EXISTS image_url TEXT;
