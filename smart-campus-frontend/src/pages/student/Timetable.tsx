@@ -6,6 +6,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Beaker, Loader2, AlertCircle, RefreshCw, Calendar, Download } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { timetableService } from '@/services/timetableService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
@@ -360,12 +361,36 @@ export default function StudentTimetable() {
           </div>
         </div>
 
-        {/* Loading State */}
+        {/* Loading State — skeleton mirrors the real grid shape */}
         {loading && (
-          <Card className="glass p-12">
-            <div className="flex flex-col items-center justify-center gap-4">
-              <Loader2 className="animate-spin h-12 w-12 text-accent" />
-              <p className="text-muted-foreground">Loading timetable...</p>
+          <Card className="glass overflow-hidden" aria-busy="true" aria-label="Loading timetable">
+            <div className="p-6">
+              <div className="overflow-x-auto">
+                <div className="min-w-max">
+                  {/* Header row skeleton */}
+                  <div className="grid grid-cols-9 gap-2 mb-3 pb-3 border-b border-border">
+                    {Array.from({ length: 9 }).map((_, i) => (
+                      <Skeleton key={i} className="h-10 rounded-lg" />
+                    ))}
+                  </div>
+                  {/* Day row skeletons */}
+                  {Array.from({ length: 6 }).map((_, dayIdx) => (
+                    <div key={dayIdx} className="grid grid-cols-9 gap-2 mb-2">
+                      {Array.from({ length: 9 }).map((_, colIdx) => (
+                        <Skeleton key={colIdx} className="h-[90px] rounded-lg" />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* Legend skeleton */}
+            <div className="border-t border-border p-4 bg-card/50">
+              <div className="flex flex-wrap gap-4">
+                <Skeleton className="h-4 w-36 rounded" />
+                <Skeleton className="h-4 w-24 rounded" />
+                <Skeleton className="h-4 w-20 rounded" />
+              </div>
             </div>
           </Card>
         )}
