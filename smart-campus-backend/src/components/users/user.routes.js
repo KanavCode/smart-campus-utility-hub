@@ -53,6 +53,8 @@ router.post(
   userController.changePassword
 );
 
+router.post('/logout', userController.logout);
+
 // Admin-only routes
 router.get(
   '/users',

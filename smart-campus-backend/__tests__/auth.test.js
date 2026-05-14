@@ -22,7 +22,6 @@ jest.mock('../src/config/db', () => ({
 const { query } = require('../src/config/db');
 
 describe('Authentication API Tests', () => {
-  let authToken;
   let testUserId;
 
   beforeEach(() => {
@@ -61,7 +60,8 @@ describe('Authentication API Tests', () => {
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
       expect(response.body.data.user).toBeDefined();
-      expect(response.body.data.token).toBeDefined();
+      expect(response.body.data.token).toBeUndefined();
+      expect(response.headers['set-cookie']).toBeDefined();
       expect(response.body.data.user.email).toBe('test@example.com');
     });
 
@@ -139,11 +139,10 @@ describe('Authentication API Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.data.token).toBeDefined();
+      expect(response.body.data.token).toBeUndefined();
+      expect(response.headers['set-cookie']).toBeDefined();
       expect(response.body.data.user.email).toBe('test@example.com');
       
-      // Store token for protected route tests
-      authToken = response.body.data.token;
       testUserId = response.body.data.user.id;
     });
 

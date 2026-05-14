@@ -11,6 +11,7 @@ vi.mock('@/services/authService', () => ({
   authService: {
     login: vi.fn(),
     register: vi.fn(),
+    getProfile: vi.fn().mockRejectedValue(new Error('Unauthorized')),
     logout: vi.fn(),
     updateProfile: vi.fn(),
     changePassword: vi.fn(),

@@ -6,16 +6,8 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
   timeout: 10000, // 10 second timeout
-});
-
-// Add token to requests if available
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
 });
 
 // Response interceptor for better error handling
@@ -47,5 +39,4 @@ api.interceptors.response.use(
 );
 
 export default api;
-
 

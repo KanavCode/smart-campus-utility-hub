@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { logger } = require('../config/db');
+const AUTH_COOKIE_NAME = 'authToken';
 
 const getJwtSecret = () => {
   if (process.env.JWT_SECRET) {
@@ -13,15 +14,38 @@ const getJwtSecret = () => {
   throw new Error('JWT_SECRET is not configured');
 };
 
+const extractTokenFromCookieHeader = (cookieHeader) => {
+  if (!cookieHeader || typeof cookieHeader !== 'string') return null;
+
+  const cookies = cookieHeader.split(';');
+  for (const cookieEntry of cookies) {
+    const [rawName, ...rawValueParts] = cookieEntry.trim().split('=');
+    if (rawName === AUTH_COOKIE_NAME) {
+      return decodeURIComponent(rawValueParts.join('='));
+    }
+  }
+
+  return null;
+};
+
+const getTokenFromRequest = (req) => {
+  const authHeader = req.headers['authorization'];
+  const bearerToken = authHeader && authHeader.split(' ')[1];
+
+  if (bearerToken) {
+    return bearerToken;
+  }
+
+  return extractTokenFromCookieHeader(req.headers.cookie);
+};
+
 /**
  * Middleware to verify JWT token
  * Attaches decoded user info to req.user
  */
 const verifyToken = (req, res, next) => {
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Format: "Bearer TOKEN"
+    const token = getTokenFromRequest(req);
 
     if (!token) {
       return res.status(401).json({
@@ -158,8 +182,7 @@ const generateToken = (
  * Useful for endpoints that work for both authenticated and unauthenticated users
  */
 const optionalAuth = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = getTokenFromRequest(req);
 
   if (!token) {
     req.user = null;

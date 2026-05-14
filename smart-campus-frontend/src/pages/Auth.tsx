@@ -21,18 +21,18 @@ export default function Auth() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
+    const sso = params.get('sso');
     const error = params.get('error');
 
     if (error) {
       toast.error(`SSO Error: ${error}`);
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (token) {
+    } else if (sso === 'success') {
       const handleSSO = async () => {
         try {
           setIsLoading(true);
-          const user = await loginWithToken(token);
+          const user = await loginWithToken();
           toast.success('SSO Login successful!');
           
           // Clean up URL
@@ -73,17 +73,7 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      await login(loginData.email, loginData.password);
-      const storedUser = localStorage.getItem("user");
-      let user = null;
-      if (storedUser) {
-        try {
-          user = JSON.parse(storedUser);
-        } catch (parseError) {
-          console.error("Failed to parse stored user:", parseError);
-          localStorage.removeItem("user");
-        }
-      }
+      const user = await login(loginData.email, loginData.password);
       toast.success("Login successful!");
 
       // Redirect based on user role

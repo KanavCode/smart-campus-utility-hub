@@ -21,7 +21,6 @@ export interface RegisterRequest {
 
 export type AuthResponse = ApiResponse<{
   user: User;
-  token: string;
 }>;
 
 export interface ProfileUpdate {
@@ -39,12 +38,7 @@ export const authService = {
   login: async (email: string, password: string): Promise<AuthResponse> => {
     try {
       const { data } = await api.post<AuthResponse>('/auth/login', { email, password });
-      
-      // Store token in localStorage
-      if (data.data.token) {
-        localStorage.setItem('authToken', data.data.token);
-        localStorage.setItem('user', JSON.stringify(data.data.user));
-      }
+      localStorage.setItem('user', JSON.stringify(data.data.user));
       
       return data;
     } catch (error) {
@@ -103,12 +97,7 @@ export const authService = {
       }
 
       const { data } = await api.post<AuthResponse>('/auth/register', payload);
-      
-      // Store token in localStorage
-      if (data.data.token) {
-        localStorage.setItem('authToken', data.data.token);
-        localStorage.setItem('user', JSON.stringify(data.data.user));
-      }
+      localStorage.setItem('user', JSON.stringify(data.data.user));
       
       return data;
     } catch (error) {
@@ -197,19 +186,13 @@ export const authService = {
 
   /**
    * Logout user
-   * Clears local storage and removes token
+   * Clears local user state and invalidates auth cookie server-side
    */
   logout: async (): Promise<void> => {
     try {
-      // Optional: Call backend logout endpoint if needed
-      // await api.post('/auth/logout');
-      
-      // Clear localStorage
-      localStorage.removeItem('authToken');
+      await api.post('/auth/logout');
       localStorage.removeItem('user');
     } catch (error) {
-      // Still clear local storage even if logout fails
-      localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       withServiceError(error, 'Logout failed');
     }
@@ -224,17 +207,10 @@ export const authService = {
   },
 
   /**
-   * Get stored token from localStorage
-   */
-  getToken: (): string | null => {
-    return localStorage.getItem('authToken');
-  },
-
-  /**
    * Check if user is authenticated
    */
   isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('authToken');
+    return !!localStorage.getItem('user');
   },
 
   /**

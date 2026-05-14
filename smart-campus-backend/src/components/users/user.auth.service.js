@@ -2,6 +2,25 @@ const UserModel = require('./user.model');
 const { generateToken } = require('../../middleware/auth.middleware');
 const { ApiError } = require('../../middleware/errorHandler');
 
+const AUTH_COOKIE_NAME = 'authToken';
+const AUTH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+const buildAuthCookieOptions = () => {
+  const sameSite = process.env.AUTH_COOKIE_SAME_SITE || 'strict';
+  const secure =
+    process.env.AUTH_COOKIE_SECURE === 'true' ||
+    (process.env.AUTH_COOKIE_SECURE !== 'false' &&
+      process.env.NODE_ENV === 'production');
+
+  return {
+    httpOnly: true,
+    secure,
+    sameSite,
+    maxAge: AUTH_COOKIE_MAX_AGE_MS,
+    path: '/',
+  };
+};
+
 const registerUser = async ({ full_name, email, password, role, department, cgpa, semester }) => {
   const existingUser = await UserModel.findByEmail(email);
   if (existingUser) {
@@ -141,4 +160,6 @@ module.exports = {
   updateProfileById,
   changePasswordById,
   handleSSOLogin,
+  AUTH_COOKIE_NAME,
+  buildAuthCookieOptions,
 };
