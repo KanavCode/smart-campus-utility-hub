@@ -59,8 +59,10 @@ const createEvent = asyncHandler(async (req, res) => {
   logger.info('Event created', { eventId: result.rows[0].id, createdBy: req.user.id });
 
   notificationService.broadcast('EVENT_CREATED', {
-    message: `New event: ${result.rows[0].title}`,
-  await notificationService.notifyRole({
+  message: `New event: ${result.rows[0].title}`,
+});
+
+await notificationService.notifyRole({
     role: 'student',
     eventType: 'EVENT_CREATED',
     title: 'New Campus Event',
@@ -275,8 +277,10 @@ const updateEvent = asyncHandler(async (req, res) => {
   logger.info('Event updated', { eventId: id, updatedBy: req.user.id });
 
   notificationService.broadcast('EVENT_UPDATED', {
-    message: `Event updated: ${result.rows[0].title}`,
-  await notificationService.notifyRole({
+  message: `Event updated: ${result.rows[0].title}`,
+});
+
+await notificationService.notifyRole({
     role: 'student',
     eventType: 'EVENT_UPDATED',
     title: 'Campus Event Updated',
