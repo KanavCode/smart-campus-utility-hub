@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 interface NotificationContextType {
   socket: Socket | null;
   isConnected: boolean;
+  lastEventAt: number;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -12,6 +13,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [lastEventAt, setLastEventAt] = useState(0);
 
   useEffect(() => {
     // Connect to the backend WebSocket server
@@ -40,6 +42,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
     // Listen for specific events
     socketInstance.on('TIMETABLE_GENERATED', (data: any) => {
+      setLastEventAt(Date.now());
       toast.success('Timetable Generated', {
         description: data?.message || 'A new full schedule is ready.',
         duration: 5000,
@@ -47,13 +50,23 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     });
 
     socketInstance.on('EVENT_CREATED', (data: any) => {
+      setLastEventAt(Date.now());
       toast.info('New Campus Event', {
         description: data?.message || 'A club has pushed a new announcement.',
         duration: 5000,
       });
     });
 
+    socketInstance.on('EVENT_UPDATED', (data: any) => {
+      setLastEventAt(Date.now());
+      toast.info('Event Updated', {
+        description: data?.message || 'An event details were updated.',
+        duration: 5000,
+      });
+    });
+
     socketInstance.on('SLOT_UPDATED', (data: any) => {
+      setLastEventAt(Date.now());
       toast('Slot Updated', {
         description: data?.message || 'A class schedule or room has changed.',
         duration: 5000,
@@ -66,6 +79,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     });
 
     socketInstance.on('SLOT_CANCELLED', (data: any) => {
+      setLastEventAt(Date.now());
       toast.error('Class Cancelled', {
         description: data?.message || 'A class has been cancelled.',
         duration: 5000,
@@ -78,7 +92,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <NotificationContext.Provider value={{ socket, isConnected }}>
+    <NotificationContext.Provider value={{ socket, isConnected, lastEventAt }}>
       {children}
     </NotificationContext.Provider>
   );

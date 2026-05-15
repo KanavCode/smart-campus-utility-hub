@@ -15,13 +15,13 @@ export interface RegisterRequest {
   role: 'student' | 'admin';
   department?: string;
   // Student-specific fields
+  
   semester?: number;
   cgpa?: number;
 }
 
 export type AuthResponse = ApiResponse<{
   user: User;
-  token: string;
 }>;
 
 export interface ProfileUpdate {
@@ -39,12 +39,7 @@ export const authService = {
   login: async (email: string, password: string): Promise<AuthResponse> => {
     try {
       const { data } = await api.post<AuthResponse>('/auth/login', { email, password });
-      
-      // Store token in localStorage
-      if (data.data.token) {
-        localStorage.setItem('authToken', data.data.token);
-        localStorage.setItem('user', JSON.stringify(data.data.user));
-      }
+      localStorage.setItem('user', JSON.stringify(data.data.user));
       
       return data;
     } catch (error) {
@@ -103,12 +98,7 @@ export const authService = {
       }
 
       const { data } = await api.post<AuthResponse>('/auth/register', payload);
-      
-      // Store token in localStorage
-      if (data.data.token) {
-        localStorage.setItem('authToken', data.data.token);
-        localStorage.setItem('user', JSON.stringify(data.data.user));
-      }
+      localStorage.setItem('user', JSON.stringify(data.data.user));
       
       return data;
     } catch (error) {
@@ -197,19 +187,13 @@ export const authService = {
 
   /**
    * Logout user
-   * Clears local storage and removes token
+   * Clears local user state and invalidates auth cookie server-side
    */
   logout: async (): Promise<void> => {
     try {
-      // Optional: Call backend logout endpoint if needed
-      // await api.post('/auth/logout');
-      
-      // Clear localStorage
-      localStorage.removeItem('authToken');
+      await api.post('/auth/logout');
       localStorage.removeItem('user');
     } catch (error) {
-      // Still clear local storage even if logout fails
-      localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       withServiceError(error, 'Logout failed');
     }
@@ -224,17 +208,10 @@ export const authService = {
   },
 
   /**
-   * Get stored token from localStorage
-   */
-  getToken: (): string | null => {
-    return localStorage.getItem('authToken');
-  },
-
-  /**
    * Check if user is authenticated
    */
   isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('authToken');
+    return !!localStorage.getItem('user');
   },
 
   /**
@@ -251,5 +228,47 @@ export const authService = {
   isStudent: (): boolean => {
     const user = authService.getStoredUser();
     return user?.role === 'student';
-  }
+    },
+
+    /**
+     * Request password reset link via email
+     */
+    forgotPassword: async (email: string): Promise<ApiResponse<{ message: string }>> => {
+      try {
+        const { data } = await api.post<ApiResponse<{ message: string }>>('/auth/forgot-password', { email });
+        return data;
+      } catch (error) {
+        const axiosError = error as AxiosError<ApiError>;
+        const errorMessage = 
+          axiosError.response?.data?.message || 
+          axiosError.message || 
+          'Failed to send password reset email. Please try again.';
+        throw { message: errorMessage } as ApiError;
+      }
+    },
+
+    /**
+     * Reset password using token from email link
+     */
+    resetPassword: async (
+      token: string,
+      newPassword: string,
+      confirmPassword: string
+    ): Promise<ApiResponse<{ message: string }>> => {
+      try {
+        const { data } = await api.post<ApiResponse<{ message: string }>>('/auth/reset-password', {
+          token,
+          newPassword,
+          confirmPassword
+        });
+        return data;
+      } catch (error) {
+        const axiosError = error as AxiosError<ApiError>;
+        const errorMessage = 
+          axiosError.response?.data?.message || 
+          axiosError.message || 
+          'Failed to reset password. Please check your information and try again.';
+        throw { message: errorMessage } as ApiError;
+      }
+    }
 };

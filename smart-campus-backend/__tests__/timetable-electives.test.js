@@ -31,6 +31,7 @@ describe('Timetable API Tests', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    query.mockResolvedValue({ rows: [], rowCount: 0 });
   });
 
   describe('GET /api/timetable/teachers', () => {
@@ -103,6 +104,32 @@ describe('Timetable API Tests', () => {
     });
   });
 
+  describe('GET /api/timetable/group/:groupId/ical', () => {
+    test('should export timetable in iCal format', async () => {
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: '123e4567-e89b-12d3-a456-426614174001',
+            day_of_week: 'Monday',
+            period_number: 1,
+            subject_name: 'Data Structures',
+            subject_code: 'CS101',
+            teacher_name: 'Dr. Smith',
+            room_name: 'Room 301',
+          },
+        ],
+      });
+
+      const response = await request(app)
+        .get('/api/timetable/group/123e4567-e89b-12d3-a456-426614174000/ical');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toContain('text/calendar');
+      expect(response.text).toContain('BEGIN:VCALENDAR');
+      expect(response.text).toContain('BEGIN:VEVENT');
+    });
+  });
+
   describe('POST /api/timetable/teachers (Admin)', () => {
     test('should create a teacher with admin token', async () => {
       query.mockResolvedValueOnce({
@@ -157,6 +184,7 @@ describe('Electives API Tests', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    query.mockResolvedValue({ rows: [], rowCount: 0 });
   });
 
   describe('GET /api/electives', () => {
@@ -284,6 +312,24 @@ describe('Electives API Tests', () => {
     });
   });
 
+  describe('GET /api/electives/my/waitlist (Student)', () => {
+    test('should get student waitlist entries', async () => {
+      query.mockResolvedValueOnce({
+        rows: [
+          { id: 1, elective_id: 1, preference_rank: 1, status: 'waiting', subject_name: 'Machine Learning' },
+        ],
+      });
+
+      const response = await request(app)
+        .get('/api/electives/my/waitlist')
+        .set('Authorization', `Bearer ${studentToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.waitlist).toBeInstanceOf(Array);
+    });
+  });
+
   describe('POST /api/electives/allocate (Admin)', () => {
     test('should run allocation algorithm with admin token', async () => {
       const mockClient = { query: jest.fn() };
@@ -323,6 +369,31 @@ describe('Electives API Tests', () => {
         .set('Authorization', `Bearer ${studentToken}`);
 
       expect(response.status).toBe(403);
+    });
+  });
+
+  describe('POST /api/electives/waitlist/process (Admin)', () => {
+    test('should process waitlist with admin token', async () => {
+      const mockClient = { query: jest.fn() };
+      transaction.mockImplementation(async (callback) => callback(mockClient));
+
+      mockClient.query
+        .mockResolvedValueOnce({ rows: [{ id: 1, subject_name: 'ML', seats_available: 1 }] })
+        .mockResolvedValueOnce({
+          rows: [{ id: 7, student_id: 1, preference_rank: 1, full_name: 'Student A', email: 'student@example.com' }],
+        })
+        .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 11 }] })
+        .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+        .mockResolvedValueOnce({ rowCount: 1, rows: [] });
+
+      const response = await request(app)
+        .post('/api/electives/waitlist/process')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({});
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.promotedCount).toBe(1);
     });
   });
 });

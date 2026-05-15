@@ -60,6 +60,21 @@ const createEvent = asyncHandler(async (req, res) => {
 
   notificationService.broadcast('EVENT_CREATED', {
     message: `New event: ${result.rows[0].title}`,
+  await notificationService.notifyRole({
+    role: 'student',
+    eventType: 'EVENT_CREATED',
+    title: 'New Campus Event',
+    message: `New event: ${result.rows[0].title}`,
+    metadata: { eventId: result.rows[0].id },
+    socketEvent: 'EVENT_CREATED',
+    socketPayload: {
+      message: `New event: ${result.rows[0].title}`,
+      event: result.rows[0]
+    },
+    sendEmail: true,
+  });
+
+  sendSuccess(res, 201, 'Event created successfully', {
     event: result.rows[0],
   });
 
@@ -261,6 +276,21 @@ const updateEvent = asyncHandler(async (req, res) => {
 
   notificationService.broadcast('EVENT_UPDATED', {
     message: `Event updated: ${result.rows[0].title}`,
+  await notificationService.notifyRole({
+    role: 'student',
+    eventType: 'EVENT_UPDATED',
+    title: 'Campus Event Updated',
+    message: `Event updated: ${result.rows[0].title}`,
+    metadata: { eventId: result.rows[0].id },
+    socketEvent: 'EVENT_UPDATED',
+    socketPayload: {
+      message: `Event updated: ${result.rows[0].title}`,
+      event: result.rows[0]
+    },
+    sendEmail: true,
+  });
+
+  sendSuccess(res, 200, 'Event updated successfully', {
     event: result.rows[0],
   });
 

@@ -9,6 +9,7 @@ require('dotenv').config();
 const { testConnection, logger, isDatabaseConnected } = require('./config/db');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter.middleware');
+const { verifyToken, verifyAdmin } = require('./middleware/auth.middleware');
 const notificationService = require('./services/notification.service');
 
 // Import routes
@@ -18,6 +19,7 @@ const clubsRoutes = require("./components/campus-events/clubs.routes");
 const timetableRoutes = require("./components/timetable/timetable.routes");
 const electiveRoutes = require("./components/electives/elective.routes");
 const settingsRoutes = require("./components/settings/settings.routes");
+const notificationsRoutes = require("./components/notifications/notifications.routes");
 
 // Create Express application
 const app = express();
@@ -154,7 +156,7 @@ app.use('/api/timetable', timetableRoutes);
 app.use('/api/electives', electiveRoutes);
 
 // Test Socket endpoint
-app.get('/api/test-socket', (req, res) => {
+app.get('/api/test-socket', verifyToken, verifyAdmin, (req, res) => {
   const type = req.query.type || 'EVENT_CREATED';
   notificationService.broadcast(type, {
     message: `Test notification for ${type}`,
@@ -168,6 +170,7 @@ app.get('/api/test-socket', (req, res) => {
 
 // Admin settings routes
 app.use("/api/settings", settingsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // =====================================================================
 // ERROR HANDLING

@@ -61,6 +61,18 @@ const validationSchemas = {
     password: Joi.string().required()
   }),
 
+  // Forgot password
+  forgotPassword: Joi.object({
+    email: Joi.string().email().required()
+  }),
+
+  // Reset password
+  resetPassword: Joi.object({
+    token: Joi.string().required(),
+    newPassword: Joi.string().min(8).required(),
+    confirmPassword: Joi.string().required()
+  }),
+
   // Update profile
   updateProfile: Joi.object({
     full_name: Joi.string().min(2).max(100).optional(),
@@ -252,6 +264,16 @@ const validationSchemas = {
   electiveQuery: Joi.object({
     department: Joi.string().max(100).optional(),
     semester: Joi.number().integer().min(1).max(8).optional()
+  }),
+
+  processWaitlist: Joi.object({
+    elective_id: Joi.number().integer().positive().optional()
+  }),
+
+  notificationsQuery: Joi.object({
+    unread_only: Joi.string().valid('true', 'false').optional(),
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20)
   })
 };
 

@@ -9,7 +9,6 @@ const { authLimiter } = require('../../middleware/rateLimiter.middleware');
  * User Routes
  * Base path: /api/auth and /api/users
  */
-
 // Public routes (no authentication required)
 router.post(
   '/register',
@@ -23,6 +22,20 @@ router.post(
   authLimiter,
   validate(validationSchemas.login),
   userController.login
+);
+
+router.post(
+  '/forgot-password',
+  authLimiter,
+  validate(validationSchemas.forgotPassword),
+  userController.forgotPassword
+);
+
+router.post(
+  '/reset-password',
+  authLimiter,
+  validate(validationSchemas.resetPassword),
+  userController.resetPassword
 );
 
 // Protected routes (authentication required)
@@ -52,6 +65,8 @@ router.post(
   authLimiter,
   userController.changePassword
 );
+
+router.post('/logout', userController.logout);
 
 // Admin-only routes
 router.get(

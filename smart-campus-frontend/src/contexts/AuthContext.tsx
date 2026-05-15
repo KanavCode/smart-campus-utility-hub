@@ -9,13 +9,14 @@ import {
   PERMISSIONS 
 } from '@/utils/permissions';
 
+
 // User interface is now imported from @/types
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<User>;
-  loginWithToken: (token: string) => Promise<User>;
+  loginWithToken: () => Promise<User>;
   register: (userData: RegisterRequest) => Promise<User>;
   logout: () => Promise<void>;
   updateProfile: (updates: { full_name?: string; department?: string; cgpa?: number; semester?: number }) => Promise<User>;
@@ -31,42 +32,68 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const COOKIE_AUTH_STATE = 'cookie-authenticated';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth state from localStorage
+  // Initialize auth state from cookie-backed session
   useEffect(() => {
-    const storedToken = localStorage.getItem('authToken');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
+    const initializeAuth = async () => {
       try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        // Clear invalid data
-        localStorage.removeItem('authToken');
+        const response = await authService.getProfile();
+        const currentUser = response.data.user as User;
+        setUser(currentUser);
+        setToken(COOKIE_AUTH_STATE);
+        localStorage.setItem('user', JSON.stringify(currentUser));
+      } catch {
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem('user');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void initializeAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const revalidateSession = async () => {
+      try {
+        const response = await authService.getProfile();
+        const currentUser = response.data.user as User;
+        setUser(currentUser);
+        setToken(COOKIE_AUTH_STATE);
+        localStorage.setItem('user', JSON.stringify(currentUser));
+      } 
+      catch { 
+        setUser(null);
+        setToken(null);
         localStorage.removeItem('user');
       }
-    }
-    
-    setIsLoading(false);
-  }, []);
+    };
+
+    const handleWindowFocus = () => {
+      void revalidateSession();
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    return () => window.removeEventListener('focus', handleWindowFocus);
+  }, [user]);
 
   const login = async (email: string, password: string): Promise<User> => {
     try {
       setIsLoading(true);
       const response = await authService.login(email, password);
       
-      const { user: userData, token: newToken } = response.data;
+      const { user: userData } = response.data;
       setUser(userData as User);
-      setToken(newToken);
+      setToken(COOKIE_AUTH_STATE);
       
-      // Store in localStorage
-      localStorage.setItem('authToken', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
       
       return userData as User;
@@ -85,12 +112,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       const response = await authService.register(userData);
       
-      const { user: newUser, token: newToken } = response.data;
+      const { user: newUser } = response.data;
       setUser(newUser as User);
-      setToken(newToken);
+      setToken(COOKIE_AUTH_STATE);
       
-      // Store in localStorage
-      localStorage.setItem('authToken', newToken);
       localStorage.setItem('user', JSON.stringify(newUser));
       
       return newUser as User;
@@ -151,24 +176,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const loginWithToken = async (newToken: string): Promise<User> => {
+  const loginWithToken = async (): Promise<User> => {
     try {
       setIsLoading(true);
-      // Temporarily store token so getProfile can use it
-      localStorage.setItem('authToken', newToken);
-      setToken(newToken);
       
       const response = await authService.getProfile();
       const userData = response.data.user;
       
       setUser(userData as User);
+      setToken(COOKIE_AUTH_STATE);
       localStorage.setItem('user', JSON.stringify(userData));
       
       return userData as User;
     } catch (error) {
       console.error('SSO Login error:', error);
       // Clear invalid data
-      localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       setToken(null);
       setUser(null);

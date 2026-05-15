@@ -1,6 +1,8 @@
-const { query, transaction } = require('../../config/db');
+const { query, transaction, logger } = require('../../config/db');
 const { ApiError } = require('../../middleware/errorHandler');
 const { parseInteger } = require('../../utils/request');
+const notificationService = require('../../services/notification.service');
+const NO_ALLOCATION_MESSAGE = 'None (No seat available)';
 
 const createElective = async ({ subject_name, description, max_students, department, semester }) => {
   const sql = `
@@ -60,6 +62,8 @@ const updateElective = async (id, { subject_name, description, max_students, dep
   if (result.rows.length === 0) {
     throw new ApiError(404, 'Elective not found');
   }
+
+  await processWaitlist({ electiveId: parsedId });
 
   return result.rows[0];
 };
@@ -148,9 +152,165 @@ const getMyAllocation = async (userId) => {
   return result.rows[0] || null;
 };
 
+const getMyWaitlist = async (userId) => {
+  const sql = `
+    SELECT
+      ew.id,
+      ew.elective_id,
+      ew.preference_rank,
+      ew.status,
+      ew.created_at,
+      ew.allocated_at,
+      e.subject_name,
+      e.department,
+      e.semester
+    FROM elective_waitlist ew
+    JOIN electives e ON e.id = ew.elective_id
+    WHERE ew.student_id = $1
+    ORDER BY ew.status = 'waiting' DESC, ew.preference_rank ASC, ew.created_at ASC
+  `;
+
+  const result = await query(sql, [userId]);
+  return result.rows;
+};
+
+const processWaitlistWithClient = async ({ client, electiveId = null }) => {
+  const electiveParams = [];
+  let electiveFilterSql = '';
+
+  if (electiveId != null) {
+    electiveFilterSql = 'WHERE e.id = $1';
+    electiveParams.push(parseInteger(electiveId));
+  }
+
+  const electiveCapacitySql = `
+    SELECT
+      e.id,
+      e.subject_name,
+      e.max_students - COUNT(ae.id)::int AS seats_available
+    FROM electives e
+    LEFT JOIN allocated_electives ae ON ae.elective_id = e.id
+    ${electiveFilterSql}
+    GROUP BY e.id, e.subject_name, e.max_students
+    ORDER BY e.id ASC
+  `;
+
+  const electivesResult = await client.query(electiveCapacitySql, electiveParams);
+  const promotions = [];
+
+  for (const elective of electivesResult.rows) {
+    let seatsAvailable = Number(elective.seats_available);
+    if (!Number.isFinite(seatsAvailable)) {
+      logger.warn('Invalid seats_available value while processing waitlist', {
+        electiveId: elective.id,
+        seats_available: elective.seats_available,
+      });
+      continue;
+    }
+
+    if (seatsAvailable <= 0) {
+      continue;
+    }
+
+    const waitlistResult = await client.query(
+      `
+        SELECT ew.id, ew.student_id, ew.preference_rank, u.full_name, u.email
+        FROM elective_waitlist ew
+        JOIN users u ON u.id = ew.student_id
+        WHERE ew.elective_id = $1 AND ew.status = 'waiting'
+        ORDER BY ew.preference_rank ASC, u.cgpa DESC NULLS LAST, ew.created_at ASC
+      `,
+      [elective.id]
+    );
+
+    for (const waitEntry of waitlistResult.rows) {
+      if (seatsAvailable <= 0) {
+        break;
+      }
+
+      const allocationInsert = await client.query(
+        `
+          INSERT INTO allocated_electives (student_id, elective_id, allocation_round)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (student_id) DO NOTHING
+          RETURNING id
+        `,
+        [waitEntry.student_id, elective.id, 2]
+      );
+
+      if (allocationInsert.rowCount === 0) {
+        await client.query(
+          `UPDATE elective_waitlist SET status = 'skipped' WHERE id = $1`,
+          [waitEntry.id]
+        );
+        continue;
+      }
+
+      await client.query(
+        `
+          UPDATE elective_waitlist
+          SET status = 'allocated', allocated_at = CURRENT_TIMESTAMP
+          WHERE id = $1
+        `,
+        [waitEntry.id]
+      );
+
+      await client.query(
+        `
+          UPDATE elective_waitlist
+          SET status = 'removed'
+          WHERE student_id = $1 AND status = 'waiting'
+        `,
+        [waitEntry.student_id]
+      );
+
+      promotions.push({
+        student_id: waitEntry.student_id,
+        student_name: waitEntry.full_name,
+        email: waitEntry.email,
+        elective_id: elective.id,
+        elective_name: elective.subject_name,
+      });
+
+      seatsAvailable -= 1;
+    }
+  }
+
+  return promotions;
+};
+
+const processWaitlist = async ({ electiveId = null } = {}) => {
+  const promotions = await transaction(async (client) => {
+    return processWaitlistWithClient({ client, electiveId });
+  });
+
+  if (promotions.length > 0) {
+    await notificationService.createNotificationsForUsers({
+      users: promotions.map((entry) => ({
+        id: entry.student_id,
+        email: entry.email,
+      })),
+      eventType: 'WAITLIST_PROMOTED',
+      title: 'Elective Waitlist Promotion',
+      message: 'You have been auto-enrolled from the elective waitlist.',
+      metadata: {
+        promotions: promotions.map((entry) => ({
+          student_id: entry.student_id,
+          elective_id: entry.elective_id,
+          elective_name: entry.elective_name,
+        })),
+      },
+      sendEmail: true,
+    });
+  }
+
+  return promotions;
+};
+
 const allocateElectives = async () => {
-  return transaction(async (client) => {
+  const payload = await transaction(async (client) => {
     await client.query('DELETE FROM allocated_electives');
+    await client.query('DELETE FROM elective_waitlist');
 
     const studentsResult = await client.query(
       'SELECT id, full_name, email, cgpa FROM users WHERE role = $1 AND cgpa IS NOT NULL ORDER BY cgpa DESC',
@@ -189,6 +349,7 @@ const allocateElectives = async () => {
           const electiveName = electivesResult.rows.find((elective) => elective.id === electiveId).subject_name;
 
           results.push({
+            student_id: student.id,
             student_name: student.full_name,
             cgpa: student.cgpa,
             allocated_elective: electiveName,
@@ -202,16 +363,65 @@ const allocateElectives = async () => {
 
       if (!allocated) {
         results.push({
+          student_id: student.id,
           student_name: student.full_name,
           cgpa: student.cgpa,
-          allocated_elective: 'None (No seat available)',
+          allocated_elective: NO_ALLOCATION_MESSAGE,
           preference_rank: null
         });
       }
     }
 
-    return results;
+    for (const resultEntry of results) {
+      if (resultEntry.allocated_elective !== NO_ALLOCATION_MESSAGE) {
+        continue;
+      }
+
+      const student = students.find((item) => item.id === resultEntry.student_id);
+      if (!student) {
+        continue;
+      }
+
+      const choicesResult = await client.query(
+        'SELECT elective_id, preference_rank FROM student_choices WHERE student_id = $1 ORDER BY preference_rank ASC',
+        [student.id]
+      );
+
+      for (const waitChoice of choicesResult.rows) {
+        await client.query(
+          `
+            INSERT INTO elective_waitlist (student_id, elective_id, preference_rank, status)
+            VALUES ($1, $2, $3, 'waiting')
+            ON CONFLICT (student_id, elective_id) DO NOTHING
+          `,
+          [student.id, waitChoice.elective_id, waitChoice.preference_rank]
+        );
+      }
+    }
+
+    const promotions = await processWaitlistWithClient({ client });
+
+    return { results, promotions };
   });
+
+  const studentsResult = await query(
+    'SELECT id, email FROM users WHERE role = $1 AND is_active = true',
+    ['student']
+  );
+
+  await notificationService.createNotificationsForUsers({
+    users: studentsResult.rows,
+    eventType: 'ELECTIVE_ALLOCATION_PUBLISHED',
+    title: 'Elective Allocation Updated',
+    message: 'Elective allocation results are available. Check your dashboard for allocation and waitlist status.',
+    metadata: {
+      allocatedCount: payload.results.filter((entry) => entry.preference_rank != null).length,
+      waitlistPromotions: payload.promotions.length,
+    },
+    sendEmail: true,
+  });
+
+  return payload.results;
 };
 
 module.exports = {
@@ -223,5 +433,7 @@ module.exports = {
   submitChoices,
   getMyChoices,
   getMyAllocation,
+  getMyWaitlist,
+  processWaitlist,
   allocateElectives
 };
