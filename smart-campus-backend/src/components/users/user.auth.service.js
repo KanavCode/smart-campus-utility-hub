@@ -1,14 +1,46 @@
 const crypto = require('crypto');
 const UserModel = require('./user.model');
-const { generateToken } = require('../../middleware/auth.middleware');
+const {
+  generateToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+  ACCESS_COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
+} = require('../../middleware/auth.middleware');
 const { ApiError } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
 const { sendPasswordResetEmail, sendPasswordResetConfirmation } = require('../../utils/emailService');
 
-const AUTH_COOKIE_NAME = 'authToken';
-const AUTH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days 
+const ACCESS_TOKEN_TTL = process.env.JWT_EXPIRES_IN || '15m';
+const REFRESH_TOKEN_TTL = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
 
-const buildAuthCookieOptions = () => {
+const parseDurationToMs = (value, fallbackMs) => {
+  if (!value || typeof value !== 'string') {
+    return fallbackMs;
+  }
+
+  const match = value.trim().match(/^(\d+)(ms|s|m|h|d)$/i);
+  if (!match) {
+    return fallbackMs;
+  }
+
+  const amount = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  const unitToMs = {
+    ms: 1,
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+  };
+
+  return amount * unitToMs[unit];
+};
+
+const ACCESS_COOKIE_MAX_AGE_MS = parseDurationToMs(ACCESS_TOKEN_TTL, 15 * 60 * 1000);
+const REFRESH_COOKIE_MAX_AGE_MS = parseDurationToMs(REFRESH_TOKEN_TTL, 30 * 24 * 60 * 60 * 1000);
+
+const buildCookieBaseOptions = () => {
   const sameSite = process.env.AUTH_COOKIE_SAME_SITE || 'strict';
   const secure =
     process.env.AUTH_COOKIE_SECURE === 'true' ||
@@ -19,8 +51,48 @@ const buildAuthCookieOptions = () => {
     httpOnly: true,
     secure,
     sameSite,
-    maxAge: AUTH_COOKIE_MAX_AGE_MS,
     path: '/',
+  };
+};
+
+const buildAccessCookieOptions = () => ({
+  ...buildCookieBaseOptions(),
+  maxAge: ACCESS_COOKIE_MAX_AGE_MS,
+});
+
+const buildRefreshCookieOptions = () => ({
+  ...buildCookieBaseOptions(),
+  maxAge: REFRESH_COOKIE_MAX_AGE_MS,
+});
+
+const hashRefreshToken = (refreshToken) =>
+  crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+const createAuthTokenPair = async (user) => {
+  const accessToken = generateToken(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    },
+    ACCESS_TOKEN_TTL,
+  );
+
+  const refreshToken = generateRefreshToken(
+    {
+      id: user.id,
+      tokenVersion: crypto.randomUUID(),
+    },
+    REFRESH_TOKEN_TTL,
+  );
+
+  const refreshTokenHash = hashRefreshToken(refreshToken);
+  const refreshTokenExpiry = new Date(Date.now() + REFRESH_COOKIE_MAX_AGE_MS);
+  await UserModel.saveRefreshTokenByUserId(user.id, refreshTokenHash, refreshTokenExpiry);
+
+  return {
+    accessToken,
+    refreshToken,
   };
 };
 
@@ -54,18 +126,14 @@ const registerUser = async ({ full_name, email, password, role, department, cgpa
     semester: role === 'student' ? semester : null,
   });
 
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  });
+  const tokens = await createAuthTokenPair(user);
 
   const userData = { ...user };
   delete userData.password_hash;
 
   return {
     user: userData,
-    token,
+    ...tokens,
   };
 };
 
@@ -84,17 +152,13 @@ const loginUser = async ({ email, password }) => {
     throw new ApiError(401, 'Invalid email or password');
   }
 
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  });
+  const tokens = await createAuthTokenPair(user);
 
   delete user.password_hash;
 
   return {
     user,
-    token,
+    ...tokens,
   };
 };
 
@@ -213,16 +277,55 @@ const handleSSOLogin = async ({ email, full_name, auth_provider, provider_id }) 
     // but relying on email matching is standard for Entra ID / Workspace if domains match.
   }
 
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  });
+  const tokens = await createAuthTokenPair(user);
 
   return {
     user,
-    token,
+    ...tokens,
   };
+};
+
+const refreshAuthTokens = async ({ refreshToken }) => {
+  if (!refreshToken) {
+    throw new ApiError(401, 'Unauthorized: No refresh token provided.');
+  }
+
+  let decodedRefreshToken;
+  try {
+    decodedRefreshToken = verifyRefreshToken(refreshToken);
+  } catch (error) {
+    throw new ApiError(401, 'Unauthorized: Invalid refresh token.');
+  }
+
+  const user = await UserModel.findRefreshTokenStateByUserId(decodedRefreshToken.id);
+  if (!user || user.is_active === false) {
+    throw new ApiError(401, 'Unauthorized: Invalid refresh token.');
+  }
+
+  const incomingRefreshTokenHash = hashRefreshToken(refreshToken);
+  const isRefreshStateValid =
+    user.refresh_token_hash &&
+    user.refresh_token_hash === incomingRefreshTokenHash &&
+    user.refresh_token_expires_at &&
+    new Date(user.refresh_token_expires_at).getTime() > Date.now();
+
+  if (!isRefreshStateValid) {
+    await UserModel.clearRefreshTokenByUserId(user.id);
+    throw new ApiError(401, 'Unauthorized: Refresh token expired or rotated.');
+  }
+
+  return createAuthTokenPair(user);
+};
+
+const revokeRefreshTokenByUserId = async (userId) => {
+  if (!userId) return;
+  await UserModel.clearRefreshTokenByUserId(userId);
+};
+
+const revokeRefreshToken = async (refreshToken) => {
+  if (!refreshToken) return;
+  const refreshTokenHash = hashRefreshToken(refreshToken);
+  await UserModel.clearRefreshTokenByHash(refreshTokenHash);
 };
 
 module.exports = {
@@ -234,6 +337,11 @@ module.exports = {
   forgotPassword,
   resetPassword,
   handleSSOLogin,
-  AUTH_COOKIE_NAME,
-  buildAuthCookieOptions,
+  refreshAuthTokens,
+  revokeRefreshTokenByUserId,
+  revokeRefreshToken,
+  ACCESS_COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
+  buildAccessCookieOptions,
+  buildRefreshCookieOptions,
 };

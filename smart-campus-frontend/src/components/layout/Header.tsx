@@ -15,6 +15,7 @@ import { Bell, CheckCheck, LogOut, User } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { notificationApiService, UserNotification } from '@/services/notificationApiService';
 import { useNotification } from '@/contexts/NotificationContext';
+import { GlobalSearch } from './GlobalSearch';
 
 export const Header = () => {
   const { user, logout } = useAuth();
@@ -69,8 +70,14 @@ export const Header = () => {
       animate={{ y: 0, opacity: 1 }}
       className="fixed top-0 left-20 right-0 z-40 h-16 glass border-b border-border/50"
     >
-      <div className="h-full px-6 flex items-center justify-end gap-4">
-        <ThemeToggle />
+      <div className="h-full px-6 flex items-center justify-between gap-4">
+        <div className="flex-1 max-w-xl">
+          <GlobalSearch />
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

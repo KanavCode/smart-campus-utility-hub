@@ -5,6 +5,7 @@
 
 
 const request = require('supertest');
+const crypto = require('crypto');
 const app = require('../src/app');
 
 // Mock the database module to avoid actual DB connections during tests
@@ -21,6 +22,7 @@ jest.mock('../src/config/db', () => ({
 }));
 
 const { query } = require('../src/config/db');
+const findCookie = (cookies = [], name) => cookies.find((cookie) => cookie.startsWith(`${name}=`));
 
 describe('Authentication API Tests', () => {
   let testUserId;
@@ -45,6 +47,7 @@ describe('Authentication API Tests', () => {
           }
         ]
       });
+      query.mockResolvedValueOnce({ rowCount: 1 });
 
       const response = await request(app)
         .post('/api/auth/register')
@@ -130,6 +133,7 @@ describe('Authentication API Tests', () => {
           }
         ]
       });
+      query.mockResolvedValueOnce({ rowCount: 1 });
 
       const response = await request(app)
         .post('/api/auth/login')
@@ -142,6 +146,8 @@ describe('Authentication API Tests', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.token).toBeUndefined();
       expect(response.headers['set-cookie']).toBeDefined();
+      expect(findCookie(response.headers['set-cookie'], 'accessToken')).toBeDefined();
+      expect(findCookie(response.headers['set-cookie'], 'refreshToken')).toBeDefined();
       expect(response.body.data.user.email).toBe('test@example.com');
       
       testUserId = response.body.data.user.id;
@@ -234,6 +240,73 @@ describe('Authentication API Tests', () => {
       expect(response.status).toBe(401);
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe('Unauthorized: Invalid token.');
+    });
+  });
+
+  describe('POST /api/auth/refresh', () => {
+    test('should rotate access and refresh tokens with valid refresh token', async () => {
+      const { generateRefreshToken } = require('../src/middleware/auth.middleware');
+      const refreshToken = generateRefreshToken({ id: 1, tokenVersion: 'v1' });
+      const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 1,
+            email: 'test@example.com',
+            role: 'student',
+            is_active: true,
+            refresh_token_hash: refreshTokenHash,
+            refresh_token_expires_at: new Date(Date.now() + 60 * 60 * 1000),
+          },
+        ],
+      });
+      query.mockResolvedValueOnce({ rowCount: 1 });
+
+      const response = await request(app)
+        .post('/api/auth/refresh')
+        .set('Cookie', [`refreshToken=${encodeURIComponent(refreshToken)}`]);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.headers['set-cookie']).toBeDefined();
+      expect(findCookie(response.headers['set-cookie'], 'accessToken')).toBeDefined();
+      expect(findCookie(response.headers['set-cookie'], 'refreshToken')).toBeDefined();
+    });
+
+    test('should reject refresh with invalid refresh token', async () => {
+      const response = await request(app)
+        .post('/api/auth/refresh')
+        .set('Cookie', ['refreshToken=invalid-token']);
+
+      expect(response.status).toBe(401);
+      expect(response.body.success).toBe(false);
+    });
+
+    test('should reject rotated refresh token and revoke stored state', async () => {
+      const { generateRefreshToken } = require('../src/middleware/auth.middleware');
+      const refreshToken = generateRefreshToken({ id: 1, tokenVersion: 'v1' });
+
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 1,
+            email: 'test@example.com',
+            role: 'student',
+            is_active: true,
+            refresh_token_hash: 'different-hash',
+            refresh_token_expires_at: new Date(Date.now() + 60 * 60 * 1000),
+          },
+        ],
+      });
+      query.mockResolvedValueOnce({ rowCount: 1 });
+
+      const response = await request(app)
+        .post('/api/auth/refresh')
+        .set('Cookie', [`refreshToken=${encodeURIComponent(refreshToken)}`]);
+
+      expect(response.status).toBe(401);
+      expect(response.body.success).toBe(false);
     });
   });
 
@@ -369,6 +442,23 @@ describe('Authentication API Tests', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('POST /api/auth/logout', () => {
+    test('should clear auth cookies and revoke refresh token state', async () => {
+      const refreshToken = 'sample-refresh-token';
+      query.mockResolvedValueOnce({ rowCount: 1 });
+
+      const response = await request(app)
+        .post('/api/auth/logout')
+        .set('Cookie', [`refreshToken=${encodeURIComponent(refreshToken)}`]);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.headers['set-cookie']).toBeDefined();
+      expect(findCookie(response.headers['set-cookie'], 'accessToken')).toBeDefined();
+      expect(findCookie(response.headers['set-cookie'], 'refreshToken')).toBeDefined();
     });
   });
 });
