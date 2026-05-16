@@ -4,7 +4,11 @@ import { Calendar, BookOpen, Clock, ArrowRight, Users, Shield, Zap, ChevronDown,
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef, MouseEvent } from 'react';
-import AnimatedBackground from '@/components/animations/AnimatedBackground';
+import { lazy, Suspense } from 'react';
+
+const AnimatedBackground = lazy(
+  () => import('../components/animations/AnimatedBackground')
+);
 import TiltCard from '@/components/animations/TiltCard';
 import CampusExplorer from '@/components/landing/CampusExplorer';
 import DayInLife from '@/components/landing/DayInLife';
@@ -125,8 +129,12 @@ export default function Landing() {
 
   return (
     <div ref={scrollRef} className="min-h-screen w-full relative overflow-x-clip">
-      <AnimatedBackground className="opacity-30" scrollYProgress={scrollYProgress} />
-
+      <Suspense fallback={null}>
+  <AnimatedBackground
+    className="opacity-30"
+    scrollYProgress={scrollYProgress}
+  />
+</Suspense>
       <Navbar />
 
       {/* Hero Section */}
