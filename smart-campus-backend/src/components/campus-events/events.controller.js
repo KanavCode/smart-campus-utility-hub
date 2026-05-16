@@ -76,6 +76,7 @@ await notificationService.notifyRole({
     sendEmail: true,
   });
 
+
   sendSuccess(res, 201, 'Event created successfully', {
     event: result.rows[0],
   });
@@ -364,6 +365,7 @@ const saveEvent = asyncHandler(async (req, res) => {
   ]);
 
   logger.info('Event saved', { eventId: id, userId });
+
 
   sendSuccess(res, 200, 'Event saved successfully');
 });
