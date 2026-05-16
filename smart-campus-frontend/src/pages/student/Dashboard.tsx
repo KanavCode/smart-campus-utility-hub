@@ -93,6 +93,7 @@ export default function StudentDashboard() {
     }
   };
 
+  // const profileCompletion = 75; // TODO: Calculate based on filled fields
   const dashboardLoading = eventsLoading || timetableLoading;
   const hasEmptyDay = !dashboardLoading && savedEvents.length === 0 && todayClasses.length === 0;
   const calculateProfileCompletion = () => {

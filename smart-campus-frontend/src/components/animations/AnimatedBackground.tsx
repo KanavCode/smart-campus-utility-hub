@@ -5,7 +5,10 @@ import * as THREE from 'three';
 import { MotionValue } from 'framer-motion';
 
 // --- Configuration for the Animation ---
-const PARTICLE_COUNT = 450; // ---> ADJUST: Number of particles (dots) (e.g., 200, 500)
+const PARTICLE_COUNT =
+  typeof window !== 'undefined' && window.innerWidth < 768
+    ? 180
+    : 450;
 const PATH_POINTS = 18; // ---> ADJUST: Smoothness of the curves (higher = smoother but more calculation) (e.g., 64, 256)
 const NUM_PATHS = 5; // ---> ADJUST: Number of distinct orbital paths (e.g., 5, 12)
 const PATH_BASE_RADIUS_FACTOR = 0.19; // ---> ADJUST: Base size of orbits relative to viewport width (e.g., 0.2, 0.3)
@@ -184,7 +187,7 @@ export default function AnimatedBackground({
     <div className={`fixed inset-0 -z-10 ${className}`}>
       {/* Canvas is the root R3F component where the 3D scene lives */}
       <Canvas
-        dpr={[1, 1.5]} // ---> PERFORMANCE: Device Pixel Ratio (lower max value like 1.5 improves performance on high-res screens)
+        dpr={[1, 1.2]} // ---> PERFORMANCE: Device Pixel Ratio (lower max value like 1.5 improves performance on high-res screens)
         camera={{ position: [0, 0, 15], fov: 75 }} // ---> ADJUST: Camera position (z=15 units away) and field of view
         style={{ background: 'transparent' }} // Make canvas background transparent
       >

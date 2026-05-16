@@ -68,7 +68,7 @@ class IcsCalendarService {
   static createVEvent(slot, groupName) {
     const crypto = require('crypto');
     const eventId = crypto.randomUUID();
-    const timestamp = new Date().toISOString().replace(/[-:\.]/g, '');
+    const timestamp = new Date().toISOString().replace(/[-:.]/g, '');
     
     const timing = this.getPeriodTiming(slot.period_number);
     const eventDate = this.getNextOccurrenceDate(slot.day_of_week);
@@ -100,7 +100,7 @@ END:VEVENT`;
       throw new Error('No timetable slots provided');
     }
 
-    const timestamp = new Date().toISOString().replace(/[-:\.]/g, '');
+    const timestamp = new Date().toISOString().replace(/[-:.]/g, '');
     let icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Smart Campus//Calendar//EN
@@ -116,7 +116,7 @@ DTSTAMP:${timestamp}Z
       icsContent += `\n${this.createVEvent(slot, groupName)}`;
     });
 
-    icsContent += `\nEND:VCALENDAR`;
+    icsContent += '\nEND:VCALENDAR';
     return icsContent;
   }
 }
