@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { timetableService, Group } from '@/services/timetableService';
 import { TimetableSlot } from '@/types';
+import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -92,7 +93,6 @@ export default function StudentDashboard() {
     }
   };
 
-  const profileCompletion = 75; // TODO: Calculate based on filled fields
   const dashboardLoading = eventsLoading || timetableLoading;
   const hasEmptyDay = !dashboardLoading && savedEvents.length === 0 && todayClasses.length === 0;
   const calculateProfileCompletion = () => {
@@ -317,132 +317,146 @@ export default function StudentDashboard() {
           </motion.div>
         )}
 
-        {/* Upcoming Saved Events */}
-        {eventsLoading ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            {renderEventsSectionSkeleton()}
-          </motion.div>
-        ) : savedEvents.length > 0 ? (
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Upcoming Saved Events */}
+            {eventsLoading ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                {renderEventsSectionSkeleton()}
+              </motion.div>
+            ) : savedEvents.length > 0 ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <Card className="glass">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle>My Upcoming Events</CardTitle>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => navigate('/saved-events')}
+                        className="hover:bg-accent/20"
+                      >
+                        View All <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {savedEvents.map((event, index) => (
+                          <motion.div
+                            key={event.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.7 + index * 0.1 }}
+                            className="flex items-center justify-between p-4 rounded-lg bg-accent/10 hover:bg-accent/20 transition-colors cursor-pointer"
+                            onClick={() => navigate('/events')}
+                          >
+                            <div className="flex-1">
+                              <h3 className="font-semibold">{event.title}</h3>
+                              <p className="text-sm text-muted-foreground">{event.location}</p>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant="outline" className="mb-1">
+                                {new Date(event.start_time).toLocaleDateString()}
+                              </Badge>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <Card className="glass border-dashed border-muted">
+                  <CardContent className="flex flex-col items-center justify-center px-6 py-12 text-center">
+                    <div className="mb-4 rounded-full bg-accent/10 p-4">
+                      <Coffee className="h-8 w-8 text-accent" />
+                    </div>
+                    <h3 className="text-xl font-semibold">No upcoming events</h3>
+                    <p className="mt-2 max-w-lg text-sm text-muted-foreground">
+                      Your saved events list is empty for now. Explore campus activities and bookmark something fun for later.
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="mt-5"
+                      onClick={() => navigate('/events')}
+                    >
+                      Browse Events <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.8 }}
             >
               <Card className="glass">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>My Upcoming Events</CardTitle>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => navigate('/saved-events')}
-                    className="hover:bg-accent/20"
-                  >
-                    View All <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {savedEvents.map((event, index) => (
-                      <motion.div
-                        key={event.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.7 + index * 0.1 }}
-                        className="flex items-center justify-between p-4 rounded-lg bg-accent/10 hover:bg-accent/20 transition-colors cursor-pointer"
-                        onClick={() => navigate('/events')}
-                      >
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{event.title}</h3>
-                          <p className="text-sm text-muted-foreground">{event.location}</p>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant="outline" className="mb-1">
-                            {new Date(event.start_time).toLocaleDateString()}
-                          </Badge>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                <CardContent className="grid md:grid-cols-3 gap-4">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate('/my-timetable')}
+                    className="p-4 rounded-lg bg-accent/20 hover:bg-accent/30 transition-colors text-left"
+                  >
+                    <Calendar className="h-5 w-5 mb-2 text-accent" />
+                    <div className="font-semibold">View Timetable</div>
+                    <div className="text-xs text-muted-foreground">Check your weekly schedule</div>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate('/electives')}
+                    className="p-4 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors text-left"
+                  >
+                    <BookOpen className="h-5 w-5 mb-2 text-primary" />
+                    <div className="font-semibold">Manage Electives</div>
+                    <div className="text-xs text-muted-foreground">Update your preferences</div>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate('/events')}
+                    className="p-4 rounded-lg bg-accent/20 hover:bg-accent/30 transition-colors text-left"
+                  >
+                    <Calendar className="h-5 w-5 mb-2 text-accent" />
+                    <div className="font-semibold">Browse Events</div>
+                    <div className="text-xs text-muted-foreground">Discover campus activities</div>
+                  </motion.button>
                 </CardContent>
               </Card>
             </motion.div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <Card className="glass border-dashed border-muted">
-              <CardContent className="flex flex-col items-center justify-center px-6 py-12 text-center">
-                <div className="mb-4 rounded-full bg-accent/10 p-4">
-                  <Coffee className="h-8 w-8 text-accent" />
-                </div>
-                <h3 className="text-xl font-semibold">No upcoming events</h3>
-                <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-                  Your saved events list is empty for now. Explore campus activities and bookmark something fun for later.
-                </p>
-                <Button
-                  variant="outline"
-                  className="mt-5"
-                  onClick={() => navigate('/events')}
-                >
-                  Browse Events <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
+          </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-        >
-          <Card className="glass">
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-3 gap-4">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/my-timetable')}
-                className="p-4 rounded-lg bg-accent/20 hover:bg-accent/30 transition-colors text-left"
-              >
-                <Calendar className="h-5 w-5 mb-2 text-accent" />
-                <div className="font-semibold">View Timetable</div>
-                <div className="text-xs text-muted-foreground">Check your weekly schedule</div>
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/electives')}
-                className="p-4 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors text-left"
-              >
-                <BookOpen className="h-5 w-5 mb-2 text-primary" />
-                <div className="font-semibold">Manage Electives</div>
-                <div className="text-xs text-muted-foreground">Update your preferences</div>
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/events')}
-                className="p-4 rounded-lg bg-accent/20 hover:bg-accent/30 transition-colors text-left"
-              >
-                <Calendar className="h-5 w-5 mb-2 text-accent" />
-                <div className="font-semibold">Browse Events</div>
-                <div className="text-xs text-muted-foreground">Discover campus activities</div>
-              </motion.button>
-            </CardContent>
-          </Card>
-        </motion.div>
+          <div className="lg:col-span-1">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.7 }}
+            >
+              <ActivityFeed />
+            </motion.div>
+          </div>
+        </div>
       </motion.div>
     </DashboardLayout>
   );
