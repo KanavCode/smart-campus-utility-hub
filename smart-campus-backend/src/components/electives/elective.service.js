@@ -240,7 +240,7 @@ const processWaitlistWithClient = async ({ client, electiveId = null }) => {
 
       if (allocationInsert.rowCount === 0) {
         await client.query(
-          `UPDATE elective_waitlist SET status = 'skipped' WHERE id = $1`,
+          'UPDATE elective_waitlist SET status = \'skipped\' WHERE id = $1',
           [waitEntry.id]
         );
         continue;

@@ -26,9 +26,14 @@ const createEvent = asyncHandler(async (req, res) => {
     tags,
   } = req.body;
 
+  // If multer saved a file, build the public URL; otherwise null
+  const image_url = req.file
+    ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`
+    : null;
+
   const sql = `
-    INSERT INTO events (title, description, location, start_time, end_time, club_id, target_department, is_featured, tags)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    INSERT INTO events (title, description, location, start_time, end_time, club_id, target_department, is_featured, tags, image_url)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     RETURNING *
   `;
 
@@ -42,19 +47,22 @@ const createEvent = asyncHandler(async (req, res) => {
     target_department,
     is_featured || false,
     tags,
+    image_url,
   ];
+
   const result = await query(sql, values);
 
   if (!result.rows || result.rows.length === 0) {
     throw new ApiError(500, 'Failed to create event');
   }
 
-  logger.info('Event created', {
-    eventId: result.rows[0].id,
-    createdBy: req.user.id,
-  });
+  logger.info('Event created', { eventId: result.rows[0].id, createdBy: req.user.id });
 
-  await notificationService.notifyRole({
+  notificationService.broadcast('EVENT_CREATED', {
+  message: `New event: ${result.rows[0].title}`,
+});
+
+await notificationService.notifyRole({
     role: 'student',
     eventType: 'EVENT_CREATED',
     title: 'New Campus Event',
@@ -72,6 +80,8 @@ const createEvent = asyncHandler(async (req, res) => {
   sendSuccess(res, 201, 'Event created successfully', {
     event: result.rows[0],
   });
+
+  sendSuccess(res, 201, 'Event created successfully', { event: result.rows[0] });
 });
 
 /**
@@ -239,26 +249,26 @@ const updateEvent = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid event ID');
   }
 
-  const sql = `
-    UPDATE events
-    SET title = $1, description = $2, location = $3, start_time = $4, end_time = $5,
-        club_id = $6, target_department = $7, is_featured = $8, tags = $9
-    WHERE id = $10
-    RETURNING *
-  `;
+  // Only update image_url if a new file was uploaded
+  const image_url = req.file
+    ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`
+    : undefined;
 
-  const values = [
-    title,
-    description,
-    location,
-    start_time,
-    end_time,
-    club_id,
-    target_department,
-    is_featured,
-    tags,
-    eventId,
-  ];
+  // Build SET clause dynamically so image_url is only touched when a new file arrives
+  const sql = image_url
+    ? `UPDATE events
+       SET title=$1, description=$2, location=$3, start_time=$4, end_time=$5,
+           club_id=$6, target_department=$7, is_featured=$8, tags=$9, image_url=$10
+       WHERE id=$11 RETURNING *`
+    : `UPDATE events
+       SET title=$1, description=$2, location=$3, start_time=$4, end_time=$5,
+           club_id=$6, target_department=$7, is_featured=$8, tags=$9
+       WHERE id=$10 RETURNING *`;
+
+  const values = image_url
+    ? [title, description, location, start_time, end_time, club_id, target_department, is_featured, tags, image_url, eventId]
+    : [title, description, location, start_time, end_time, club_id, target_department, is_featured, tags, eventId];
+
   const result = await query(sql, values);
 
   if (result.rows.length === 0) {
@@ -267,7 +277,11 @@ const updateEvent = asyncHandler(async (req, res) => {
 
   logger.info('Event updated', { eventId: id, updatedBy: req.user.id });
 
-  await notificationService.notifyRole({
+  notificationService.broadcast('EVENT_UPDATED', {
+  message: `Event updated: ${result.rows[0].title}`,
+});
+
+await notificationService.notifyRole({
     role: 'student',
     eventType: 'EVENT_UPDATED',
     title: 'Campus Event Updated',
@@ -284,6 +298,8 @@ const updateEvent = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, 'Event updated successfully', {
     event: result.rows[0],
   });
+
+  sendSuccess(res, 200, 'Event updated successfully', { event: result.rows[0] });
 });
 
 /**

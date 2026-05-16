@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -91,10 +92,13 @@ app.use(compression());
 // =====================================================================
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Serve uploaded event posters as static files
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // =====================================================================
 // LOGGING MIDDLEWARE
 // =====================================================================
+
 app.use((req, res, next) => {
   logger.info(`${req.method} ${req.originalUrl}`, {
     ip: req.ip,
@@ -166,7 +170,7 @@ app.get('/api/test-socket', verifyToken, verifyAdmin, (req, res) => {
 });
 
 // Admin settings routes
-app.use("/api/settings", settingsRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/search', searchRoutes);
 
