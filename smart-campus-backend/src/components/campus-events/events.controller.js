@@ -3,6 +3,7 @@ const { query } = require('../../config/db');
 const { asyncHandler, ApiError } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
 const notificationService = require('../../services/notification.service');
+const activityService = require('../../services/activity.service');
 
 /**
  * Events Controller
@@ -74,6 +75,15 @@ await notificationService.notifyRole({
       event: result.rows[0]
     },
     sendEmail: true,
+  });
+
+  await activityService.logActivity({
+    userId: req.user.id,
+    action: 'CREATE_EVENT',
+    entityType: 'event',
+    entityId: result.rows[0].id,
+    description: `Created new event: ${result.rows[0].title}`,
+    metadata: { title: result.rows[0].title }
   });
 
 
@@ -365,6 +375,15 @@ const saveEvent = asyncHandler(async (req, res) => {
   ]);
 
   logger.info('Event saved', { eventId: id, userId });
+
+  await activityService.logActivity({
+    userId,
+    action: 'SAVE_EVENT',
+    entityType: 'event',
+    entityId: eventId,
+    description: `Saved event: ${eventCheck.rows[0].id}`,
+    metadata: { eventId }
+  });
 
 
   sendSuccess(res, 200, 'Event saved successfully');
