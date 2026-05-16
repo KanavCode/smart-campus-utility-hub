@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { logger } = require('../config/db');
-const AUTH_COOKIE_NAME = 'authToken';
+const ACCESS_COOKIE_NAME = 'accessToken';
+const REFRESH_COOKIE_NAME = 'refreshToken';
 
 const getJwtSecret = () => {
   if (process.env.JWT_SECRET) {
@@ -15,13 +16,25 @@ const getJwtSecret = () => {
   throw new Error('JWT_SECRET is not configured');
 };
 
+const getJwtRefreshSecret = () => {
+  if (process.env.JWT_REFRESH_SECRET) {
+    return process.env.JWT_REFRESH_SECRET;
+  }
+
+  if (process.env.NODE_ENV === 'test') {
+    return 'test-jwt-refresh-secret';
+  }
+
+  throw new Error('JWT_REFRESH_SECRET is not configured');
+};
+
 const extractTokenFromCookieHeader = (cookieHeader) => {
   if (!cookieHeader || typeof cookieHeader !== 'string') return null;
 
   const cookies = cookieHeader.split(';');
   for (const cookieEntry of cookies) {
     const [rawName, ...rawValueParts] = cookieEntry.trim().split('=');
-    if (rawName === AUTH_COOKIE_NAME) {
+    if (rawName === ACCESS_COOKIE_NAME) {
       return decodeURIComponent(rawValueParts.join('='));
     }
   }
@@ -173,9 +186,20 @@ const verifyFaculty = (req, res, next) => {
  */
 const generateToken = (
   payload,
-  expiresIn = process.env.JWT_EXPIRES_IN || '7d',
+  expiresIn = process.env.JWT_EXPIRES_IN || '15m',
 ) => {
   return jwt.sign(payload, getJwtSecret(), { expiresIn });
+};
+
+const generateRefreshToken = (
+  payload,
+  expiresIn = process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+) => {
+  return jwt.sign(payload, getJwtRefreshSecret(), { expiresIn });
+};
+
+const verifyRefreshToken = (token) => {
+  return jwt.verify(token, getJwtRefreshSecret());
 };
 
 /**
@@ -206,6 +230,10 @@ module.exports = {
   verifyAdmin,
   verifyStudent,
   verifyFaculty,
+  ACCESS_COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
   generateToken,
+  generateRefreshToken,
+  verifyRefreshToken,
   optionalAuth,
 };

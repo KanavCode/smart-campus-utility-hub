@@ -61,6 +61,10 @@ CREATE TABLE users (
     -- Password reset fields
     reset_token VARCHAR(255),
     reset_token_expiry TIMESTAMP,
+
+    -- Refresh token rotation fields
+    refresh_token_hash VARCHAR(255),
+    refresh_token_expires_at TIMESTAMP,
     
     -- Metadata
     is_active BOOLEAN DEFAULT true,
@@ -328,6 +332,7 @@ CREATE TABLE timetable_slots (
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_department ON users(department);
+CREATE INDEX idx_users_refresh_token_hash ON users(refresh_token_hash);
 CREATE INDEX idx_system_settings_updated_by ON system_settings(updated_by);
 
 -- Events indexes

@@ -66,6 +66,12 @@ router.post(
   userController.changePassword
 );
 
+router.post(
+  '/refresh',
+  authLimiter,
+  userController.refresh
+);
+
 router.post('/logout', userController.logout);
 
 // Admin-only routes

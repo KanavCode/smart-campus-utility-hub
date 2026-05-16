@@ -391,7 +391,9 @@ DB_NAME=smart_campus_unified
 DB_USER=postgres
 DB_PASSWORD=your_password
 JWT_SECRET=your_super_secret_key
-JWT_EXPIRES_IN=7d
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_SECRET=your_refresh_secret_key
+JWT_REFRESH_EXPIRES_IN=30d
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 ```

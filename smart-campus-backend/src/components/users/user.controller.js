@@ -6,18 +6,36 @@ const { logger } = require('../../config/db');
 
 const getFrontendUrlWithDefault = () => process.env.FRONTEND_URL || 'http://localhost:5173';
 
-const setAuthCookie = (res, token) => {
+const getCookieValueFromHeader = (cookieHeader, cookieName) => {
+  if (!cookieHeader || typeof cookieHeader !== 'string') return null;
+  const cookies = cookieHeader.split(';');
+  for (const cookieEntry of cookies) {
+    const [rawName, ...rawValueParts] = cookieEntry.trim().split('=');
+    if (rawName === cookieName) {
+      return decodeURIComponent(rawValueParts.join('='));
+    }
+  }
+  return null;
+};
+
+const setAuthCookies = (res, accessToken, refreshToken) => {
   res.cookie(
-    userAuthService.AUTH_COOKIE_NAME,
-    token,
-    userAuthService.buildAuthCookieOptions(),
+    userAuthService.ACCESS_COOKIE_NAME,
+    accessToken,
+    userAuthService.buildAccessCookieOptions(),
+  );
+  res.cookie(
+    userAuthService.REFRESH_COOKIE_NAME,
+    refreshToken,
+    userAuthService.buildRefreshCookieOptions(),
   );
 };
 
-const clearAuthCookie = (res) => {
-  const cookieOptions = userAuthService.buildAuthCookieOptions();
-  const { maxAge, ...clearOptions } = cookieOptions;
-  res.clearCookie(userAuthService.AUTH_COOKIE_NAME, clearOptions);
+const clearAuthCookies = (res) => {
+  const { maxAge: _accessMaxAge, ...accessClearOptions } = userAuthService.buildAccessCookieOptions();
+  const { maxAge: _refreshMaxAge, ...refreshClearOptions } = userAuthService.buildRefreshCookieOptions();
+  res.clearCookie(userAuthService.ACCESS_COOKIE_NAME, accessClearOptions);
+  res.clearCookie(userAuthService.REFRESH_COOKIE_NAME, refreshClearOptions);
 };
 
 /**
@@ -40,7 +58,7 @@ const register = asyncHandler(async (req, res) => {
 
   logger.info('New user registered', { userId: result.user.id, email: result.user.email });
 
-  setAuthCookie(res, result.token);
+  setAuthCookies(res, result.accessToken, result.refreshToken);
 
   sendSuccess(res, 201, 'User registered successfully', {
     user: result.user,
@@ -55,7 +73,7 @@ const login = asyncHandler(async (req, res) => {
 
   logger.info('User logged in', { userId: result.user.id, email: result.user.email });
 
-  setAuthCookie(res, result.token);
+  setAuthCookies(res, result.accessToken, result.refreshToken);
 
   sendSuccess(res, 200, 'Login successful', {
     user: result.user,
@@ -63,9 +81,28 @@ const login = asyncHandler(async (req, res) => {
 });
 
 /* Logout user --> POST /api/auth/logout */
-const logout = asyncHandler(async (_req, res) => {
-  clearAuthCookie(res);
+const logout = asyncHandler(async (req, res) => {
+  const refreshToken = getCookieValueFromHeader(
+    req.headers.cookie,
+    userAuthService.REFRESH_COOKIE_NAME,
+  );
+  if (req.user?.id) {
+    await userAuthService.revokeRefreshTokenByUserId(req.user.id);
+  } else {
+    await userAuthService.revokeRefreshToken(refreshToken);
+  }
+  clearAuthCookies(res);
   sendSuccess(res, 200, 'Logout successful');
+});
+
+const refresh = asyncHandler(async (req, res) => {
+  const refreshToken = getCookieValueFromHeader(
+    req.headers.cookie,
+    userAuthService.REFRESH_COOKIE_NAME,
+  );
+  const result = await userAuthService.refreshAuthTokens({ refreshToken });
+  setAuthCookies(res, result.accessToken, result.refreshToken);
+  sendSuccess(res, 200, 'Token refreshed successfully');
 });
 
 /* Get current user profile --> GET /api/auth/profile -> Protected route*/
@@ -257,7 +294,7 @@ const ssoCallback = asyncHandler(async (req, res) => {
 
     logger.info('User logged in via SSO', { userId: result.user.id, email: result.user.email, provider });
 
-    setAuthCookie(res, result.token);
+    setAuthCookies(res, result.accessToken, result.refreshToken);
 
     // Redirect to frontend after cookie is set
     res.redirect(`${getFrontendUrlWithDefault()}/auth?sso=success`);
@@ -270,6 +307,7 @@ const ssoCallback = asyncHandler(async (req, res) => {
 module.exports = {
   register,
   login,
+  refresh,
   logout,
   getProfile,
   updateProfile,

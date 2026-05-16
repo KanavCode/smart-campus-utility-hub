@@ -327,6 +327,68 @@ class UserModel {
   }
 
   /**
+   * Persist refresh token hash and expiry for token rotation.
+   * @param {number} userId
+   * @param {string} refreshTokenHash
+   * @param {Date} refreshTokenExpiry
+   * @returns {Promise<boolean>}
+   */
+  static async saveRefreshTokenByUserId(userId, refreshTokenHash, refreshTokenExpiry) {
+    const sql = `
+      UPDATE users
+      SET refresh_token_hash = $1, refresh_token_expires_at = $2, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3
+    `;
+    const result = await query(sql, [refreshTokenHash, refreshTokenExpiry, userId]);
+    return result.rowCount > 0;
+  }
+
+  /**
+   * Lookup active refresh token state for a user.
+   * @param {number} userId
+   * @returns {Promise<Object|null>}
+   */
+  static async findRefreshTokenStateByUserId(userId) {
+    const sql = `
+      SELECT id, email, role, is_active, refresh_token_hash, refresh_token_expires_at
+      FROM users
+      WHERE id = $1
+    `;
+    const result = await query(sql, [userId]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Clear persisted refresh token state for a user (logout/revocation).
+   * @param {number} userId
+   * @returns {Promise<boolean>}
+   */
+  static async clearRefreshTokenByUserId(userId) {
+    const sql = `
+      UPDATE users
+      SET refresh_token_hash = NULL, refresh_token_expires_at = NULL, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+    `;
+    const result = await query(sql, [userId]);
+    return result.rowCount > 0;
+  }
+
+  /**
+   * Clear persisted refresh token state by token hash.
+   * @param {string} refreshTokenHash
+   * @returns {Promise<boolean>}
+   */
+  static async clearRefreshTokenByHash(refreshTokenHash) {
+    const sql = `
+      UPDATE users
+      SET refresh_token_hash = NULL, refresh_token_expires_at = NULL, updated_at = CURRENT_TIMESTAMP
+      WHERE refresh_token_hash = $1
+    `;
+    const result = await query(sql, [refreshTokenHash]);
+    return result.rowCount > 0;
+  }
+
+  /**
    * Clear expired reset tokens
    * @returns {Promise<number>} Number of tokens cleared
    */

@@ -10,11 +10,46 @@ export const api = axios.create({
   timeout: 10000, // 10 second timeout
 });
 
+const refreshClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  withCredentials: true,
+  timeout: 10000,
+});
+
+const isRefreshExcludedEndpoint = (url?: string) => {
+  if (!url) return false; 
+
+  return [
+    '/auth/login',
+    '/auth/register',
+    '/auth/refresh',
+    '/auth/logout',
+    '/auth/forgot-password',
+    '/auth/reset-password',
+  ].some((endpoint) => url.includes(endpoint));
+};
 
 // Response interceptor for better error handling
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<ApiError>) => {
+  async (error: AxiosError<ApiError>) => {
+    const originalRequest = error.config as (typeof error.config & { _retry?: boolean });
+    const shouldTryRefresh =
+      !!originalRequest &&
+      !originalRequest._retry &&
+      error.response?.status === 401 &&
+      !isRefreshExcludedEndpoint(originalRequest.url);
+
+    if (shouldTryRefresh) {
+      originalRequest._retry = true;
+      try {
+        await refreshClient.post('/auth/refresh');
+        return api(originalRequest);
+      } catch {
+        // Fall through to normal error mapping below.
+      }
+    }
+
     // Handle network errors
     if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
       console.error('Network error:', error.message);
@@ -40,4 +75,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-
