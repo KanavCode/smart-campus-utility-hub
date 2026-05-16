@@ -6,6 +6,10 @@ import { EventFormData } from '@/types';
 import { GenericFormModal } from './GenericFormModal';
 import { FieldConfig } from './types';
 import { eventSchema } from '@/lib/validationSchemas';
+// Add these two lines to existing imports
+import { useRef } from 'react';
+import { ImageUploadField } from './ImageUploadField';
+import api from '@/lib/axios';
 
 interface EventFormProps {
   onSuccess: () => void;
@@ -15,6 +19,7 @@ interface EventFormProps {
 
 export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) => {
   const [clubs, setClubs] = useState<Club[]>([]);
+  const [image, setImage] = useState<File | null>(null);
   const [isLoadingClubs, setIsLoadingClubs] = useState(true);
 
   useEffect(() => {
@@ -104,9 +109,16 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
       required: false,
       gridCol: 1,
     },
+    {
+      id: 'image',
+      label: 'Event Poster',
+      type: 'image-upload',   // custom type — handled below
+      required: false,
+      gridCol: 1,
+    },
   ];
 
-  const validationSchema = z
+  const validationSchema =z
     .object({
       title: z
         .string()
@@ -161,30 +173,47 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
       }
     });
 
-  const customSubmitHandler = async (data: any, isUpdate: boolean) => {
-    const normalizeTags = (raw: unknown): string[] => {
-      if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
-      if (typeof raw === 'string')
-        return raw
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean);
-      return [];
-    };
+ const customSubmitHandler = async (data: any, isUpdate: boolean) => {
+  const normalizeTags = (raw: unknown): string[] => {
+    if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
+    if (typeof raw === 'string')
+      return raw.split(',').map((t) => t.trim()).filter(Boolean);
+    return [];
+  };
 
-    const payload = {
-      ...data,
-      title: typeof data.title === 'string' ? data.title.trim() : data.title,
-      description:
-        typeof data.description === 'string'
-          ? data.description.trim()
-          : data.description,
-      location:
-        typeof data.location === 'string' ? data.location.trim() : data.location,
-      club_id: parseInt(data.club_id, 10),
-      tags: normalizeTags(data.tags),
-    };
+  const payload = {
+    ...data,
+    title: typeof data.title === 'string' ? data.title.trim() : data.title,
+    description: typeof data.description === 'string' ? data.description.trim() : data.description,
+    location: typeof data.location === 'string' ? data.location.trim() : data.location,
+    club_id: parseInt(data.club_id, 10),
+    tags: normalizeTags(data.tags),
+  };
 
+  if (image) {
+    const formData = new FormData();
+    Object.entries(payload).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        formData.append(key, value.join(','));
+      } else if (value !== undefined && value !== null) {
+        formData.append(key, String(value));
+      }
+    });
+    formData.append('image', image); // must match backend field name
+
+    if (isUpdate) {
+      await api.put(`/events/${initialData!.id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      toast.success('Event updated successfully!');
+    } else {
+      await api.post('/events', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      toast.success('Event created successfully!');
+    }
+  } else {
+    // No image — original JSON path, nothing changes
     if (isUpdate) {
       await eventsService.update(initialData!.id, payload);
       toast.success('Event updated successfully!');
@@ -192,7 +221,8 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
       await eventsService.create(payload);
       toast.success('Event created successfully!');
     }
-  };
+  }
+};
 
   if (clubs.length === 0 && !isLoadingClubs) {
     return (
@@ -202,7 +232,13 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
     );
   }
 
-  return (
+ return (
+  <div className="space-y-4">
+    <ImageUploadField
+      image={image}
+      onImageSelect={setImage}
+      onImageRemove={() => setImage(null)}
+    />
     <GenericFormModal
       fields={fields}
       service={eventsService}
@@ -213,5 +249,6 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: EventFormProps) 
       title="Event"
       customSubmitHandler={customSubmitHandler}
     />
-  );
+  </div>
+);
 };

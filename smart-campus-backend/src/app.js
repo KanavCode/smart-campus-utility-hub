@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -12,13 +13,13 @@ const { verifyToken, verifyAdmin } = require('./middleware/auth.middleware');
 const notificationService = require('./services/notification.service');
 
 // Import routes
-const userRoutes = require("./components/users/user.routes");
-const eventsRoutes = require("./components/campus-events/events.routes");
-const clubsRoutes = require("./components/campus-events/clubs.routes");
-const timetableRoutes = require("./components/timetable/timetable.routes");
-const electiveRoutes = require("./components/electives/elective.routes");
-const settingsRoutes = require("./components/settings/settings.routes");
-const notificationsRoutes = require("./components/notifications/notifications.routes");
+const userRoutes = require('./components/users/user.routes');
+const eventsRoutes = require('./components/campus-events/events.routes');
+const clubsRoutes = require('./components/campus-events/clubs.routes');
+const timetableRoutes = require('./components/timetable/timetable.routes');
+const electiveRoutes = require('./components/electives/elective.routes');
+const settingsRoutes = require('./components/settings/settings.routes');
+const notificationsRoutes = require('./components/notifications/notifications.routes');
 
 // Create Express application
 const app = express();
@@ -90,10 +91,13 @@ app.use(compression());
 // =====================================================================
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Serve uploaded event posters as static files
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // =====================================================================
 // LOGGING MIDDLEWARE
 // =====================================================================
+
 app.use((req, res, next) => {
   logger.info(`${req.method} ${req.originalUrl}`, {
     ip: req.ip,
@@ -165,7 +169,7 @@ app.get('/api/test-socket', verifyToken, verifyAdmin, (req, res) => {
 });
 
 // Admin settings routes
-app.use("/api/settings", settingsRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 
 // =====================================================================
