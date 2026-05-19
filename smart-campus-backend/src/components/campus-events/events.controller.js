@@ -91,7 +91,6 @@ await notificationService.notifyRole({
     event: result.rows[0],
   });
 
-  sendSuccess(res, 201, 'Event created successfully', { event: result.rows[0] });
 });
 
 /**
