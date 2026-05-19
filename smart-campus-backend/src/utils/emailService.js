@@ -1,6 +1,18 @@
 const nodemailer = require('nodemailer');
 const { logger } = require('../config/db');
 
+const escapeHtml = (text) => {
+  if (!text) return '';
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, (char) => map[char]);
+};
+
 /**
  * Email Service
  * Handles sending emails using Mailtrap for development/testing
@@ -47,6 +59,8 @@ const sendPasswordResetEmail = async (email, resetToken, resetLink) => {
   try {
     const emailTransporter = initializeTransporter();
 
+    const sanitizedResetLink = escapeHtml(resetLink);
+
     const mailOptions = {
       from: process.env.EMAIL_FROM || 'noreply@smartcampus.edu',
       to: email,
@@ -78,7 +92,7 @@ const sendPasswordResetEmail = async (email, resetToken, resetLink) => {
             
             <p style="color: #999; font-size: 12px; border-top: 1px solid #ddd; padding-top: 20px; margin-top: 20px;">
               Or copy and paste this link in your browser: <br/>
-              <code style="color: #666; word-break: break-all;">${resetLink}</code>
+              <code style="color: #666; word-break: break-all;">${sanitizedResetLink}</code>
             </p>
             
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
@@ -192,4 +206,5 @@ module.exports = {
   sendPasswordResetEmail,
   sendPasswordResetConfirmation,
   initializeTransporter,
+  escapeHtml,
 };
