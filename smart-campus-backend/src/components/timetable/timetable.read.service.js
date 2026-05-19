@@ -49,6 +49,11 @@ const buildActiveEntityQuery = ({ table, defaultOrderBy, filters = [], sort, ord
   });
 
   const sortField = sort || defaultOrderBy;
+  // Validate sortField against ALLOWED_SORT for the specific table (defense-in-depth)
+  const allowedColumns = ALLOWED_SORT[table];
+  if (!allowedColumns || !allowedColumns.includes(sortField)) {
+    sortField = defaultOrderBy;
+  }
   const sortOrder = order === 'desc' ? 'DESC' : 'ASC';
 
   const countSql = `SELECT COUNT(*) FROM ${table} ${conditions}`;
