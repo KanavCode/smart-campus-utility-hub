@@ -6,7 +6,8 @@ const helmet = require('helmet');
 const compression = require('compression');
 require('dotenv').config();
 
-const { testConnection, logger, isDatabaseConnected } = require('./config/db');
+const { testConnection, logger } = require('./config/db');
+
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter.middleware');
 const { verifyToken, verifyAdmin } = require('./middleware/auth.middleware');
@@ -124,20 +125,24 @@ app.get('/', (req, res) => {
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  const dbState =
-    typeof isDatabaseConnected === 'function' ? isDatabaseConnected() : false;
-
-  res.status(200).json({
-    success: true,
-    status: 'OK',
-    message: 'Smart Campus Backend is running',
+const healthResponse = () => {
+  return {
+    status: 'active',
     timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development',
-    database: dbState ? 'Connected' : 'Disconnected',
-  });
+    uptime: process.uptime(),
+  };
+};
+
+// Keep the existing route for backward compatibility
+app.get('/health', (req, res) => {
+  res.status(200).json(healthResponse());
 });
+
+// Public health check route for monitoring systems
+app.get('/api/health', (req, res) => {
+  res.status(200).json(healthResponse());
+});
+
 
 // =====================================================================
 // API ROUTES
