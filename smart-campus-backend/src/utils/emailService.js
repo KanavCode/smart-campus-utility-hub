@@ -1,6 +1,15 @@
 const nodemailer = require('nodemailer');
 const { logger } = require('../config/db');
 
+const escapeHtml = (unsafe) => {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 /**
  * Email Service
  * Handles sending emails using Mailtrap for development/testing
@@ -70,7 +79,7 @@ const sendPasswordResetEmail = async (email, resetToken, resetLink) => {
             </p>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetLink}" 
+              <a href="${encodeURI(resetLink)}" 
                  style="background-color: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
                 Reset Password
               </a>
@@ -78,7 +87,7 @@ const sendPasswordResetEmail = async (email, resetToken, resetLink) => {
             
             <p style="color: #999; font-size: 12px; border-top: 1px solid #ddd; padding-top: 20px; margin-top: 20px;">
               Or copy and paste this link in your browser: <br/>
-              <code style="color: #666; word-break: break-all;">${resetLink}</code>
+              <code style="color: #666; word-break: break-all;">${escapeHtml(resetLink)}</code>
             </p>
             
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
