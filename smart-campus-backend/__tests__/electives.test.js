@@ -91,7 +91,8 @@ describe('Electives API Tests', () => {
     });
 
     test('should return 404 when elective not found', async () => {
-      electiveService.getElectiveById.mockResolvedValue(null);
+      const { ApiError } = require('../src/middleware/errorHandler');
+      electiveService.getElectiveById.mockRejectedValue(new ApiError(404, 'Elective not found'));
 
       const response = await request(app).get('/api/electives/999');
 
@@ -193,8 +194,9 @@ describe('Electives API Tests', () => {
     test('should return 404 when updating non-existent elective', async () => {
       const { generateToken } = require('../src/middleware/auth.middleware');
       const adminToken = generateToken({ id: 1, email: 'admin@example.com', role: 'admin' });
+      const { ApiError } = require('../src/middleware/errorHandler');
 
-      electiveService.updateElective.mockResolvedValue(null);
+      electiveService.updateElective.mockRejectedValue(new ApiError(404, 'Elective not found'));
 
       const response = await request(app)
         .put('/api/electives/999')
@@ -239,8 +241,9 @@ describe('Electives API Tests', () => {
     test('should return 404 when deleting non-existent elective', async () => {
       const { generateToken } = require('../src/middleware/auth.middleware');
       const adminToken = generateToken({ id: 1, email: 'admin@example.com', role: 'admin' });
+      const { ApiError } = require('../src/middleware/errorHandler');
 
-      electiveService.deleteElective.mockResolvedValue(false);
+      electiveService.deleteElective.mockRejectedValue(new ApiError(404, 'Elective not found'));
 
       const response = await request(app)
         .delete('/api/electives/999')

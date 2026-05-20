@@ -5,10 +5,13 @@
 
 process.env.NODE_ENV = 'test';
 
+const mockSendMail = jest.fn().mockResolvedValue({ messageId: 'test-message-id' });
+const mockTransporter = {
+  sendMail: mockSendMail
+};
+
 jest.mock('nodemailer', () => ({
-  createTransport: jest.fn(() => ({
-    sendMail: jest.fn().mockResolvedValue({ messageId: 'test-message-id' })
-  }))
+  createTransport: jest.fn(() => mockTransporter)
 }));
 
 jest.mock('../src/config/db', () => ({
@@ -28,11 +31,10 @@ const { logger } = require('../src/config/db');
 const { sendPasswordResetEmail, sendPasswordResetConfirmation, escapeHtml } = require('../src/utils/emailService');
 
 describe('Email Service Tests', () => {
-  let mockTransporter;
-
   beforeEach(() => {
     jest.clearAllMocks();
-    mockTransporter = nodemailer.createTransport();
+    mockSendMail.mockReset();
+    mockSendMail.mockResolvedValue({ messageId: 'test-message-id' });
   });
 
   describe('sendPasswordResetEmail', () => {
@@ -43,8 +45,8 @@ describe('Email Service Tests', () => {
 
       await sendPasswordResetEmail(email, resetToken, resetLink);
 
-      expect(mockTransporter.sendMail).toHaveBeenCalledTimes(1);
-      const mailOptions = mockTransporter.sendMail.mock.calls[0][0];
+      expect(mockSendMail).toHaveBeenCalledTimes(1);
+      const mailOptions = mockSendMail.mock.calls[0][0];
 
       expect(mailOptions.from).toBe('noreply@smartcampus.edu');
       expect(mailOptions.to).toBe(email);
@@ -67,7 +69,7 @@ describe('Email Service Tests', () => {
     });
 
     test('should throw error and log failure when sending fails', async () => {
-      mockTransporter.sendMail.mockRejectedValueOnce(new Error('SMTP error'));
+      mockSendMail.mockRejectedValueOnce(new Error('SMTP error'));
 
       const email = 'test@example.com';
       const resetToken = 'test-reset-token';
@@ -90,8 +92,8 @@ describe('Email Service Tests', () => {
 
       await sendPasswordResetConfirmation(email, fullName);
 
-      expect(mockTransporter.sendMail).toHaveBeenCalledTimes(1);
-      const mailOptions = mockTransporter.sendMail.mock.calls[0][0];
+      expect(mockSendMail).toHaveBeenCalledTimes(1);
+      const mailOptions = mockSendMail.mock.calls[0][0];
 
       expect(mailOptions.from).toBe('noreply@smartcampus.edu');
       expect(mailOptions.to).toBe(email);
@@ -114,7 +116,7 @@ describe('Email Service Tests', () => {
     });
 
     test('should throw error and log failure when confirmation sending fails', async () => {
-      mockTransporter.sendMail.mockRejectedValueOnce(new Error('Connection timeout'));
+      mockSendMail.mockRejectedValueOnce(new Error('Connection timeout'));
 
       const email = 'test@example.com';
       const fullName = 'Test User';

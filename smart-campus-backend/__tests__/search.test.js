@@ -1,12 +1,16 @@
-const globalSearch = require('../../src/components/search/search.controller');
-const { query } = require('../../config/db');
-const { sendSuccess } = require('../../src/utils/response');
+jest.mock('../src/middleware/errorHandler', () => ({
+  asyncHandler: (fn) => (req, res, next) => fn(req, res, next)
+}));
 
-jest.mock('../../config/db', () => ({
+const globalSearch = require('../src/components/search/search.controller');
+const { query } = require('../src/config/db');
+const { sendSuccess } = require('../src/utils/response');
+
+jest.mock('../src/config/db', () => ({
   query: jest.fn()
 }));
 
-jest.mock('../../src/utils/response', () => ({
+jest.mock('../src/utils/response', () => ({
   sendSuccess: jest.fn()
 }));
 
@@ -60,8 +64,11 @@ describe('Search Controller', () => {
         .mockResolvedValueOnce(mockRows.teachers);
 
       req.query = { q: 'test' };
+      const next = jest.fn((err) => {
+        if (err) console.error('Error passed to next:', err);
+      });
 
-      await globalSearch.globalSearch(req, res);
+      await globalSearch.globalSearch(req, res, next);
 
       expect(query).toHaveBeenCalledTimes(5);
       expect(sendSuccess).toHaveBeenCalledWith(res, 200, 'Search results fetched successfully', {
@@ -80,8 +87,11 @@ describe('Search Controller', () => {
     it('should use parameterized queries with ILIKE for SQL sanitization', async () => {
       query.mockResolvedValue({ rows: [] });
       req.query = { q: "test'; DROP TABLE users;--" };
+      const next = jest.fn((err) => {
+        if (err) console.error('Error passed to next:', err);
+      });
 
-      await globalSearch.globalSearch(req, res);
+      await globalSearch.globalSearch(req, res, next);
 
       const expectedSearchTerm = "%test'; DROP TABLE users;--%";
 
@@ -108,7 +118,8 @@ describe('Search Controller', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      query.mockRejectedValue(new Error('Database error'));
+      query.mockResolvedValue({ rows: [] });
+      query.mockRejectedValueOnce(new Error('Database error'));
 
       req.query = { q: 'test' };
 

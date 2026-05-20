@@ -84,7 +84,7 @@ const sendPasswordResetEmail = async (email, resetToken, resetLink) => {
             </p>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetLink}" 
+              <a href="${sanitizedResetLink}" 
                  style="background-color: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
                 Reset Password
               </a>
