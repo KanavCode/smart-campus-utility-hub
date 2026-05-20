@@ -127,7 +127,8 @@ app.get('/', (req, res) => {
 // Health check endpoint
 const healthResponse = () => {
   return {
-    status: 'active',
+    success: true,
+    status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   };
