@@ -12,6 +12,27 @@ const { apiLimiter } = require('./middleware/rateLimiter.middleware');
 const { verifyToken, verifyAdmin } = require('./middleware/auth.middleware');
 const notificationService = require('./services/notification.service');
 
+// =====================================================================
+// VALIDATE REQUIRED ENVIRONMENT VARIABLES (FAIL FAST)
+//
+// Ensure critical configuration is present before starting the server.
+// This prevents cryptic runtime errors when protected routes are accessed.
+// =====================================================================
+const REQUIRED_ENV_VARS = [
+  { name: 'JWT_SECRET', message: 'JWT_SECRET is required for authentication' },
+  { name: 'JWT_REFRESH_SECRET', message: 'JWT_REFRESH_SECRET is required for token refresh' },
+];
+
+// Skip validation in test environment
+if (process.env.NODE_ENV !== 'test') {
+  const missing = REQUIRED_ENV_VARS.filter(({ name }) => !process.env[name]);
+  if (missing.length > 0) {
+    console.error('FATAL: Missing required environment variables:');
+    missing.forEach(({ name, message }) => console.error(`  - ${name}: ${message}`));
+    process.exit(1);
+  }
+}
+
 // Import routes
 const userRoutes = require("./components/users/user.routes");
 const eventsRoutes = require("./components/campus-events/events.routes");
