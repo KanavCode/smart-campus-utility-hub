@@ -22,6 +22,7 @@ cp .env.example .env
 ```
 
 Set `VITE_API_BASE_URL` in `.env` (default backend URL is `http://localhost:5000/api`).
+Optionally set `VITE_AUTH_BASE_URL` for SSO/websocket base URL if it differs from `VITE_API_BASE_URL` without `/api`.
 
 3. Run development server:
 
@@ -52,4 +53,3 @@ npm run dev
 - Do not commit `.env` files.
 - Keep service-layer changes in `src/services/`.
 - Prefer reusable UI components in `src/components/ui/`.
-

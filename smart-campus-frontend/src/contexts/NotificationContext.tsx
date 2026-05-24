@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
+import { getBackendBaseUrl } from '@/lib/apiConfig';
 
 interface NotificationContextType {
   socket: Socket | null;
@@ -17,11 +18,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Connect to the backend WebSocket server
-    const backendUrl = import.meta.env.VITE_API_BASE_URL 
-      ? import.meta.env.VITE_API_BASE_URL.replace('/api', '') 
-      : 'http://localhost:5000';
-      
-    const socketInstance = io(backendUrl, {
+    const backendUrl = getBackendBaseUrl();
+
+    const socketInstance = io(backendUrl || undefined, {
       reconnection: true, // Automatically reconnects
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,

@@ -67,6 +67,8 @@ src/
 Edit `.env` file:
 ```env
 VITE_API_BASE_URL=http://localhost:5000/api
+# Optional override for auth/SSO + websocket base URL
+# VITE_AUTH_BASE_URL=http://localhost:5000
 ```
 
 The axios instance is configured in `src/lib/axios.ts` with automatic token injection.
