@@ -1,8 +1,9 @@
 import axios, { AxiosError } from 'axios';
 import { ApiError } from '@/types';
+import { getApiBaseUrl } from '@/lib/apiConfig';
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -11,7 +12,7 @@ export const api = axios.create({
 });
 
 const refreshClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  baseURL: getApiBaseUrl(),
   withCredentials: true,
   timeout: 10000,
 });
