@@ -3,23 +3,24 @@ const router = express.Router();
 const electiveController = require('./elective.controller');
 const { verifyToken, verifyAdmin, verifyStudent } = require('../../middleware/auth.middleware');
 const { validate, validationSchemas } = require('../../middleware/validation');
+const { apiLimiter } = require('../../middleware/rateLimiter.middleware'); // 🛡️ Added Rate Limiter
 
 /**
  * Electives Routes
  * Base path: /api/electives
  */
 
-// Public routes
-router.get('/', validate(validationSchemas.electiveQuery, 'query'), electiveController.getAllElectives);
+// Public routes 🛡️ (Applied apiLimiter)
+router.get('/', apiLimiter, validate(validationSchemas.electiveQuery, 'query'), electiveController.getAllElectives);
 
-// 👇 Move all '/my/...' student routes BEFORE '/:id'
+// Student routes
 router.post('/choices', verifyToken, verifyStudent, validate(validationSchemas.submitChoices), electiveController.submitChoices);
 router.get('/my/choices', verifyToken, verifyStudent, electiveController.getMyChoices);
 router.get('/my/allocation', verifyToken, verifyStudent, electiveController.getMyAllocation);
 router.get('/my/waitlist', verifyToken, verifyStudent, electiveController.getMyWaitlist);
 
-// Routes using ID param — must come AFTER '/my/...'
-router.get('/:id', validate(validationSchemas.idParam, 'params'), electiveController.getElectiveById);
+// Routes using ID param 🛡️ (Applied apiLimiter)
+router.get('/:id', apiLimiter, validate(validationSchemas.idParam, 'params'), electiveController.getElectiveById);
 
 // Admin routes
 router.post('/', verifyToken, verifyAdmin, validate(validationSchemas.createElective), electiveController.createElective);
