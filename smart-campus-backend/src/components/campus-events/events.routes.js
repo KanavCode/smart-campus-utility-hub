@@ -6,6 +6,7 @@ const eventsController = require('./events.controller');
 const { verifyToken, verifyAdmin } = require('../../middleware/auth.middleware');
 const { validate, validationSchemas } = require('../../middleware/validation');
 const { apiLimiter } = require('../../middleware/rateLimiter.middleware'); // 🛡️ Rate Limiter from Issue #190
+const { apiLimiter } = require('../../middleware/rateLimiter.middleware'); // 🛡️ Added Rate Limiter
 
 // ── Multer Storage Config ──────────────────────────────────────────────────
 const storage = multer.diskStorage({
@@ -35,6 +36,7 @@ const upload = multer({
 // ── Routes ─────────────────────────────────────────────────────────────────
 
 // Public routes 🛡️ (With Issue #190 Rate Limiting)
+// Public routes 🛡️ (Applied apiLimiter)
 router.get('/', apiLimiter, validate(validationSchemas.eventQuery, 'query'), eventsController.getAllEvents);
 router.get('/:id', apiLimiter, validate(validationSchemas.idParam, 'params'), eventsController.getEventById);
 
@@ -47,6 +49,7 @@ router.delete('/:id/save', verifyToken, validate(validationSchemas.idParam, 'par
 router.post('/:id/rsvp', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.rsvpToEvent);
 
 // Admin-only routes — upload.single('image') must match frontend field name
+// Admin-only routes
 router.post('/', verifyToken, verifyAdmin, upload.single('image'), eventsController.createEvent);
 router.put('/:id', verifyToken, verifyAdmin, upload.single('image'), validate(validationSchemas.idParam, 'params'), eventsController.updateEvent);
 router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), eventsController.deleteEvent);
