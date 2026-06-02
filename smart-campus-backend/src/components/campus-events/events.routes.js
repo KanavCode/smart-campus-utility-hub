@@ -6,7 +6,6 @@ const eventsController = require('./events.controller');
 const { verifyToken, verifyAdmin } = require('../../middleware/auth.middleware');
 const { validate, validationSchemas } = require('../../middleware/validation');
 const { apiLimiter } = require('../../middleware/rateLimiter.middleware'); // 🛡️ Rate Limiter from Issue #190
-const { apiLimiter } = require('../../middleware/rateLimiter.middleware'); // 🛡️ Added Rate Limiter
 
 // ── Multer Storage Config ──────────────────────────────────────────────────
 const storage = multer.diskStorage({
