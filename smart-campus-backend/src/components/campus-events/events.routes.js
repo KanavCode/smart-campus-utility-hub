@@ -5,11 +5,12 @@ const multer = require('multer');
 const eventsController = require('./events.controller');
 const { verifyToken, verifyAdmin } = require('../../middleware/auth.middleware');
 const { validate, validationSchemas } = require('../../middleware/validation');
+const { apiLimiter } = require('../../middleware/rateLimiter.middleware'); // 🛡️ Rate Limiter from Issue #190
 
 // ── Multer Storage Config ──────────────────────────────────────────────────
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // folder must exist — created in app.js step
+    cb(null, 'uploads/'); 
   },
   filename: (req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
@@ -33,14 +34,17 @@ const upload = multer({
 
 // ── Routes ─────────────────────────────────────────────────────────────────
 
-// Public routes
-router.get('/', validate(validationSchemas.eventQuery, 'query'), eventsController.getAllEvents);
-router.get('/:id', validate(validationSchemas.idParam, 'params'), eventsController.getEventById);
+// Public routes 🛡️ (With Issue #190 Rate Limiting)
+router.get('/', apiLimiter, validate(validationSchemas.eventQuery, 'query'), eventsController.getAllEvents);
+router.get('/:id', apiLimiter, validate(validationSchemas.idParam, 'params'), eventsController.getEventById);
 
 // Protected routes
 router.get('/saved/my-events', verifyToken, eventsController.getSavedEvents);
 router.post('/:id/save', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.saveEvent);
 router.delete('/:id/save', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.unsaveEvent);
+
+// 🎫 RSVP / Waitlist Endpoint (Added for Issue #194)
+router.post('/:id/rsvp', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.rsvpToEvent);
 
 // Admin-only routes — upload.single('image') must match frontend field name
 router.post('/', verifyToken, verifyAdmin, upload.single('image'), eventsController.createEvent);
