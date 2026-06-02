@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader, Share2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader, Share2, Copy } from 'lucide-react';
 import { eventsService, Event } from '@/services/eventService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function EventsPage() {
   const { isOnline } = useConnectivity();
+  const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [savedEventIds, setSavedEventIds] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
@@ -39,7 +40,10 @@ export default function EventsPage() {
       const e = error as { message?: string };
       const errorMsg = e?.message || 'Failed to load events';
       setError(errorMsg);
-      toast.error(errorMsg);
+      toast({
+        variant: 'destructive',
+        title: errorMsg,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -70,15 +74,22 @@ export default function EventsPage() {
           newSet.delete(eventId);
           return newSet;
         });
-        toast.success('Event removed from saved');
+        toast({
+          title: 'Event removed from saved',
+        });
       } else {
         await eventsService.save(eventId);
         setSavedEventIds(prev => new Set(prev).add(eventId));
-        toast.success('Event saved successfully!');
+        toast({
+          title: 'Event saved successfully!',
+        });
       }
     } catch (error: unknown) {
       const e = error as { message?: string };
-      toast.error(e?.message || 'Failed to save event');
+      toast({
+        variant: 'destructive',
+        title: e?.message || 'Failed to save event',
+      });
     } finally {
       setIsSavingMap(new Map(isSavingMap).set(eventId, false));
     }
@@ -97,7 +108,10 @@ export default function EventsPage() {
       } catch (err: unknown) {
         // User cancelled the share — not an error worth toasting
         if (err instanceof Error && err.name !== 'AbortError') {
-          toast.error('Failed to share event');
+          toast({
+            variant: 'destructive',
+            title: 'Failed to share event',
+          });
         }
       }
     } else {
@@ -105,10 +119,29 @@ export default function EventsPage() {
       try {
         const fallbackText = `${shareData.title}\n${shareData.text}\n${shareData.url}`;
         await navigator.clipboard.writeText(fallbackText);
-        toast.success('Event details copied to clipboard!');
+        toast({
+          title: 'Event details copied to clipboard!',
+        });
       } catch {
-        toast.error('Unable to share or copy event details');
+        toast({
+          variant: 'destructive',
+          title: 'Unable to share or copy event details',
+        });
       }
+    }
+  };
+
+  const handleCopyEventLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: 'Link copied to clipboard!',
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Unable to copy link',
+      });
     }
   };
 
@@ -246,6 +279,17 @@ export default function EventsPage() {
                     <CardTitle className="flex items-start justify-between gap-2">
                       <span className="flex-1">{event.title}</span>
                       <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Copy Link Button */}
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={handleCopyEventLink}
+                          title="Copy link"
+                          aria-label={`Copy link for ${event.title}`}
+                        >
+                          <Copy className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                        </motion.button>
+
                         {/* Share Button */}
                         <motion.button
                           whileHover={{ scale: 1.1 }}
