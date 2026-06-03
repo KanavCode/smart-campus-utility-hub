@@ -438,6 +438,78 @@ const getSavedEvents = asyncHandler(async (req, res) => {
     count: result.rows.length,
   });
 });
+/**
+ * RSVP or Waitlist for an Event (Protected)
+ * POST /api/events/:id/rsvp
+ */
+const rsvpToEvent = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  const eventId = parseInt(id);
+  if (isNaN(eventId) || eventId < 1) {
+    throw new ApiError(400, 'Invalid event ID');
+  }
+
+  // 1. Fetch Event and its Max Capacity
+  const eventCheck = await query('SELECT id, title, max_capacity FROM events WHERE id = $1', [eventId]);
+  if (eventCheck.rows.length === 0) {
+    throw new ApiError(404, 'Event not found');
+  }
+  
+  const event = eventCheck.rows[0];
+  // Default max_capacity to 50 if it's null/not specified dynamically
+  const maxCapacity = event.max_capacity || 50; 
+
+  // 2. Check if user has ALREADY requested RSVP/Waitlist to prevent duplicates
+  const duplicateCheck = await query(
+    'SELECT status FROM event_rsvps WHERE user_id = $1 AND event_id = $2',
+    [userId, eventId]
+  );
+  if (duplicateCheck.rows.length > 0) {
+    throw new ApiError(400, `You have already registered for this event. Status: ${duplicateCheck.rows[0].status}`);
+  }
+
+  // 3. Count current 'confirmed' reservations
+  const countCheck = await query(
+    "SELECT COUNT(*)::int as total FROM event_rsvps WHERE event_id = $1 AND status = 'confirmed'",
+    [eventId]
+  );
+  const currentConfirmedCount = countCheck.rows[0].total;
+
+  // 4. Conditional State Engine Assignment
+  let rsvpStatus = 'confirmed';
+  if (currentConfirmedCount >= maxCapacity) {
+    rsvpStatus = 'waitlisted';
+  }
+
+  // 5. Insert Record inside PostgreSQL Database
+  const insertSql = `
+    INSERT INTO event_rsvps (user_id, event_id, status)
+    VALUES ($1, $2, $3)
+    RETURNING id, status, created_at
+  `;
+  const insertResult = await query(insertSql, [userId, eventId, rsvpStatus]);
+
+  logger.info('Event RSVP processed', { eventId, userId, status: rsvpStatus });
+
+  // 6. Log Dynamic Tracking Activity Logs
+  await activityService.logActivity({
+    userId,
+    action: rsvpStatus === 'confirmed' ? 'CONFIRM_RSVP' : 'JOIN_WAITLIST',
+    entityType: 'event_rsvp',
+    entityId: insertResult.rows[0].id,
+    description: rsvpStatus === 'confirmed' 
+      ? `Successfully confirmed seat for event: ${event.title}`
+      : `Added to the waitlist queue for full event: ${event.title}`,
+    metadata: { eventId, status: rsvpStatus }
+  });
+
+  // 7. Dispatch Network Status Array Response
+  sendSuccess(res, 201, rsvpStatus === 'confirmed' ? 'RSVP confirmed successfully' : 'Event full! You have been added to the waitlist', {
+    rsvp: insertResult.rows[0]
+  });
+});
 
 module.exports = {
   createEvent,
@@ -448,4 +520,5 @@ module.exports = {
   saveEvent,
   unsaveEvent,
   getSavedEvents,
+  rsvpToEvent, // 🎫 Added the new fullstack handler right here
 };
