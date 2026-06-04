@@ -51,6 +51,10 @@ temp/
 *.db
 *.sqlite
 
+# Automated Backups — SQL dumps can be large and contain sensitive data
+backups/
+*.sql
+
 # Jest
 jest-coverage/
 .jest-cache/
