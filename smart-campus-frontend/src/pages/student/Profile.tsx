@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FormModal } from '@/components/modals/FormModal';
-import { User, Lock, Mail, GraduationCap } from 'lucide-react';
+import { AvatarCropModal } from '@/components/modals/AvatarCropModal';
+import { User, Lock, Mail, GraduationCap, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { authService } from '@/services/authService';
 import { ApiError, UserFormData } from '@/types';
@@ -17,6 +18,12 @@ export default function Profile() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Avatar crop state
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [profileData, setProfileData] = useState({
     full_name: '',
     email: '',
@@ -55,6 +62,35 @@ export default function Profile() {
     newPassword: '',
     confirmPassword: ''
   });
+
+  // Avatar file selection → open crop modal
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file.');
+      return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    setRawImageSrc(objectUrl);
+    setIsCropModalOpen(true);
+    // Reset input so the same file can be re-selected if needed
+    e.target.value = '';
+  };
+
+  // Receive cropped Blob from AvatarCropModal → upload to backend
+  const handleAvatarSave = async (croppedBlob: Blob) => {
+    try {
+      await authService.uploadAvatar(croppedBlob);
+      // Show local preview immediately (avoids waiting for server round-trip)
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+      setAvatarPreview(URL.createObjectURL(croppedBlob));
+      toast.success('Profile photo updated!');
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      toast.error(err?.message || 'Failed to upload avatar');
+    }
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,22 +157,53 @@ export default function Profile() {
 
         <Card className="glass">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Personal Information
-              </CardTitle>
+            <div className="flex items-start justify-between gap-4">
+              {/* Avatar */}
+              <div className="flex items-center gap-4">
+                <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
+                  <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary/40 overflow-hidden flex items-center justify-center">
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="Profile avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="h-8 w-8 text-primary/60" />
+                    )}
+                  </div>
+                  <motion.div
+                    whileHover={{ opacity: 1 }}
+                    initial={{ opacity: 0 }}
+                    className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Camera className="h-5 w-5 text-white" />
+                  </motion.div>
+                </div>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Personal Information
+                </CardTitle>
+              </div>
+
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Profile Completion</p>
                 <p className="text-2xl font-bold text-primary">{profileCompletion}%</p>
               </div>
             </div>
+
+            {/* Hidden file input */}
+            <input
+              ref={avatarInputRef}
+              id="avatar-file-input"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarFileChange}
+            />
+
             <div className="w-full bg-muted rounded-full h-2 mt-4">
-              <motion.div 
+              <motion.div
                 className="bg-primary h-2 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${profileCompletion}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
+                transition={{ duration: 1, ease: 'easeOut' }}
               />
             </div>
           </CardHeader>
@@ -194,6 +261,20 @@ export default function Profile() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Avatar Crop Modal */}
+      {rawImageSrc && (
+        <AvatarCropModal
+          isOpen={isCropModalOpen}
+          imageSrc={rawImageSrc}
+          onClose={() => {
+            setIsCropModalOpen(false);
+            URL.revokeObjectURL(rawImageSrc);
+            setRawImageSrc(null);
+          }}
+          onSave={handleAvatarSave}
+        />
+      )}
 
       {/* Edit Profile Modal */}
       <FormModal
