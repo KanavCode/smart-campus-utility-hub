@@ -95,6 +95,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.4",
     "lovable-tagger": "^1.1.11",
+    "msw": "^2.14.6",
     "postcss": "^8.5.6",
     "prettier": "^3.8.3",
     "tailwindcss": "^3.4.17",

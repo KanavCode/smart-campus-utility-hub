@@ -158,12 +158,25 @@ export const eventsService = {
   /**
    * Remove event from saved list
    */
+  /**
+   * Remove event from saved list
+   */
   unsave: async (eventId: string | number): Promise<{ success: boolean }> => {
     try {
       const data = asApiData(await api.delete(`/events/${eventId}/save`));
       return data;
     } catch (error) {
       withServiceError(error, 'Failed to unsave event');
+    }
+  },
+
+  // 🎫 RSVP / Join Waitlist Engine (Added for Issue #194)
+  rsvp: async (eventId: string | number): Promise<any> => {
+    try {
+      const data = asApiData(await api.post(`/events/${eventId}/rsvp`));
+      return data;
+    } catch (error) {
+      withServiceError(error, 'Failed to process RSVP request');
     }
   },
 
