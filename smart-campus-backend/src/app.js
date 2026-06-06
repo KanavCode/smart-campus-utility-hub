@@ -11,6 +11,7 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter.middleware');
 const { verifyToken, verifyAdmin } = require('./middleware/auth.middleware');
 const notificationService = require('./services/notification.service');
+const { initBackupJob } = require('./jobs/backup.job');
 
 // =====================================================================
 // VALIDATE REQUIRED ENVIRONMENT VARIABLES (FAIL FAST)
@@ -175,6 +176,9 @@ const startServer = async () => {
       if (!dbConnected) {
         logger.warn('⚠️  DATABASE NOT CONNECTED');
       }
+
+      // Register automated daily database backup job (runs at midnight)
+      initBackupJob();
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
