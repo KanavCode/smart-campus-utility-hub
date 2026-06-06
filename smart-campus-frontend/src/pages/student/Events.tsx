@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +30,7 @@ export default function EventsPage() {
     search: '',
     department: '',
     tag: '',
-    upcoming: 'true'
+    upcoming: 'true',
   });
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function EventsPage() {
   const loadSavedEvents = async () => {
     try {
       const response = await eventsService.getMySaved();
-      const ids = new Set(response.data?.events?.map((e: Event) => e.id) || []);
+      const ids = new Set(response.data?.events?.map((event: Event) => event.id) || []);
       setSavedEventIds(ids);
     } catch (error: unknown) {
       console.error('Failed to load saved events', error);
@@ -82,15 +82,11 @@ export default function EventsPage() {
           newSet.delete(eventId);
           return newSet;
         });
-        toast({
-          title: 'Event removed from saved',
-        });
+        toast({ title: 'Event removed from saved' });
       } else {
         await eventsService.save(eventId);
         setSavedEventIds(prev => new Set(prev).add(eventId));
-        toast({
-          title: 'Event saved successfully!',
-        });
+        toast({ title: 'Event saved successfully!' });
       }
     } catch (error: unknown) {
       const e = error as { message?: string };
@@ -130,7 +126,7 @@ export default function EventsPage() {
   const handleShareEvent = async (event: ExtendedEvent) => {
     const shareData = {
       title: event.title,
-      text: `📅 ${event.title}\n🕐 ${new Date(event.start_time).toLocaleString()}\n📍 ${event.location}${event.description ? `\n\n${event.description}` : ''}`,
+      text: `Event: ${event.title}\nTime: ${new Date(event.start_time).toLocaleString()}\nLocation: ${event.location}${description}`,
       url: window.location.href,
     };
 
@@ -149,9 +145,7 @@ export default function EventsPage() {
       try {
         const fallbackText = `${shareData.title}\n${shareData.text}\n${shareData.url}`;
         await navigator.clipboard.writeText(fallbackText);
-        toast({
-          title: 'Event details copied to clipboard!',
-        });
+        toast({ title: 'Event details copied to clipboard!' });
       } catch {
         toast({
           variant: 'destructive',
@@ -164,9 +158,7 @@ export default function EventsPage() {
   const handleCopyEventLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      toast({
-        title: 'Link copied to clipboard!',
-      });
+      toast({ title: 'Link copied to clipboard!' });
     } catch {
       toast({
         variant: 'destructive',
@@ -216,7 +208,6 @@ export default function EventsPage() {
           <p className="text-muted-foreground">Discover and save upcoming events</p>
         </div>
 
-        {/* Filters Card */}
         <Card className="glass">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -277,7 +268,6 @@ export default function EventsPage() {
           </CardContent>
         </Card>
 
-        {/* Events Grid */}
         {isLoading ? (
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center space-y-4">
@@ -290,9 +280,7 @@ export default function EventsPage() {
             <CardContent className="py-12 text-center">
               <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">No Events Found</h3>
-              <p className="text-muted-foreground">
-                Try adjusting your filters to find events
-              </p>
+              <p className="text-muted-foreground">Try adjusting your filters to find events</p>
             </CardContent>
           </Card>
         ) : (
@@ -309,7 +297,6 @@ export default function EventsPage() {
                     <CardTitle className="flex items-start justify-between gap-2">
                       <span className="flex-1">{event.title}</span>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {/* Copy Link Button */}
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
@@ -320,7 +307,6 @@ export default function EventsPage() {
                           <Copy className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
                         </motion.button>
 
-                        {/* Share Button */}
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
@@ -331,6 +317,7 @@ export default function EventsPage() {
                           <Share2 className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
                         </motion.button>
 
+<<<<<<< HEAD
               return (
                 <motion.div
                   key={event.id}
@@ -387,6 +374,16 @@ export default function EventsPage() {
                               className={`flex-shrink-0 ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}
                               title={savedEventIds.has(event.id) ? 'Remove from saved' : 'Save event'}
                               aria-label={savedEventIds.has(event.id) ? `Unsave ${event.title}` : `Save ${event.title}`}
+=======
+                        <motion.button
+                          whileHover={isOnline ? { scale: 1.1 } : {}}
+                          whileTap={isOnline ? { scale: 0.9 } : {}}
+                          onClick={() => isOnline && handleSaveEvent(event.id)}
+                          disabled={isSavingMap.get(event.id) || !isOnline}
+                          className={`flex-shrink-0 ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          title={savedEventIds.has(event.id) ? 'Remove from saved' : 'Save event'}
+                          aria-label={savedEventIds.has(event.id) ? `Unsave ${event.title}` : `Save ${event.title}`}
+>>>>>>> 78fdc45 (Fix event link copy button parsing)
                         >
                           <Bookmark
                             className={`h-5 w-5 transition-colors ${
@@ -399,8 +396,14 @@ export default function EventsPage() {
                       </div>
                     </CardTitle>
                   </CardHeader>
+<<<<<<< HEAD
                   <CardContent className="space-y-3">
                     <p className="text-muted-foreground text-sm">{event.description}</p>
+=======
+
+                  <CardContent className="space-y-3 flex-1 flex flex-col">
+                    <p className="text-muted-foreground text-sm flex-1">{event.description}</p>
+>>>>>>> 78fdc45 (Fix event link copy button parsing)
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
@@ -422,6 +425,24 @@ export default function EventsPage() {
                         </span>
                       </div>
                     </div>
+<<<<<<< HEAD
+=======
+                    {event.club_name && (
+                      <div className="text-xs text-accent font-medium pt-2">By: {event.club_name}</div>
+                    )}
+                    {event.tags && event.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {event.tags.map((tag: string, i: number) => (
+                          <span
+                            key={i}
+                            className="px-2 py-1 text-xs rounded-full bg-accent/20 text-accent-foreground"
+                          >
+                            {tag.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+>>>>>>> 78fdc45 (Fix event link copy button parsing)
                   </CardContent>
                 </div>
 
