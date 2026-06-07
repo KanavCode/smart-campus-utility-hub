@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader, Share2, Copy } from 'lucide-react';
+import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader, Share2, Copy, CheckCircle, Users } from 'lucide-react';
 import { eventsService, Event } from '@/services/eventService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -126,7 +126,7 @@ export default function EventsPage() {
   const handleShareEvent = async (event: ExtendedEvent) => {
     const shareData = {
       title: event.title,
-      text: `Event: ${event.title}\nTime: ${new Date(event.start_time).toLocaleString()}\nLocation: ${event.location}${description}`,
+      text: `Event: ${event.title}\nTime: ${new Date(event.start_time).toLocaleString()}\nLocation: ${event.location}\n${event.description}`,
       url: window.location.href,
     };
 
@@ -285,39 +285,13 @@ export default function EventsPage() {
           </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event: Event, index: number) => (
-              <motion.div
-                key={event.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="glass glow-accent-hover h-full flex flex-col">
-                  <CardHeader>
-                    <CardTitle className="flex items-start justify-between gap-2">
-                      <span className="flex-1">{event.title}</span>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={handleCopyEventLink}
-                          title="Copy link"
-                          aria-label={`Copy link for ${event.title}`}
-                        >
-                          <Copy className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
-                        </motion.button>
+            {events.map((event: Event, index: number) => {
+              const extendedEvent = event as ExtendedEvent;
+              const userStatus = extendedEvent.rsvp_status;
+              const maxCapacity = extendedEvent.max_capacity ?? 0;
+              const currentConfirmed = extendedEvent.current_confirmed ?? 0;
+              const isFull = maxCapacity > 0 && currentConfirmed >= maxCapacity;
 
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => handleShareEvent(event)}
-                          title="Share event"
-                          aria-label={`Share ${event.title}`}
-                        >
-                          <Share2 className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
-                        </motion.button>
-
-<<<<<<< HEAD
               return (
                 <motion.div
                   key={event.id}
@@ -354,6 +328,16 @@ export default function EventsPage() {
                           </div>
                           
                           <div className="flex items-center gap-2 flex-shrink-0">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={handleCopyEventLink}
+                              title="Copy link"
+                              aria-label={`Copy link for ${event.title}`}
+                            >
+                              <Copy className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                            </motion.button>
+
                             {/* Share Button */}
                             <motion.button
                               whileHover={{ scale: 1.1 }}
@@ -374,16 +358,6 @@ export default function EventsPage() {
                               className={`flex-shrink-0 ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}
                               title={savedEventIds.has(event.id) ? 'Remove from saved' : 'Save event'}
                               aria-label={savedEventIds.has(event.id) ? `Unsave ${event.title}` : `Save ${event.title}`}
-=======
-                        <motion.button
-                          whileHover={isOnline ? { scale: 1.1 } : {}}
-                          whileTap={isOnline ? { scale: 0.9 } : {}}
-                          onClick={() => isOnline && handleSaveEvent(event.id)}
-                          disabled={isSavingMap.get(event.id) || !isOnline}
-                          className={`flex-shrink-0 ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          title={savedEventIds.has(event.id) ? 'Remove from saved' : 'Save event'}
-                          aria-label={savedEventIds.has(event.id) ? `Unsave ${event.title}` : `Save ${event.title}`}
->>>>>>> 78fdc45 (Fix event link copy button parsing)
                         >
                           <Bookmark
                             className={`h-5 w-5 transition-colors ${
@@ -396,14 +370,8 @@ export default function EventsPage() {
                       </div>
                     </CardTitle>
                   </CardHeader>
-<<<<<<< HEAD
-                  <CardContent className="space-y-3">
-                    <p className="text-muted-foreground text-sm">{event.description}</p>
-=======
-
                   <CardContent className="space-y-3 flex-1 flex flex-col">
                     <p className="text-muted-foreground text-sm flex-1">{event.description}</p>
->>>>>>> 78fdc45 (Fix event link copy button parsing)
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
@@ -425,8 +393,6 @@ export default function EventsPage() {
                         </span>
                       </div>
                     </div>
-<<<<<<< HEAD
-=======
                     {event.club_name && (
                       <div className="text-xs text-accent font-medium pt-2">By: {event.club_name}</div>
                     )}
@@ -442,7 +408,6 @@ export default function EventsPage() {
                         ))}
                       </div>
                     )}
->>>>>>> 78fdc45 (Fix event link copy button parsing)
                   </CardContent>
                 </div>
 
