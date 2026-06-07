@@ -11,6 +11,7 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter.middleware');
 const { verifyToken, verifyAdmin } = require('./middleware/auth.middleware');
 const notificationService = require('./services/notification.service');
+const { initBackupJob } = require('./jobs/backup.job');
 
 // =====================================================================
 // VALIDATE REQUIRED ENVIRONMENT VARIABLES (FAIL FAST)
@@ -41,6 +42,7 @@ const settingsRoutes = require("./components/settings/settings.routes");
 const notificationsRoutes = require("./components/notifications/notifications.routes");
 const searchRoutes = require("./components/search/search.routes");
 const activityRoutes = require("./components/activities/activity.routes");
+const calendarRoutes = require('./components/calendar/calendar.routes');
 
 // Create Express application
 const app = express();
@@ -142,6 +144,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api/calendar',   calendarRoutes);
 
 // Test Socket endpoint
 app.get('/api/test-socket', verifyToken, verifyAdmin, (req, res) => {
@@ -173,6 +176,9 @@ const startServer = async () => {
       if (!dbConnected) {
         logger.warn('⚠️  DATABASE NOT CONNECTED');
       }
+
+      // Register automated daily database backup job (runs at midnight)
+      initBackupJob();
     });
   } catch (error) {
     logger.error('Failed to start server:', error);

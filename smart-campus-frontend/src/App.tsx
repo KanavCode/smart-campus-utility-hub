@@ -13,6 +13,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { OfflineBanner } from "@/components/layout/OfflineBanner";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -82,8 +83,9 @@ const App = () => (
                 <BrowserRouter>
                   <OfflineBanner />
                   <RoutePreloader />
-                  <Suspense fallback={<RouteFallback />}>
-                    <Routes>
+                  <ErrorBoundary>
+                    <Suspense fallback={<RouteFallback />}>
+                      <Routes>
                       {/* Public Routes */}
                       <Route path="/" element={<Landing />} />
                       <Route path="/auth" element={<Auth />} />

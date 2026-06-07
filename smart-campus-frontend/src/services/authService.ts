@@ -228,7 +228,35 @@ export const authService = {
   isStudent: (): boolean => {
     const user = authService.getStoredUser();
     return user?.role === 'student';
-    },
+  },
+
+  /**
+   * Upload a cropped avatar Blob to the backend
+   * Sends multipart/form-data with field name "avatar"
+   * Protected route - requires valid JWT token
+   */
+  uploadAvatar: async (avatarBlob: Blob): Promise<ApiResponse<{ avatar_url: string }>> => {
+    try {
+      const form = new FormData();
+      form.append('avatar', avatarBlob, 'avatar.jpg');
+      const { data } = await api.post<ApiResponse<{ avatar_url: string }>>(
+        '/auth/avatar',
+        form,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+
+      // Persist avatar_url in localStorage so UI updates immediately
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem(
+        'user',
+        JSON.stringify({ ...currentUser, avatar_url: data.data?.avatar_url })
+      );
+
+      return data;
+    } catch (error) {
+      withServiceError(error, 'Failed to upload avatar');
+    }
+  },
 
     /**
      * Request password reset link via email
