@@ -20,7 +20,6 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sso = params.get('sso');
