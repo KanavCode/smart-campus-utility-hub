@@ -7,10 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FormModal } from '@/components/modals/FormModal';
 import { AvatarCropModal } from '@/components/modals/AvatarCropModal';
-import { User, Lock, Mail, GraduationCap, Camera } from 'lucide-react';
+import { User, Lock, Mail, GraduationCap, Camera, Laptop, Smartphone, Globe, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { authService } from '@/services/authService';
-import { ApiError, UserFormData } from '@/types';
+import { ApiError, UserFormData, UserSession } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Profile() {
@@ -18,6 +18,10 @@ export default function Profile() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Sessions state
+  const [sessions, setSessions] = useState<UserSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
 
   // Avatar crop state
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
@@ -130,6 +134,68 @@ export default function Profile() {
     } catch (error: unknown) {
       const err = error as ApiError;
       toast.error(err?.message || 'Failed to change password');
+    }
+  };
+
+  const fetchSessions = async () => {
+    try {
+      const response = await authService.getSessions();
+      if (response?.success && response.data) {
+        setSessions(response.data.sessions);
+      }
+    } catch (error) {
+      console.error('Failed to load active sessions:', error);
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSessions();
+  }, []);
+
+  const handleRevokeSession = async (sessionId: number) => {
+    try {
+      const response = await authService.revokeSession(sessionId);
+      if (response?.success) {
+        toast.success('Session revoked successfully!');
+        setSessions(prev => prev.filter(s => s.id !== sessionId));
+      } else {
+        toast.error(response?.message || 'Failed to revoke session');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to revoke session');
+    }
+  };
+
+  const getDeviceIcon = (deviceType: string) => {
+    const type = deviceType.toLowerCase();
+    if (type.includes('phone') || type.includes('mobile') || type.includes('ios') || type.includes('android')) {
+      return <Smartphone className="h-5 w-5" />;
+    }
+    if (type.includes('windows') || type.includes('mac') || type.includes('linux') || type.includes('chrome')) {
+      return <Laptop className="h-5 w-5" />;
+    }
+    return <Globe className="h-5 w-5" />;
+  };
+
+  const formatLastActive = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const diffMs = Date.now() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return date.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (e) {
+      return 'Unknown';
     }
   };
 
@@ -258,6 +324,78 @@ export default function Profile() {
                 </motion.button>
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Active Sessions */}
+        <Card className="glass mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-primary" />
+              Active Sessions
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Devices and locations currently accessing your account. Revoke any unfamiliar sessions.
+            </p>
+          </CardHeader>
+          <CardContent>
+            {sessionsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : sessions.length === 0 ? (
+              <p className="text-muted-foreground text-center py-6">No active sessions found.</p>
+            ) : (
+              <div className="space-y-4 divide-y divide-border">
+                {sessions.map((session, index) => (
+                  <motion.div
+                    key={session.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className={`flex items-center justify-between gap-4 pt-4 ${index === 0 ? 'pt-0' : ''}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg text-primary mt-1">
+                        {getDeviceIcon(session.device_type)}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold">{session.device_type}</p>
+                          {session.is_current && (
+                            <span className="bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-full font-medium">
+                              Current Session
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <Globe className="h-3.5 w-3.5" />
+                          {session.location} • {session.ip_address}
+                        </p>
+                        <p className="text-xs text-muted-foreground/85 mt-0.5">
+                          Last active: {formatLastActive(session.last_active)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {!session.is_current && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRevokeSession(session.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        asChild
+                      >
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Trash2 className="h-4 w-4 mr-1.5" />
+                          Revoke
+                        </motion.button>
+                      </Button>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>

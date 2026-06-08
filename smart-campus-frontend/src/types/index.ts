@@ -184,3 +184,14 @@ export interface Club {
   category: string;
   image_url?: string;
 }
+
+export interface UserSession {
+  id: number;
+  ip_address: string;
+  user_agent: string;
+  device_type: string;
+  location: string;
+  last_active: string;
+  created_at: string;
+  is_current: boolean;
+}

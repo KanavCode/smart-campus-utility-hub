@@ -1,6 +1,6 @@
 import { api } from '@/lib/axios';
 import { withServiceError } from './serviceUtils';
-import { User, ApiResponse, ApiError, UserRole } from '@/types';
+import { User, ApiResponse, ApiError, UserRole, UserSession } from '@/types';
 import { AxiosError } from 'axios';
 
 export interface LoginRequest {
@@ -297,6 +297,30 @@ export const authService = {
           axiosError.message || 
           'Failed to reset password. Please check your information and try again.';
         throw { message: errorMessage } as ApiError;
+      }
+    },
+
+    /**
+     * Get all active sessions for the current user
+     */
+    getSessions: async (): Promise<ApiResponse<{ sessions: UserSession[] }>> => {
+      try {
+        const { data } = await api.get<ApiResponse<{ sessions: UserSession[] }>>('/auth/sessions');
+        return data;
+      } catch (error) {
+        withServiceError(error, 'Failed to fetch active sessions');
+      }
+    },
+
+    /**
+     * Revoke an active session by ID
+     */
+    revokeSession: async (sessionId: number): Promise<ApiResponse<null>> => {
+      try {
+        const { data } = await api.delete<ApiResponse<null>>(`/auth/sessions/${sessionId}`);
+        return data;
+      } catch (error) {
+        withServiceError(error, 'Failed to revoke session');
       }
     }
 };
