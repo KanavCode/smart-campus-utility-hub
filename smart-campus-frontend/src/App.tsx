@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -296,11 +297,12 @@ const App = () => (
 
                       {/* Catch-all */}
                       <Route path="*" element={<NotFound />} />
-                    </Routes>
-                    <Chatbot />
-                  </Suspense>
-                </ErrorBoundary>
-              </BrowserRouter>
+                      </Routes>
+                      <Chatbot />
+                    </Suspense>
+                  </ErrorBoundary>
+                  <ScrollToTop />
+                </BrowserRouter>
               </TooltipProvider>
             </NotificationProvider>
           </LoadingProvider>
