@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader, Share2, CheckCircle, Users } from 'lucide-react';
-import { toast } from 'sonner';
+import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader, Share2, Copy, CheckCircle, Users } from 'lucide-react';
 import { eventsService, Event } from '@/services/eventService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
+import { useToast } from '@/components/ui/use-toast';
 
 // Extend Event type internally if properties are missing from standard declaration
 interface ExtendedEvent extends Event {
@@ -19,7 +19,8 @@ interface ExtendedEvent extends Event {
 
 export default function EventsPage() {
   const { isOnline } = useConnectivity();
-  const [events, setEvents] = useState<ExtendedEvent[]>([]);
+  const { toast } = useToast();
+  const [events, setEvents] = useState<Event[]>([]);
   const [savedEventIds, setSavedEventIds] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingMap, setIsSavingMap] = useState<Map<number, boolean>>(new Map());
@@ -29,7 +30,7 @@ export default function EventsPage() {
     search: '',
     department: '',
     tag: '',
-    upcoming: 'true'
+    upcoming: 'true',
   });
 
   useEffect(() => {
@@ -47,7 +48,10 @@ export default function EventsPage() {
       const e = error as { message?: string };
       const errorMsg = e?.message || 'Failed to load events';
       setError(errorMsg);
-      toast.error(errorMsg);
+      toast({
+        variant: 'destructive',
+        title: errorMsg,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +60,7 @@ export default function EventsPage() {
   const loadSavedEvents = async () => {
     try {
       const response = await eventsService.getMySaved();
-      const ids = new Set(response.data?.events?.map((e: Event) => e.id) || []);
+      const ids = new Set(response.data?.events?.map((event: Event) => event.id) || []);
       setSavedEventIds(ids);
     } catch (error: unknown) {
       console.error('Failed to load saved events', error);
@@ -78,15 +82,18 @@ export default function EventsPage() {
           newSet.delete(eventId);
           return newSet;
         });
-        toast.success('Event removed from saved');
+        toast({ title: 'Event removed from saved' });
       } else {
         await eventsService.save(eventId);
         setSavedEventIds(prev => new Set(prev).add(eventId));
-        toast.success('Event saved successfully!');
+        toast({ title: 'Event saved successfully!' });
       }
     } catch (error: unknown) {
       const e = error as { message?: string };
-      toast.error(e?.message || 'Failed to save event');
+      toast({
+        variant: 'destructive',
+        title: e?.message || 'Failed to save event',
+      });
     } finally {
       setIsSavingMap(new Map(isSavingMap).set(eventId, false));
     }
@@ -119,7 +126,7 @@ export default function EventsPage() {
   const handleShareEvent = async (event: ExtendedEvent) => {
     const shareData = {
       title: event.title,
-      text: `📅 ${event.title}\n🕐 ${new Date(event.start_time).toLocaleString()}\n📍 ${event.location}${event.description ? `\n\n${event.description}` : ''}`,
+      text: `Event: ${event.title}\nTime: ${new Date(event.start_time).toLocaleString()}\nLocation: ${event.location}\n${event.description}`,
       url: window.location.href,
     };
 
@@ -128,17 +135,35 @@ export default function EventsPage() {
         await navigator.share(shareData);
       } catch (err: unknown) {
         if (err instanceof Error && err.name !== 'AbortError') {
-          toast.error('Failed to share event');
+          toast({
+            variant: 'destructive',
+            title: 'Failed to share event',
+          });
         }
       }
     } else {
       try {
         const fallbackText = `${shareData.title}\n${shareData.text}\n${shareData.url}`;
         await navigator.clipboard.writeText(fallbackText);
-        toast.success('Event details copied to clipboard!');
+        toast({ title: 'Event details copied to clipboard!' });
       } catch {
-        toast.error('Unable to share or copy event details');
+        toast({
+          variant: 'destructive',
+          title: 'Unable to share or copy event details',
+        });
       }
+    }
+  };
+
+  const handleCopyEventLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast({ title: 'Link copied to clipboard!' });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Unable to copy link',
+      });
     }
   };
 
@@ -183,7 +208,6 @@ export default function EventsPage() {
           <p className="text-muted-foreground">Discover and save upcoming events</p>
         </div>
 
-        {/* Filters Card */}
         <Card className="glass">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -244,7 +268,6 @@ export default function EventsPage() {
           </CardContent>
         </Card>
 
-        {/* Events Grid */}
         {isLoading ? (
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center space-y-4">
@@ -257,18 +280,17 @@ export default function EventsPage() {
             <CardContent className="py-12 text-center">
               <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">No Events Found</h3>
-              <p className="text-muted-foreground">
-                Try adjusting your filters to find events
-              </p>
+              <p className="text-muted-foreground">Try adjusting your filters to find events</p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event: ExtendedEvent, index: number) => {
-              const maxCapacity = event.max_capacity || 50;
-              const currentConfirmed = event.current_confirmed || 0;
-              const isFull = currentConfirmed >= maxCapacity;
-              const userStatus = event.rsvp_status; // 'confirmed' | 'waitlisted' | null
+            {events.map((event: Event, index: number) => {
+              const extendedEvent = event as ExtendedEvent;
+              const userStatus = extendedEvent.rsvp_status;
+              const maxCapacity = extendedEvent.max_capacity ?? 0;
+              const currentConfirmed = extendedEvent.current_confirmed ?? 0;
+              const isFull = maxCapacity > 0 && currentConfirmed >= maxCapacity;
 
               return (
                 <motion.div
@@ -306,6 +328,16 @@ export default function EventsPage() {
                           </div>
                           
                           <div className="flex items-center gap-2 flex-shrink-0">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={handleCopyEventLink}
+                              title="Copy link"
+                              aria-label={`Copy link for ${event.title}`}
+                            >
+                              <Copy className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                            </motion.button>
+
                             {/* Share Button */}
                             <motion.button
                               whileHover={{ scale: 1.1 }}
@@ -338,8 +370,8 @@ export default function EventsPage() {
                       </div>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-muted-foreground text-sm">{event.description}</p>
+                  <CardContent className="space-y-3 flex-1 flex flex-col">
+                    <p className="text-muted-foreground text-sm flex-1">{event.description}</p>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
@@ -361,6 +393,21 @@ export default function EventsPage() {
                         </span>
                       </div>
                     </div>
+                    {event.club_name && (
+                      <div className="text-xs text-accent font-medium pt-2">By: {event.club_name}</div>
+                    )}
+                    {event.tags && event.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {event.tags.map((tag: string, i: number) => (
+                          <span
+                            key={i}
+                            className="px-2 py-1 text-xs rounded-full bg-accent/20 text-accent-foreground"
+                          >
+                            {tag.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </div>
 
