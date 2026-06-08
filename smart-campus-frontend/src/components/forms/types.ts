@@ -25,7 +25,8 @@ export interface FieldConfig {
   gridCol?: 1 | 2 | 3; 
   className?: string;
   disabled?: boolean;
-  hint?: string; 
+  hint?: string;
+  onChange?: (val: string) => void; 
 }
 
 export interface CrudService {
