@@ -4,28 +4,8 @@ import { useGenericForm } from './useGenericForm';
 import { FormField } from './FormField';
 import { GenericFormProps } from './types';
 
-export const GenericFormModal = ({
-  fields,
-  service,
-  initialData,
-  onSuccess,
-  onCancel,
-  validationSchema,
-  submitButtonLabel,
-  title,
-  mode = initialData?.id ? 'edit' : 'create',
-  customSubmitHandler,
-  disableSubmit,
-}: GenericFormProps) => {
-  const { formData, errors, isLoading, register, handleSubmit } =
-    useGenericForm(
-      fields,
-      service,
-      initialData,
-      onSuccess,
-      validationSchema,
-      customSubmitHandler
-    );
+export const GenericFormModal = ({ fields, service, initialData, onSuccess, onCancel, validationSchema, submitButtonLabel, title, mode = initialData?.id ? 'edit' : 'create', customSubmitHandler, disableSubmit }: GenericFormProps) => {
+  const { formData, errors, isLoading, register, handleSubmit } = useGenericForm(fields, service, initialData, onSuccess, validationSchema, customSubmitHandler);
 
   const groupedFields: GenericFormProps['fields'][][] = [];
   let currentRow: GenericFormProps['fields'][] = [];
@@ -34,13 +14,9 @@ export const GenericFormModal = ({
   fields.forEach((field) => {
     const shouldShow = field.condition ? field.condition(formData) : true;
     if (!shouldShow) return;
-
     const fieldCols = field.gridCol || 1;
-    
     if (currentRowCols + fieldCols > 3) {
-      if (currentRow.length > 0) {
-        groupedFields.push(currentRow);
-      }
+      if (currentRow.length > 0) groupedFields.push(currentRow);
       currentRow = [field];
       currentRowCols = fieldCols;
     } else {
@@ -48,70 +24,19 @@ export const GenericFormModal = ({
       currentRowCols += fieldCols;
     }
   });
-
-  if (currentRow.length > 0) {
-    groupedFields.push(currentRow);
-  }
-
-  const defaultSubmitLabel =
-    mode === 'edit'
-      ? submitButtonLabel || \Update \\
-      : submitButtonLabel || \Create \\;
+  if (currentRow.length > 0) groupedFields.push(currentRow);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {title && <h2 className="text-lg font-semibold">{title}</h2>}
-
-      {groupedFields.map((row, rowIndex) => (
-        <div
-          key={rowIndex}
-          className={\grid md:grid-cols-\ gap-4\}
-        >
-          {row.map((field) => {
-            const fieldReg = register(field.id);
-            return (
-              <FormField
-                key={field.id}
-                field={field}
-                value={fieldReg.value}
-                onChange={fieldReg.onChange}
-                error={errors[field.id]}
-                isLoading={isLoading}
-              />
-            );
-          })}
+    <form onSubmit={handleSubmit} className=\"space-y-4\">
+      {title && <h2 className=\"text-lg font-semibold\">{title}</h2>}
+      {groupedFields.map((row, i) => (
+        <div key={i} className={\grid md:grid-cols-\ gap-4\}>
+          {row.map((field) => <FormField key={field.id} field={field} value={register(field.id).value} onChange={register(field.id).onChange} error={errors[field.id]} isLoading={isLoading} />)}
         </div>
       ))}
-
-      <div className="flex gap-3 pt-4">
-        <Button
-          type="submit"
-          disabled={isLoading || disableSubmit}
-          className="flex-1 bg-primary text-primary-foreground font-semibold glow-primary-hover"
-          asChild
-        >
-          <motion.button
-            whileHover={!isLoading && !disableSubmit ? { scale: 1.02 } : {}}
-            whileTap={!isLoading && !disableSubmit ? { scale: 0.98 } : {}}
-          >
-            {isLoading ? 'Saving...' : defaultSubmitLabel}
-          </motion.button>
-        </Button>
-        <Button
-          type="button"
-          onClick={onCancel}
-          variant="outline"
-          className="flex-1"
-          disabled={isLoading}
-          asChild
-        >
-          <motion.button
-            whileHover={!isLoading ? { scale: 1.02 } : {}}
-            whileTap={!isLoading ? { scale: 0.98 } : {}}
-          >
-            Cancel
-          </motion.button>
-        </Button>
+      <div className=\"flex gap-3 pt-4\">
+        <Button type=\"submit\" disabled={isLoading || disableSubmit} className=\"flex-1\">{isLoading ? 'Saving...' : 'Submit'}</Button>
+        <Button type=\"button\" onClick={onCancel} variant=\"outline\" className=\"flex-1\">Cancel</Button>
       </div>
     </form>
   );
