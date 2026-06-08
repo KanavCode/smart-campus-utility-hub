@@ -15,8 +15,9 @@ export const GenericFormModal = ({
   title,
   mode = initialData?.id ? 'edit' : 'create',
   customSubmitHandler,
+  disableSubmit,
 }: GenericFormProps) => {
-  const { formData, errors, isLoading, register, handleSubmit, setFormData } =
+  const { formData, errors, isLoading, register, handleSubmit } =
     useGenericForm(
       fields,
       service,
@@ -26,11 +27,6 @@ export const GenericFormModal = ({
       customSubmitHandler
     );
 
-  const gridCols = fields.reduce((max, field) => {
-    return Math.max(max, field.gridCol || 1);
-  }, 1);
-
-  // Group fields by row based on gridCol
   const groupedFields: GenericFormProps['fields'][][] = [];
   let currentRow: GenericFormProps['fields'][] = [];
   let currentRowCols = 0;
@@ -59,8 +55,8 @@ export const GenericFormModal = ({
 
   const defaultSubmitLabel =
     mode === 'edit'
-      ? submitButtonLabel || `Update ${title || 'Item'}`
-      : submitButtonLabel || `Create ${title || 'Item'}`;
+      ? submitButtonLabel || \Update \\
+      : submitButtonLabel || \Create \\;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -69,7 +65,7 @@ export const GenericFormModal = ({
       {groupedFields.map((row, rowIndex) => (
         <div
           key={rowIndex}
-          className={`grid md:grid-cols-${row.length === 1 ? 1 : row.length === 2 ? 2 : 3} gap-4`}
+          className={\grid md:grid-cols-\ gap-4\}
         >
           {row.map((field) => {
             const fieldReg = register(field.id);
@@ -90,13 +86,13 @@ export const GenericFormModal = ({
       <div className="flex gap-3 pt-4">
         <Button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || disableSubmit}
           className="flex-1 bg-primary text-primary-foreground font-semibold glow-primary-hover"
           asChild
         >
           <motion.button
-            whileHover={!isLoading ? { scale: 1.02 } : {}}
-            whileTap={!isLoading ? { scale: 0.98 } : {}}
+            whileHover={!isLoading && !disableSubmit ? { scale: 1.02 } : {}}
+            whileTap={!isLoading && !disableSubmit ? { scale: 0.98 } : {}}
           >
             {isLoading ? 'Saving...' : defaultSubmitLabel}
           </motion.button>
