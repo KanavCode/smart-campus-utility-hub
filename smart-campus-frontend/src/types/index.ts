@@ -15,10 +15,23 @@ export interface User {
   cgpa?: number | null;
   semester?: number | null;
   is_active?: boolean;
+  two_factor_enabled?: boolean;
 }
 
 export interface UserFormData extends Partial<User> {
   password?: string;
+}
+
+export interface TwoFactorChallenge {
+  secret: string;
+  qrCode: string;
+  backupCodes: string[];
+}
+
+export interface TwoFactorStatus {
+  twoFactorEnabled: boolean;
+  enabledAt?: string;
+  backupCodesCount: number;
 }
 
 export interface TeacherFormData {

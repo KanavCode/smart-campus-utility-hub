@@ -7,17 +7,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FormModal } from '@/components/modals/FormModal';
 import { AvatarCropModal } from '@/components/modals/AvatarCropModal';
-import { User, Lock, Mail, GraduationCap, Camera } from 'lucide-react';
+import { TwoFactorSetupModal } from '@/components/modals/TwoFactorSetupModal';
+import { User, Lock, Mail, GraduationCap, Camera, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { authService } from '@/services/authService';
 import { ApiError, UserFormData } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, disableTwoFactor, getTwoFactorStatus } = useAuth();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [is2FAModalOpen, setIs2FAModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [twoFactorStatus, setTwoFactorStatus] = useState<{ twoFactorEnabled: boolean; backupCodesCount: number } | null>(null);
 
   // Avatar crop state
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
@@ -42,9 +45,21 @@ export default function Profile() {
         semester: user.semester?.toString() || '',
         cgpa: user.cgpa?.toString() || ''
       });
+      
+      // Fetch 2FA status
+      fetchTwoFactorStatus();
     }
     setLoading(false);
   }, [user]);
+
+  const fetchTwoFactorStatus = async () => {
+    try {
+      const status = await getTwoFactorStatus();
+      setTwoFactorStatus(status);
+    } catch (error) {
+      console.error('Failed to fetch 2FA status:', error);
+    }
+  };
 
   // Calculate profile completion
   const calculateCompletion = () => {
@@ -131,6 +146,26 @@ export default function Profile() {
       const err = error as ApiError;
       toast.error(err?.message || 'Failed to change password');
     }
+  };
+
+  const handle2FADisable = async () => {
+    if (!window.confirm('Are you sure you want to disable 2FA? This will make your account less secure.')) {
+      return;
+    }
+    try {
+      await disableTwoFactor();
+      toast.success('2FA has been disabled');
+      setTwoFactorStatus(prev => prev ? { ...prev, twoFactorEnabled: false } : null);
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      toast.error(err?.message || 'Failed to disable 2FA');
+    }
+  };
+
+  const handle2FASetupSuccess = () => {
+    setIs2FAModalOpen(false);
+    toast.success('2FA has been enabled successfully');
+    fetchTwoFactorStatus();
   };
 
   if (loading) {
@@ -416,6 +451,71 @@ export default function Profile() {
           </div>
         </form>
       </FormModal>
+
+      {/* Two-Factor Authentication Card */}
+      <Card className="glass">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5" />
+            Two-Factor Authentication
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Status</p>
+              <p className="text-sm text-muted-foreground">
+                {twoFactorStatus?.twoFactorEnabled ? (
+                  <span className="text-green-600">Enabled ✓</span>
+                ) : (
+                  <span className="text-orange-600">Not Enabled</span>
+                )}
+              </p>
+            </div>
+            {twoFactorStatus?.backupCodesCount !== undefined && twoFactorStatus.twoFactorEnabled && (
+              <div className="text-right">
+                <p className="font-medium">{twoFactorStatus.backupCodesCount} Backup Codes</p>
+                <p className="text-sm text-muted-foreground">Remaining</p>
+              </div>
+            )}
+          </div>
+
+          {twoFactorStatus?.twoFactorEnabled ? (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800">
+              <p>Your account is protected with two-factor authentication. Great job keeping your account secure!</p>
+            </div>
+          ) : (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+              <p>Enable two-factor authentication to add an extra layer of security to your account.</p>
+            </div>
+          )}
+
+          <div className="flex gap-4">
+            {!twoFactorStatus?.twoFactorEnabled ? (
+              <Button
+                onClick={() => setIs2FAModalOpen(true)}
+                className="bg-primary text-primary-foreground"
+              >
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                Enable 2FA
+              </Button>
+            ) : (
+              <Button variant="destructive" onClick={handle2FADisable}>
+                <Lock className="h-4 w-4 mr-2" />
+                Disable 2FA
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 2FA Setup Modal */}
+      <TwoFactorSetupModal
+        isOpen={is2FAModalOpen}
+        onClose={() => setIs2FAModalOpen(false)}
+        onSuccess={handle2FASetupSuccess}
+      />
     </DashboardLayout>
   );
 }
+
