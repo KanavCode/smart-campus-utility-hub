@@ -126,4 +126,17 @@ router.get(
   userController.ssoCallback
 );
 
+// Session management routes
+router.get(
+  '/sessions',
+  verifyToken,
+  userController.getSessions
+);
+
+router.delete(
+  '/sessions/:id',
+  verifyToken,
+  userController.revokeSession
+);
+
 module.exports = router;

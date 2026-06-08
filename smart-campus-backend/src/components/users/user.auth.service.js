@@ -1,5 +1,7 @@
 const crypto = require('crypto');
 const UserModel = require('./user.model');
+const UserSessionModel = require('./user.session.model');
+const { parseUserAgent, getLocationFromIp } = require('../../utils/sessionHelper');
 const {
   generateToken,
   generateRefreshToken,
@@ -68,35 +70,62 @@ const buildRefreshCookieOptions = () => ({
 const hashRefreshToken = (refreshToken) =>
   crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-const createAuthTokenPair = async (user) => {
+const createAuthTokenPair = async (user, req = null) => {
+  // Extract device/location info if request context is available
+  let sessionId = null;
+  let sessionInfo = null;
+
+  if (req) {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '0.0.0.0';
+    const ua = req.headers['user-agent'] || '';
+    const { browser, os, deviceType } = parseUserAgent(ua);
+    const location = getLocationFromIp(ip);
+    sessionInfo = { ip, ua, browser, os, deviceType, location };
+  }
+
+  // Generate tokens — sessionId embedded after session row is created
+  const refreshToken = generateRefreshToken(
+    { id: user.id, tokenVersion: crypto.randomUUID() },
+    REFRESH_TOKEN_TTL,
+  );
+  const refreshTokenHash = hashRefreshToken(refreshToken);
+  const refreshTokenExpiry = new Date(Date.now() + REFRESH_COOKIE_MAX_AGE_MS);
+
+  // Persist legacy refresh-token hash on user row (backward compat)
+  await UserModel.saveRefreshTokenByUserId(user.id, refreshTokenHash, refreshTokenExpiry);
+
+  // Create session row if we have request context
+  if (sessionInfo) {
+    try {
+      const session = await UserSessionModel.create({
+        user_id: user.id,
+        refresh_token_hash: refreshTokenHash,
+        ip_address: sessionInfo.ip,
+        user_agent: sessionInfo.ua,
+        device_type: sessionInfo.deviceType,
+        location: sessionInfo.location,
+        expires_at: refreshTokenExpiry,
+      });
+      sessionId = session.id;
+    } catch (err) {
+      logger.warn('Failed to create user_sessions row', { error: err.message });
+    }
+  }
+
   const accessToken = generateToken(
     {
       id: user.id,
       email: user.email,
       role: user.role,
+      ...(sessionId ? { sessionId } : {}),
     },
     ACCESS_TOKEN_TTL,
   );
 
-  const refreshToken = generateRefreshToken(
-    {
-      id: user.id,
-      tokenVersion: crypto.randomUUID(),
-    },
-    REFRESH_TOKEN_TTL,
-  );
-
-  const refreshTokenHash = hashRefreshToken(refreshToken);
-  const refreshTokenExpiry = new Date(Date.now() + REFRESH_COOKIE_MAX_AGE_MS);
-  await UserModel.saveRefreshTokenByUserId(user.id, refreshTokenHash, refreshTokenExpiry);
-
-  return {
-    accessToken,
-    refreshToken,
-  };
+  return { accessToken, refreshToken };
 };
 
-const registerUser = async ({ full_name, email, password, role, department, cgpa, semester }) => {
+const registerUser = async ({ full_name, email, password, role, department, cgpa, semester }, req = null) => {
   const existingUser = await UserModel.findByEmail(email);
   if (existingUser) {
     throw new ApiError(409, 'User with this email already exists');
@@ -126,7 +155,7 @@ const registerUser = async ({ full_name, email, password, role, department, cgpa
     semester: role === 'student' ? semester : null,
   });
 
-  const tokens = await createAuthTokenPair(user);
+  const tokens = await createAuthTokenPair(user, req);
 
   const userData = { ...user };
   delete userData.password_hash;
@@ -137,7 +166,7 @@ const registerUser = async ({ full_name, email, password, role, department, cgpa
   };
 };
 
-const loginUser = async ({ email, password }) => {
+const loginUser = async ({ email, password }, req = null) => {
   const user = await UserModel.findByEmail(email, true);
   if (!user) {
     throw new ApiError(401, 'Invalid email or password');
@@ -152,7 +181,7 @@ const loginUser = async ({ email, password }) => {
     throw new ApiError(401, 'Invalid email or password');
   }
 
-  const tokens = await createAuthTokenPair(user);
+  const tokens = await createAuthTokenPair(user, req);
 
   delete user.password_hash;
 
@@ -328,6 +357,21 @@ const revokeRefreshToken = async (refreshToken) => {
   await UserModel.clearRefreshTokenByHash(refreshTokenHash);
 };
 
+const getUserSessions = async (userId) => {
+  return UserSessionModel.findActiveByUserId(userId);
+};
+
+const revokeSessionById = async (sessionId, userId) => {
+  const session = await UserSessionModel.findById(sessionId);
+  if (!session) {
+    throw new ApiError(404, 'Session not found');
+  }
+  if (String(session.user_id) !== String(userId)) {
+    throw new ApiError(403, 'You do not have permission to revoke this session');
+  }
+  await UserSessionModel.deleteById(sessionId);
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -340,6 +384,8 @@ module.exports = {
   refreshAuthTokens,
   revokeRefreshTokenByUserId,
   revokeRefreshToken,
+  getUserSessions,
+  revokeSessionById,
   ACCESS_COOKIE_NAME,
   REFRESH_COOKIE_NAME,
   buildAccessCookieOptions,

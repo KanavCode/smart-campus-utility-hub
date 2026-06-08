@@ -40,6 +40,9 @@ const clearAuthCookies = (res) => {
 
 /**
  * User Controller
+
+/**
+ * User Controller
  * Handles all user-related HTTP requests
  */
 
@@ -54,7 +57,7 @@ const register = asyncHandler(async (req, res) => {
     department,
     cgpa,
     semester,
-  });
+  }, req);
 
   logger.info('New user registered', { userId: result.user.id, email: result.user.email });
 
@@ -69,7 +72,7 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  const result = await userAuthService.loginUser({ email, password });
+  const result = await userAuthService.loginUser({ email, password }, req);
 
   logger.info('User logged in', { userId: result.user.id, email: result.user.email });
 
@@ -304,6 +307,18 @@ const ssoCallback = asyncHandler(async (req, res) => {
   }
 });
 
+const getSessions = asyncHandler(async (req, res) => {
+  const sessions = await userAuthService.getUserSessions(req.user.id);
+  sendSuccess(res, 200, 'Sessions fetched successfully', { sessions });
+});
+
+const revokeSession = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  await userAuthService.revokeSessionById(id, req.user.id);
+  logger.info('Session revoked', { userId: req.user.id, sessionId: id });
+  sendSuccess(res, 200, 'Session revoked successfully');
+});
+
 module.exports = {
   register,
   login,
@@ -321,4 +336,6 @@ module.exports = {
   resetPassword,
   ssoRedirect,
   ssoCallback,
+  getSessions,
+  revokeSession,
 };
