@@ -4,9 +4,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ConnectivityProvider } from "@/contexts/ConnectivityContext";
 import { LoadingProvider } from "@/contexts/LoadingContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
@@ -14,6 +14,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { OfflineBanner } from "@/components/layout/OfflineBanner";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -69,6 +70,26 @@ const RoutePreloader = () => {
   return null;
 };
 
+const IdleTimeoutHandler = () => {
+  const navigate = useNavigate();
+  const { logout, isAuthenticated } = useAuth();
+
+  useIdleTimeout(async () => {
+    if (!isAuthenticated) return;
+
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Idle logout failed:", error);
+    } finally {
+      window.alert("You were logged out due to inactivity.");
+      navigate("/auth", { replace: true });
+    }
+  }, 15 * 60 * 1000);
+
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -82,6 +103,7 @@ const App = () => (
                 <LoadingSpinner />
                 <BrowserRouter>
                   <OfflineBanner />
+                  <IdleTimeoutHandler />
                   <RoutePreloader />
                   <ErrorBoundary>
                     <Suspense fallback={<RouteFallback />}>
