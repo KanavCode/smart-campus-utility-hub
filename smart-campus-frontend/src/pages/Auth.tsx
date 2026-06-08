@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GraduationCap, CheckCircle } from 'lucide-react';
+import { GraduationCap, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { RegisterRequest } from '@/services/authService';
 import AuthBackground from '@/components/animations/AuthBackground';
@@ -20,6 +20,9 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -240,19 +243,33 @@ export default function Auth() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="login-password">Password</Label>
-                        <Input
-                          id="login-password"
-                          type="password"
-                          value={loginData.password}
-                          onChange={(e) =>
-                            setLoginData({
-                              ...loginData,
-                              password: e.target.value,
-                            })
-                          }
-                          required
-                          className="focus:ring-2 focus:ring-accent glow-accent"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="login-password"
+                            type={showLoginPassword ? 'text' : 'password'}
+                            value={loginData.password}
+                            onChange={(e) =>
+                              setLoginData({
+                                ...loginData,
+                                password: e.target.value,
+                              })
+                            }
+                            required
+                            className="pr-10 focus:ring-2 focus:ring-accent glow-accent"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowLoginPassword((prev) => !prev)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showLoginPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <Button
                         type="submit"
@@ -427,37 +444,65 @@ export default function Auth() {
                       )}
                       <div className="space-y-2">
                         <Label htmlFor="signup-password">Password</Label>
-                        <Input
-                          id="signup-password"
-                          type="password"
-                          value={signupData.password}
-                          onChange={(e) =>
-                            setSignupData({
-                              ...signupData,
-                              password: e.target.value,
-                            })
-                          }
-                          required
-                          className="focus:ring-2 focus:ring-accent glow-accent"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="signup-password"
+                            type={showSignupPassword ? 'text' : 'password'}
+                            value={signupData.password}
+                            onChange={(e) =>
+                              setSignupData({
+                                ...signupData,
+                                password: e.target.value,
+                              })
+                            }
+                            required
+                            className="pr-10 focus:ring-2 focus:ring-accent glow-accent"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowSignupPassword((prev) => !prev)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showSignupPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="signup-confirm-password">
                           Confirm Password
                         </Label>
-                        <Input
-                          id="signup-confirm-password"
-                          type="password"
-                          value={signupData.confirmPassword}
-                          onChange={(e) =>
-                            setSignupData({
-                              ...signupData,
-                              confirmPassword: e.target.value,
-                            })
-                          }
-                          required
-                          className="focus:ring-2 focus:ring-accent glow-accent"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="signup-confirm-password"
+                            type={showSignupConfirmPassword ? 'text' : 'password'}
+                            value={signupData.confirmPassword}
+                            onChange={(e) =>
+                              setSignupData({
+                                ...signupData,
+                                confirmPassword: e.target.value,
+                              })
+                            }
+                            required
+                            className="pr-10 focus:ring-2 focus:ring-accent glow-accent"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowSignupConfirmPassword((prev) => !prev)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            aria-label={showSignupConfirmPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showSignupConfirmPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <Button
                         type="submit"
