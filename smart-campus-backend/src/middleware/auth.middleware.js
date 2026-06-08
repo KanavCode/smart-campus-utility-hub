@@ -90,13 +90,58 @@ const verifyToken = (req, res, next) => {
         });
       }
 
-      // Attach user info to request
-      req.user = decoded;
-      logger.debug('Token verified', {
-        userId: decoded.id,
-        role: decoded.role,
-      });
-      next();
+      // If token contains a sessionId, verify it exists in the database
+      if (decoded && decoded.sessionId) {
+        const UserSessionModel = require('../components/users/user.session.model');
+        UserSessionModel.findById(decoded.sessionId)
+          .then((session) => {
+            if (!session) {
+              return res.status(401).json({
+                success: false,
+                message: 'Unauthorized: Session has been revoked.',
+              });
+            }
+
+            // Check if session has expired
+            if (new Date(session.expires_at).getTime() <= Date.now()) {
+              return res.status(401).json({
+                success: false,
+                message: 'Unauthorized: Session has expired.',
+              });
+            }
+
+            // Asynchronously update last active timestamp without blocking the response
+            if (process.env.NODE_ENV !== 'test') {
+              UserSessionModel.updateLastActive(decoded.sessionId).catch((updateErr) => {
+                logger.error('Failed to update session last active timestamp:', updateErr);
+              });
+            }
+
+            // Attach user info to request
+            req.user = decoded;
+            logger.debug('Token and session verified', {
+              userId: decoded.id,
+              role: decoded.role,
+              sessionId: decoded.sessionId,
+            });
+            next();
+          })
+          .catch((dbErr) => {
+            logger.error('Session validation database error:', dbErr);
+            return res.status(500).json({
+              success: false,
+              message: 'Internal server error during session validation.',
+            });
+          });
+      } else {
+        // Attach user info to request (fallback for legacy or test tokens without sessionId)
+        req.user = decoded;
+        logger.debug('Token verified', {
+          userId: decoded.id,
+          role: decoded.role,
+        });
+        next();
+      }
     });
   } catch (error) {
     logger.error('Token verification error:', error);

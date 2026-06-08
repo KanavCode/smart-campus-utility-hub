@@ -74,6 +74,20 @@ router.post(
 
 router.post('/logout', userController.logout);
 
+// Session management routes
+router.get(
+  '/sessions',
+  verifyToken,
+  userController.getSessions
+);
+
+router.delete(
+  '/sessions/:id',
+  verifyToken,
+  validate(validationSchemas.idParam, 'params'),
+  userController.revokeSession
+);
+
 // Admin-only routes
 router.get(
   '/users',

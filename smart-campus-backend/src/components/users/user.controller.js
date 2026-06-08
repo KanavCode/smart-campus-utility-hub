@@ -54,7 +54,7 @@ const register = asyncHandler(async (req, res) => {
     department,
     cgpa,
     semester,
-  });
+  }, req);
 
   logger.info('New user registered', { userId: result.user.id, email: result.user.email });
 
@@ -69,7 +69,7 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  const result = await userAuthService.loginUser({ email, password });
+  const result = await userAuthService.loginUser({ email, password }, req);
 
   logger.info('User logged in', { userId: result.user.id, email: result.user.email });
 
@@ -86,11 +86,14 @@ const logout = asyncHandler(async (req, res) => {
     req.headers.cookie,
     userAuthService.REFRESH_COOKIE_NAME,
   );
-  if (req.user?.id) {
-    await userAuthService.revokeRefreshTokenByUserId(req.user.id);
-  } else {
+  
+  if (refreshToken) {
     await userAuthService.revokeRefreshToken(refreshToken);
+  } else if (req.user?.sessionId) {
+    const UserSessionModel = require('./user.session.model');
+    await UserSessionModel.deleteById(req.user.sessionId);
   }
+  
   clearAuthCookies(res);
   sendSuccess(res, 200, 'Logout successful');
 });
@@ -100,7 +103,7 @@ const refresh = asyncHandler(async (req, res) => {
     req.headers.cookie,
     userAuthService.REFRESH_COOKIE_NAME,
   );
-  const result = await userAuthService.refreshAuthTokens({ refreshToken });
+  const result = await userAuthService.refreshAuthTokens({ refreshToken }, req);
   setAuthCookies(res, result.accessToken, result.refreshToken);
   sendSuccess(res, 200, 'Token refreshed successfully');
 });
@@ -304,6 +307,28 @@ const ssoCallback = asyncHandler(async (req, res) => {
   }
 });
 
+const getSessions = asyncHandler(async (req, res) => {
+  const sessions = await userAuthService.getUserSessions(req.user.id);
+  const currentSessionId = req.user.sessionId;
+  const mappedSessions = sessions.map(session => ({
+    id: session.id,
+    ip_address: session.ip_address,
+    user_agent: session.user_agent,
+    device_type: session.device_type,
+    location: session.location,
+    last_active: session.last_active,
+    created_at: session.created_at,
+    is_current: session.id === currentSessionId
+  }));
+  sendSuccess(res, 200, 'Sessions fetched successfully', { sessions: mappedSessions });
+});
+
+const revokeSession = asyncHandler(async (req, res) => {
+  const { sessionId } = req.params;
+  await userAuthService.revokeSessionById(req.user.id, sessionId);
+  sendSuccess(res, 200, 'Session revoked successfully');
+});
+
 module.exports = {
   register,
   login,
@@ -321,4 +346,6 @@ module.exports = {
   resetPassword,
   ssoRedirect,
   ssoCallback,
+  getSessions,
+  revokeSession,
 };

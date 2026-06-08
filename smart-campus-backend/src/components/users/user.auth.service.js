@@ -1,5 +1,7 @@
 const crypto = require('crypto');
 const UserModel = require('./user.model');
+const UserSessionModel = require('./user.session.model');
+const { getSessionDetails } = require('../../utils/sessionHelper');
 const {
   generateToken,
   generateRefreshToken,
@@ -68,26 +70,54 @@ const buildRefreshCookieOptions = () => ({
 const hashRefreshToken = (refreshToken) =>
   crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-const createAuthTokenPair = async (user) => {
-  const accessToken = generateToken(
-    {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    },
-    ACCESS_TOKEN_TTL,
-  );
-
+const createAuthTokenPair = async (user, req = null) => {
+  const tokenVersion = crypto.randomUUID();
   const refreshToken = generateRefreshToken(
     {
       id: user.id,
-      tokenVersion: crypto.randomUUID(),
+      tokenVersion,
     },
     REFRESH_TOKEN_TTL,
   );
 
   const refreshTokenHash = hashRefreshToken(refreshToken);
   const refreshTokenExpiry = new Date(Date.now() + REFRESH_COOKIE_MAX_AGE_MS);
+
+  let ip = '127.0.0.1';
+  let userAgent = 'Unknown';
+  let deviceType = 'Unknown Device';
+  let location = 'Unknown Location';
+
+  if (req) {
+    const details = getSessionDetails(req);
+    ip = details.ip;
+    userAgent = details.userAgent;
+    deviceType = details.deviceType;
+    location = details.location;
+  }
+
+  // Create session in user_sessions table
+  const session = await UserSessionModel.create({
+    user_id: user.id,
+    refresh_token_hash: refreshTokenHash,
+    ip_address: ip,
+    user_agent: userAgent,
+    device_type: deviceType,
+    location,
+    expires_at: refreshTokenExpiry
+  });
+
+  const accessToken = generateToken(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      sessionId: session.id,
+    },
+    ACCESS_TOKEN_TTL,
+  );
+
+  // Sync to users table refresh_token_hash for backwards compatibility
   await UserModel.saveRefreshTokenByUserId(user.id, refreshTokenHash, refreshTokenExpiry);
 
   return {
@@ -96,7 +126,7 @@ const createAuthTokenPair = async (user) => {
   };
 };
 
-const registerUser = async ({ full_name, email, password, role, department, cgpa, semester }) => {
+const registerUser = async ({ full_name, email, password, role, department, cgpa, semester }, req = null) => {
   const existingUser = await UserModel.findByEmail(email);
   if (existingUser) {
     throw new ApiError(409, 'User with this email already exists');
@@ -126,7 +156,7 @@ const registerUser = async ({ full_name, email, password, role, department, cgpa
     semester: role === 'student' ? semester : null,
   });
 
-  const tokens = await createAuthTokenPair(user);
+  const tokens = await createAuthTokenPair(user, req);
 
   const userData = { ...user };
   delete userData.password_hash;
@@ -137,7 +167,7 @@ const registerUser = async ({ full_name, email, password, role, department, cgpa
   };
 };
 
-const loginUser = async ({ email, password }) => {
+const loginUser = async ({ email, password }, req = null) => {
   const user = await UserModel.findByEmail(email, true);
   if (!user) {
     throw new ApiError(401, 'Invalid email or password');
@@ -152,7 +182,7 @@ const loginUser = async ({ email, password }) => {
     throw new ApiError(401, 'Invalid email or password');
   }
 
-  const tokens = await createAuthTokenPair(user);
+  const tokens = await createAuthTokenPair(user, req);
 
   delete user.password_hash;
 
@@ -257,7 +287,7 @@ const resetPassword = async ({ token, newPassword, confirmPassword }) => {
   };
 };
 
-const handleSSOLogin = async ({ email, full_name, auth_provider, provider_id }) => {
+const handleSSOLogin = async ({ email, full_name, auth_provider, provider_id }, req = null) => {
   let user = await UserModel.findByEmail(email);
 
   if (!user) {
@@ -273,11 +303,9 @@ const handleSSOLogin = async ({ email, full_name, auth_provider, provider_id }) 
     if (user.is_active === false) {
       throw new ApiError(403, 'Account is deactivated. Please contact support.');
     }
-    // Note: We could optionally update the provider_id if it's missing, 
-    // but relying on email matching is standard for Entra ID / Workspace if domains match.
   }
 
-  const tokens = await createAuthTokenPair(user);
+  const tokens = await createAuthTokenPair(user, req);
 
   return {
     user,
@@ -285,7 +313,7 @@ const handleSSOLogin = async ({ email, full_name, auth_provider, provider_id }) 
   };
 };
 
-const refreshAuthTokens = async ({ refreshToken }) => {
+const refreshAuthTokens = async ({ refreshToken }, req = null) => {
   if (!refreshToken) {
     throw new ApiError(401, 'Unauthorized: No refresh token provided.');
   }
@@ -297,35 +325,113 @@ const refreshAuthTokens = async ({ refreshToken }) => {
     throw new ApiError(401, 'Unauthorized: Invalid refresh token.');
   }
 
-  const user = await UserModel.findRefreshTokenStateByUserId(decodedRefreshToken.id);
-  if (!user || user.is_active === false) {
+  const incomingRefreshTokenHash = hashRefreshToken(refreshToken);
+  
+  // Find session by refresh token hash
+  const session = await UserSessionModel.findByRefreshTokenHash(incomingRefreshTokenHash);
+  if (!session) {
     throw new ApiError(401, 'Unauthorized: Invalid refresh token.');
   }
 
-  const incomingRefreshTokenHash = hashRefreshToken(refreshToken);
-  const isRefreshStateValid =
-    user.refresh_token_hash &&
-    user.refresh_token_hash === incomingRefreshTokenHash &&
-    user.refresh_token_expires_at &&
-    new Date(user.refresh_token_expires_at).getTime() > Date.now();
-
-  if (!isRefreshStateValid) {
-    await UserModel.clearRefreshTokenByUserId(user.id);
-    throw new ApiError(401, 'Unauthorized: Refresh token expired or rotated.');
+  // Find user associated with the session
+  const user = await UserModel.findById(session.user_id);
+  if (!user || user.is_active === false) {
+    // Clean up session if user is deactivated or deleted
+    await UserSessionModel.deleteById(session.id);
+    throw new ApiError(401, 'Unauthorized: User is inactive or does not exist.');
   }
 
-  return createAuthTokenPair(user);
+  // Check if session has expired
+  const isExpired = new Date(session.expires_at).getTime() <= Date.now();
+  if (isExpired) {
+    await UserSessionModel.deleteById(session.id);
+    throw new ApiError(401, 'Unauthorized: Refresh token has expired.');
+  }
+
+  // Generate new token pair (keep same session ID to rotate tokens within same session)
+  const nextTokenVersion = crypto.randomUUID();
+  const nextRefreshToken = generateRefreshToken(
+    {
+      id: user.id,
+      tokenVersion: nextTokenVersion,
+    },
+    REFRESH_TOKEN_TTL,
+  );
+
+  const nextRefreshTokenHash = hashRefreshToken(nextRefreshToken);
+  const nextRefreshTokenExpiry = new Date(Date.now() + REFRESH_COOKIE_MAX_AGE_MS);
+
+  // Extract current request details if available to keep session info updated
+  let ip = session.ip_address;
+  let userAgent = session.user_agent;
+  let deviceType = session.device_type;
+  let location = session.location;
+
+  if (req) {
+    const details = getSessionDetails(req);
+    ip = details.ip;
+    userAgent = details.userAgent;
+    deviceType = details.deviceType;
+    location = details.location;
+  }
+
+  // Update session record in user_sessions
+  await UserSessionModel.updateToken(session.id, {
+    refresh_token_hash: nextRefreshTokenHash,
+    expires_at: nextRefreshTokenExpiry,
+    ip_address: ip,
+    user_agent: userAgent,
+    device_type: deviceType,
+    location
+  });
+
+  const nextAccessToken = generateToken(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      sessionId: session.id,
+    },
+    ACCESS_TOKEN_TTL,
+  );
+
+  // Sync to users table refresh_token_hash for backwards compatibility
+  await UserModel.saveRefreshTokenByUserId(user.id, nextRefreshTokenHash, nextRefreshTokenExpiry);
+
+  return {
+    accessToken: nextAccessToken,
+    refreshToken: nextRefreshToken,
+  };
 };
 
 const revokeRefreshTokenByUserId = async (userId) => {
   if (!userId) return;
+  await UserSessionModel.deleteByUserId(userId);
   await UserModel.clearRefreshTokenByUserId(userId);
 };
 
 const revokeRefreshToken = async (refreshToken) => {
   if (!refreshToken) return;
   const refreshTokenHash = hashRefreshToken(refreshToken);
+  await UserSessionModel.deleteByRefreshTokenHash(refreshTokenHash);
   await UserModel.clearRefreshTokenByHash(refreshTokenHash);
+};
+
+const getUserSessions = async (userId) => {
+  return await UserSessionModel.findActiveByUserId(userId);
+};
+
+const revokeSessionById = async (userId, sessionId) => {
+  const session = await UserSessionModel.findById(sessionId);
+  if (!session) {
+    throw new ApiError(404, 'Session not found.');
+  }
+
+  if (Number(session.user_id) !== Number(userId)) {
+    throw new ApiError(403, 'Forbidden: You cannot revoke another user\'s session.');
+  }
+
+  await UserSessionModel.deleteById(sessionId);
 };
 
 module.exports = {
@@ -340,6 +446,8 @@ module.exports = {
   refreshAuthTokens,
   revokeRefreshTokenByUserId,
   revokeRefreshToken,
+  getUserSessions,
+  revokeSessionById,
   ACCESS_COOKIE_NAME,
   REFRESH_COOKIE_NAME,
   buildAccessCookieOptions,

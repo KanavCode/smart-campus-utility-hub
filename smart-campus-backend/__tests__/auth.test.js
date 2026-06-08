@@ -33,7 +33,7 @@ describe('Authentication API Tests', () => {
 
   describe('POST /api/auth/register', () => {
     test('should register a new user successfully', async () => {
-      // Mock database responses: first for checking existing user, then for creating user
+      // Mock database responses: first for checking existing user, then for creating user, then for user session, then for refresh token sync
       query.mockResolvedValueOnce({ rows: [] }); // No existing user
       query.mockResolvedValueOnce({
         rows: [
@@ -47,7 +47,8 @@ describe('Authentication API Tests', () => {
           }
         ]
       });
-      query.mockResolvedValueOnce({ rowCount: 1 });
+      query.mockResolvedValueOnce({ rows: [{ id: 10 }] }); // UserSessionModel.create
+      query.mockResolvedValueOnce({ rowCount: 1 }); // UserModel.saveRefreshTokenByUserId
 
       const response = await request(app)
         .post('/api/auth/register')
@@ -119,7 +120,7 @@ describe('Authentication API Tests', () => {
       const bcrypt = require('bcryptjs');
       const hashedPassword = await bcrypt.hash('password123', 10);
 
-      // Mock finding user with password
+      // Mock finding user with password, then session create, then refresh token sync
       query.mockResolvedValueOnce({
         rows: [
           {
@@ -133,7 +134,8 @@ describe('Authentication API Tests', () => {
           }
         ]
       });
-      query.mockResolvedValueOnce({ rowCount: 1 });
+      query.mockResolvedValueOnce({ rows: [{ id: 10 }] }); // UserSessionModel.create
+      query.mockResolvedValueOnce({ rowCount: 1 }); // UserModel.saveRefreshTokenByUserId
 
       const response = await request(app)
         .post('/api/auth/login')
@@ -249,18 +251,37 @@ describe('Authentication API Tests', () => {
       const refreshToken = generateRefreshToken({ id: 1, tokenVersion: 'v1' });
       const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
+      // 1. Find session by refresh token hash
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 10,
+            user_id: 1,
+            refresh_token: refreshTokenHash,
+            expires_at: new Date(Date.now() + 60 * 60 * 1000)
+          }
+        ]
+      });
+      // 2. Find user associated with the session
       query.mockResolvedValueOnce({
         rows: [
           {
             id: 1,
             email: 'test@example.com',
             role: 'student',
-            is_active: true,
-            refresh_token_hash: refreshTokenHash,
-            refresh_token_expires_at: new Date(Date.now() + 60 * 60 * 1000),
-          },
-        ],
+            is_active: true
+          }
+        ]
       });
+      // 3. Update session record (updateToken)
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 10
+          }
+        ]
+      });
+      // 4. Save refresh token in users table
       query.mockResolvedValueOnce({ rowCount: 1 });
 
       const response = await request(app)
@@ -287,19 +308,10 @@ describe('Authentication API Tests', () => {
       const { generateRefreshToken } = require('../src/middleware/auth.middleware');
       const refreshToken = generateRefreshToken({ id: 1, tokenVersion: 'v1' });
 
+      // Find session by refresh token hash should return null/empty rows since it's rotated
       query.mockResolvedValueOnce({
-        rows: [
-          {
-            id: 1,
-            email: 'test@example.com',
-            role: 'student',
-            is_active: true,
-            refresh_token_hash: 'different-hash',
-            refresh_token_expires_at: new Date(Date.now() + 60 * 60 * 1000),
-          },
-        ],
+        rows: []
       });
-      query.mockResolvedValueOnce({ rowCount: 1 });
 
       const response = await request(app)
         .post('/api/auth/refresh')
@@ -448,7 +460,8 @@ describe('Authentication API Tests', () => {
   describe('POST /api/auth/logout', () => {
     test('should clear auth cookies and revoke refresh token state', async () => {
       const refreshToken = 'sample-refresh-token';
-      query.mockResolvedValueOnce({ rowCount: 1 });
+      query.mockResolvedValueOnce({ rowCount: 1 }); // UserSessionModel.deleteByRefreshTokenHash
+      query.mockResolvedValueOnce({ rowCount: 1 }); // UserModel.clearRefreshTokenByHash
 
       const response = await request(app)
         .post('/api/auth/logout')
@@ -459,6 +472,131 @@ describe('Authentication API Tests', () => {
       expect(response.headers['set-cookie']).toBeDefined();
       expect(findCookie(response.headers['set-cookie'], 'accessToken')).toBeDefined();
       expect(findCookie(response.headers['set-cookie'], 'refreshToken')).toBeDefined();
+    });
+  });
+
+  describe('Session Management API Tests', () => {
+    test('should return all active sessions for authenticated user', async () => {
+      const { generateToken } = require('../src/middleware/auth.middleware');
+      const token = generateToken({ id: 1, email: 'test@example.com', role: 'student', sessionId: 10 });
+
+      // Mock UserSessionModel.findById for middleware verification
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 10,
+            user_id: 1,
+            expires_at: new Date(Date.now() + 60 * 60 * 1000)
+          }
+        ]
+      });
+
+      // Mock UserSessionModel.findActiveByUserId inside getSessions
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 10,
+            user_id: 1,
+            ip_address: '127.0.0.1',
+            user_agent: 'Chrome on Windows',
+            device_type: 'Chrome on Windows',
+            location: 'Localhost',
+            last_active: new Date(),
+            created_at: new Date(),
+            expires_at: new Date(Date.now() + 60 * 60 * 1000)
+          },
+          {
+            id: 11,
+            user_id: 1,
+            ip_address: '192.168.1.1',
+            user_agent: 'Safari on iPhone',
+            device_type: 'Safari on iOS',
+            location: 'Mumbai, India',
+            last_active: new Date(),
+            created_at: new Date(),
+            expires_at: new Date(Date.now() + 60 * 60 * 1000)
+          }
+        ]
+      });
+
+      const response = await request(app)
+        .get('/api/auth/sessions')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.sessions).toHaveLength(2);
+      expect(response.body.data.sessions[0].is_current).toBe(true);
+      expect(response.body.data.sessions[1].is_current).toBe(false);
+    });
+
+    test('should allow user to revoke their own session', async () => {
+      const { generateToken } = require('../src/middleware/auth.middleware');
+      const token = generateToken({ id: 1, email: 'test@example.com', role: 'student', sessionId: 10 });
+
+      // Mock UserSessionModel.findById for middleware verification
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 10,
+            user_id: 1,
+            expires_at: new Date(Date.now() + 60 * 60 * 1000)
+          }
+        ]
+      });
+
+      // Mock UserSessionModel.findById inside revokeSessionById
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 11,
+            user_id: 1
+          }
+        ]
+      });
+
+      // Mock UserSessionModel.deleteById
+      query.mockResolvedValueOnce({ rowCount: 1 });
+
+      const response = await request(app)
+        .delete('/api/auth/sessions/11')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    test('should reject revoking another user\'s session', async () => {
+      const { generateToken } = require('../src/middleware/auth.middleware');
+      const token = generateToken({ id: 1, email: 'test@example.com', role: 'student', sessionId: 10 });
+
+      // Mock UserSessionModel.findById for middleware verification
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 10,
+            user_id: 1,
+            expires_at: new Date(Date.now() + 60 * 60 * 1000)
+          }
+        ]
+      });
+
+      // Mock UserSessionModel.findById inside revokeSessionById for session belonging to user 2
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 12,
+            user_id: 2
+          }
+        ]
+      });
+
+      const response = await request(app)
+        .delete('/api/auth/sessions/12')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
     });
   });
 });
