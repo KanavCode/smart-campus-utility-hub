@@ -12,18 +12,15 @@ import { toast } from 'sonner';
 import { RegisterRequest } from '@/services/authService';
 import AuthBackground from '@/components/animations/AuthBackground';
 import { buildBackendUrl } from '@/lib/apiConfig';
+import { TwoFactorVerifyModal } from '@/components/modals/TwoFactorVerifyModal';
 
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { login, register, loginWithToken } = useAuth();
+  const { login, register, loginWithToken, twoFactorRequired, tempUserId, clearTwoFactorState } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
-  const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sso = params.get('sso');
@@ -79,13 +76,20 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      const user = await login(loginData.email, loginData.password);
+      const result = await login(loginData.email, loginData.password);
+      
+      // Check if 2FA is required
+      if ('requiresTwoFactor' in result && result.requiresTwoFactor) {
+        setShow2FAModal(true);
+        return;
+      }
+
       toast.success("Login successful!");
 
       // Redirect based on user role
-      if (user?.role === "admin") {
+      if (result?.role === "admin") {
         navigate("/admin/dashboard");
-      } else if (user?.role === "student") {
+      } else if (result?.role === "student") {
         navigate("/student/dashboard");
       } else {
         navigate("/dashboard");
@@ -95,6 +99,20 @@ export default function Auth() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handle2FASuccess = () => {
+    setShow2FAModal(false);
+    toast.success("Login successful!");
+    
+    // Get the user role from context (it's updated after 2FA verification)
+    // For now, just redirect to student dashboard as it's most common
+    navigate("/student/dashboard");
+  };
+
+  const handle2FACancel = () => {
+    setShow2FAModal(false);
+    clearTwoFactorState();
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -525,6 +543,14 @@ export default function Auth() {
           </Tabs>
         </div>
       </motion.div>
+
+      {/* 2FA Verification Modal */}
+      <TwoFactorVerifyModal
+        isOpen={show2FAModal || twoFactorRequired}
+        tempUserId={tempUserId}
+        onSuccess={handle2FASuccess}
+        onCancel={handle2FACancel}
+      />
     </div>
   );
 }

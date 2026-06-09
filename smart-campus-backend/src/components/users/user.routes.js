@@ -38,6 +38,13 @@ router.post(
   userController.resetPassword
 );
 
+// 2FA Public route (used after password validation to verify 2FA code)
+router.post(
+  '/verify-2fa-login',
+  authLimiter,
+  userController.verify2FALogin
+);
+
 // Protected routes (authentication required)
 router.get(
   '/profile',
@@ -73,6 +80,44 @@ router.post(
 );
 
 router.post('/logout', userController.logout);
+
+// 2FA Protected routes (authentication required)
+router.post(
+  '/setup-2fa',
+  verifyToken,
+  userController.setup2FA
+);
+
+router.post(
+  '/verify-2fa-setup',
+  verifyToken,
+  userController.verify2FASetup
+);
+
+router.post(
+  '/disable-2fa',
+  verifyToken,
+  userController.disable2FA
+);
+
+router.get(
+  '/2fa-status',
+  verifyToken,
+  userController.get2FAStatus
+);
+
+// Session management routes
+router.get(
+  '/sessions',
+  verifyToken,
+  userController.getSessions
+);
+
+router.delete(
+  '/sessions/:id',
+  verifyToken,
+  userController.revokeSession
+);
 
 // Admin-only routes
 router.get(
@@ -124,19 +169,6 @@ router.get(
 router.get(
   '/sso/:provider/callback',
   userController.ssoCallback
-);
-
-// Session management routes
-router.get(
-  '/sessions',
-  verifyToken,
-  userController.getSessions
-);
-
-router.delete(
-  '/sessions/:id',
-  verifyToken,
-  userController.revokeSession
 );
 
 module.exports = router;

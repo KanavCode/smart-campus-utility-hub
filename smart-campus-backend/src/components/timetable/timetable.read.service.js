@@ -48,7 +48,7 @@ const buildActiveEntityQuery = ({ table, defaultOrderBy, filters = [], sort, ord
     }
   });
 
-  const sortField = sort || defaultOrderBy;
+  let sortField = sort || defaultOrderBy;
   // Validate sortField against ALLOWED_SORT for the specific table (defense-in-depth)
   const allowedColumns = ALLOWED_SORT[table];
   if (!allowedColumns || !allowedColumns.includes(sortField)) {

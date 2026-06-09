@@ -70,7 +70,7 @@ const verifyToken = (req, res, next) => {
     }
 
     // Verify token
-    jwt.verify(token, getJwtSecret(), (err, decoded) => {
+    jwt.verify(token, getJwtSecret(), async (err, decoded) => {
       if (err) {
         logger.warn('JWT verification failed', {
           errorType: err.name,

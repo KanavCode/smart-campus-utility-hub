@@ -40,9 +40,6 @@ const clearAuthCookies = (res) => {
 
 /**
  * User Controller
-
-/**
- * User Controller
  * Handles all user-related HTTP requests
  */
 
@@ -319,6 +316,86 @@ const revokeSession = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, 'Session revoked successfully');
 });
 
+/**
+ * Setup 2FA - Generate challenge (secret + QR code)
+ * Protected endpoint
+ */
+const setup2FA = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  const challenge = await userAuthService.generate2FASetupChallenge(userId);
+
+  sendSuccess(res, 200, 'Challenge generated successfully', {
+    secret: challenge.secret,
+    qrCode: challenge.qrCode,
+    backupCodes: challenge.backupCodes,
+  });
+});
+
+/**
+ * Verify 2FA setup - Verify code and enable 2FA
+ * Protected endpoint
+ */
+const verify2FASetup = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { code, secret, backupCodes } = req.body;
+
+  if (!code || !secret || !backupCodes) {
+    return sendSuccess(res, 400, 'Code, secret, and backup codes are required');
+  }
+
+  const result = await userAuthService.verify2FASetup(userId, code, secret, backupCodes);
+
+  sendSuccess(res, 200, result.message, {
+    backupCodes: result.backupCodes,
+  });
+});
+
+/**
+ * Verify 2FA code during login
+ * Public endpoint - used when 2FA is required
+ */
+const verify2FALogin = asyncHandler(async (req, res) => {
+  const { userId, code } = req.body;
+
+  if (!userId || !code) {
+    return sendSuccess(res, 400, 'User ID and 2FA code are required');
+  }
+
+  const result = await userAuthService.verify2FACodeLogin(userId, code, req);
+
+  setAuthCookies(res, result.accessToken, result.refreshToken);
+
+  sendSuccess(res, 200, '2FA verification successful', {
+    user: result.user,
+    accessToken: result.accessToken,
+  });
+});
+
+/**
+ * Disable 2FA - Remove 2FA from account
+ * Protected endpoint
+ */
+const disable2FA = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  const result = await userAuthService.disable2FA(userId);
+
+  sendSuccess(res, 200, result.message);
+});
+
+/**
+ * Get 2FA status - Check if 2FA is enabled
+ * Protected endpoint
+ */
+const get2FAStatus = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  const status = await userAuthService.get2FAStatus(userId);
+
+  sendSuccess(res, 200, '2FA status retrieved', status);
+});
+
 module.exports = {
   register,
   login,
@@ -338,4 +415,9 @@ module.exports = {
   ssoCallback,
   getSessions,
   revokeSession,
+  setup2FA,
+  verify2FASetup,
+  verify2FALogin,
+  disable2FA,
+  get2FAStatus,
 };

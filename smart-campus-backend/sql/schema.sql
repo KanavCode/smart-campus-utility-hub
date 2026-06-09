@@ -66,6 +66,12 @@ CREATE TABLE users (
     refresh_token_hash VARCHAR(255),
     refresh_token_expires_at TIMESTAMP,
     
+    -- Two-Factor Authentication (2FA/TOTP)
+    two_factor_secret VARCHAR(255),
+    two_factor_enabled BOOLEAN DEFAULT false,
+    two_factor_backup_codes TEXT[],
+    two_factor_enabled_at TIMESTAMP,
+    
     -- Metadata
     is_active BOOLEAN DEFAULT true,
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
