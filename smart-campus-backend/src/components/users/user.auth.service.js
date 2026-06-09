@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const UserModel = require('./user.model');
 const UserSessionModel = require('./user.session.model');
-const { parseUserAgent, getLocationFromIp } = require('../../utils/sessionHelper');
+const { getSessionDetails } = require('../../utils/sessionHelper');
 const {
   generateToken,
   generateRefreshToken,
@@ -76,11 +76,13 @@ const createAuthTokenPair = async (user, req = null) => {
   let sessionInfo = null;
 
   if (req) {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '0.0.0.0';
-    const ua = req.headers['user-agent'] || '';
-    const { browser, os, deviceType } = parseUserAgent(ua);
-    const location = getLocationFromIp(ip);
-    sessionInfo = { ip, ua, browser, os, deviceType, location };
+    const details = getSessionDetails(req);
+    sessionInfo = {
+      ip: details.ip,
+      ua: details.userAgent,
+      deviceType: details.deviceType,
+      location: details.location,
+    };
   }
 
   // Generate tokens — sessionId embedded after session row is created
