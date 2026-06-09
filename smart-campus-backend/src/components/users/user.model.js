@@ -401,6 +401,84 @@ class UserModel {
     const result = await query(sql);
     return result.rowCount;
   }
+
+  /**
+   * Enable 2FA for user (after successful verification)
+   * @param {number} userId - User ID
+   * @param {string} secret - TOTP secret (base32)
+   * @param {Array<string>} backupCodes - Backup recovery codes
+   * @returns {Promise<boolean>} Success status
+   */
+  static async enable2FA(userId, secret, backupCodes) {
+    const sql = `
+      UPDATE users
+      SET two_factor_secret = $1, two_factor_backup_codes = $2, two_factor_enabled = true, two_factor_enabled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3
+    `;
+    const result = await query(sql, [secret, backupCodes, userId]);
+    return result.rowCount > 0;
+  }
+
+  /**
+   * Disable 2FA for user
+   * @param {number} userId - User ID
+   * @returns {Promise<boolean>} Success status
+   */
+  static async disable2FA(userId) {
+    const sql = `
+      UPDATE users
+      SET two_factor_secret = NULL, two_factor_backup_codes = NULL, two_factor_enabled = false, two_factor_enabled_at = NULL, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+    `;
+    const result = await query(sql, [userId]);
+    return result.rowCount > 0;
+  }
+
+  /**
+   * Get 2FA status for user
+   * @param {number} userId - User ID
+   * @returns {Promise<Object|null>} User's 2FA status and enabled_at timestamp
+   */
+  static async get2FAStatus(userId) {
+    const sql = `
+      SELECT id, two_factor_enabled, two_factor_enabled_at, ARRAY_LENGTH(two_factor_backup_codes, 1) as backup_codes_count
+      FROM users
+      WHERE id = $1
+    `;
+    const result = await query(sql, [userId]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Get user with 2FA secret (internal use only)
+   * @param {number} userId - User ID
+   * @returns {Promise<Object|null>} User with 2FA secret
+   */
+  static async findWithSecret(userId) {
+    const sql = `
+      SELECT id, email, two_factor_secret, two_factor_enabled, two_factor_backup_codes
+      FROM users
+      WHERE id = $1
+    `;
+    const result = await query(sql, [userId]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Update 2FA backup codes (after one is used)
+   * @param {number} userId - User ID
+   * @param {Array<string>} remainingCodes - Updated backup codes
+   * @returns {Promise<boolean>} Success status
+   */
+  static async update2FABackupCodes(userId, remainingCodes) {
+    const sql = `
+      UPDATE users
+      SET two_factor_backup_codes = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `;
+    const result = await query(sql, [remainingCodes, userId]);
+    return result.rowCount > 0;
+  }
 }
 
 module.exports = UserModel;
