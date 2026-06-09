@@ -7,20 +7,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GraduationCap, CheckCircle } from 'lucide-react';
+import { GraduationCap, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { RegisterRequest } from '@/services/authService';
 import AuthBackground from '@/components/animations/AuthBackground';
 import { buildBackendUrl } from '@/lib/apiConfig';
+import { TwoFactorVerifyModal } from '@/components/modals/TwoFactorVerifyModal';
 
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { login, register, loginWithToken } = useAuth();
+  const { login, register, loginWithToken, twoFactorRequired, tempUserId, clearTwoFactorState } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sso = params.get('sso');
@@ -76,13 +76,20 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      const user = await login(loginData.email, loginData.password);
+      const result = await login(loginData.email, loginData.password);
+      
+      // Check if 2FA is required
+      if ('requiresTwoFactor' in result && result.requiresTwoFactor) {
+        setShow2FAModal(true);
+        return;
+      }
+
       toast.success("Login successful!");
 
       // Redirect based on user role
-      if (user?.role === "admin") {
+      if (result?.role === "admin") {
         navigate("/admin/dashboard");
-      } else if (user?.role === "student") {
+      } else if (result?.role === "student") {
         navigate("/student/dashboard");
       } else {
         navigate("/dashboard");
@@ -92,6 +99,20 @@ export default function Auth() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handle2FASuccess = () => {
+    setShow2FAModal(false);
+    toast.success("Login successful!");
+    
+    // Get the user role from context (it's updated after 2FA verification)
+    // For now, just redirect to student dashboard as it's most common
+    navigate("/student/dashboard");
+  };
+
+  const handle2FACancel = () => {
+    setShow2FAModal(false);
+    clearTwoFactorState();
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -240,19 +261,33 @@ export default function Auth() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="login-password">Password</Label>
-                        <Input
-                          id="login-password"
-                          type="password"
-                          value={loginData.password}
-                          onChange={(e) =>
-                            setLoginData({
-                              ...loginData,
-                              password: e.target.value,
-                            })
-                          }
-                          required
-                          className="focus:ring-2 focus:ring-accent glow-accent"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="login-password"
+                            type={showLoginPassword ? 'text' : 'password'}
+                            value={loginData.password}
+                            onChange={(e) =>
+                              setLoginData({
+                                ...loginData,
+                                password: e.target.value,
+                              })
+                            }
+                            required
+                            className="pr-10 focus:ring-2 focus:ring-accent glow-accent"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowLoginPassword((prev) => !prev)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showLoginPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <Button
                         type="submit"
@@ -427,37 +462,65 @@ export default function Auth() {
                       )}
                       <div className="space-y-2">
                         <Label htmlFor="signup-password">Password</Label>
-                        <Input
-                          id="signup-password"
-                          type="password"
-                          value={signupData.password}
-                          onChange={(e) =>
-                            setSignupData({
-                              ...signupData,
-                              password: e.target.value,
-                            })
-                          }
-                          required
-                          className="focus:ring-2 focus:ring-accent glow-accent"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="signup-password"
+                            type={showSignupPassword ? 'text' : 'password'}
+                            value={signupData.password}
+                            onChange={(e) =>
+                              setSignupData({
+                                ...signupData,
+                                password: e.target.value,
+                              })
+                            }
+                            required
+                            className="pr-10 focus:ring-2 focus:ring-accent glow-accent"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowSignupPassword((prev) => !prev)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showSignupPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="signup-confirm-password">
                           Confirm Password
                         </Label>
-                        <Input
-                          id="signup-confirm-password"
-                          type="password"
-                          value={signupData.confirmPassword}
-                          onChange={(e) =>
-                            setSignupData({
-                              ...signupData,
-                              confirmPassword: e.target.value,
-                            })
-                          }
-                          required
-                          className="focus:ring-2 focus:ring-accent glow-accent"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="signup-confirm-password"
+                            type={showSignupConfirmPassword ? 'text' : 'password'}
+                            value={signupData.confirmPassword}
+                            onChange={(e) =>
+                              setSignupData({
+                                ...signupData,
+                                confirmPassword: e.target.value,
+                              })
+                            }
+                            required
+                            className="pr-10 focus:ring-2 focus:ring-accent glow-accent"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowSignupConfirmPassword((prev) => !prev)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            aria-label={showSignupConfirmPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showSignupConfirmPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <Button
                         type="submit"
@@ -480,6 +543,14 @@ export default function Auth() {
           </Tabs>
         </div>
       </motion.div>
+
+      {/* 2FA Verification Modal */}
+      <TwoFactorVerifyModal
+        isOpen={show2FAModal || twoFactorRequired}
+        tempUserId={tempUserId}
+        onSuccess={handle2FASuccess}
+        onCancel={handle2FACancel}
+      />
     </div>
   );
 }

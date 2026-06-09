@@ -105,7 +105,6 @@ export default function StudentTimetable() {
       setSearchParams({}, { replace: true });
       toast.error('Google Calendar connection failed. Please try again.');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Clear stale cache on mount (field mapping changed — always fetch fresh)

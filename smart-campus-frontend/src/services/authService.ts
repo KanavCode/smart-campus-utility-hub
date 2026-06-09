@@ -1,6 +1,6 @@
 import { api } from '@/lib/axios';
 import { withServiceError } from './serviceUtils';
-import { User, ApiResponse, ApiError, UserRole } from '@/types';
+import { User, ApiResponse, ApiError, UserRole, TwoFactorChallenge, TwoFactorStatus } from '@/types';
 import { AxiosError } from 'axios';
 
 export interface LoginRequest {
@@ -297,6 +297,79 @@ export const authService = {
           axiosError.message || 
           'Failed to reset password. Please check your information and try again.';
         throw { message: errorMessage } as ApiError;
+      }
+    },
+
+    /**
+     * Setup 2FA - Generate TOTP secret and QR code
+     * Protected route - requires valid JWT token
+     */
+    setupTwoFactor: async (): Promise<ApiResponse<TwoFactorChallenge>> => {
+      try {
+        const { data } = await api.post<ApiResponse<TwoFactorChallenge>>('/auth/setup-2fa', {});
+        return data;
+      } catch (error) {
+        withServiceError(error, 'Failed to setup 2FA');
+      }
+    },
+
+    /**
+     * Verify 2FA setup - Verify TOTP code and enable 2FA
+     * Protected route - requires valid JWT token
+     */
+    verifyTwoFactorSetup: async (code: string, secret: string, backupCodes: string[]): Promise<ApiResponse<{ backupCodes: string[] }>> => {
+      try {
+        const { data } = await api.post<ApiResponse<{ backupCodes: string[] }>>('/auth/verify-2fa-setup', {
+          code,
+          secret,
+          backupCodes
+        });
+        return data;
+      } catch (error) {
+        withServiceError(error, 'Failed to verify and enable 2FA');
+      }
+    },
+
+    /**
+     * Verify 2FA during login - Verify TOTP or backup code to complete login
+     * Public route - used after successful password authentication
+     */
+    verifyTwoFactorLogin: async (userId: number, code: string): Promise<AuthResponse> => {
+      try {
+        const { data } = await api.post<AuthResponse>('/auth/verify-2fa-login', {
+          userId,
+          code
+        });
+        localStorage.setItem('user', JSON.stringify(data.data.user));
+        return data;
+      } catch (error) {
+        withServiceError(error, 'Invalid 2FA code');
+      }
+    },
+
+    /**
+     * Disable 2FA - Remove 2FA from account
+     * Protected route - requires valid JWT token
+     */
+    disableTwoFactor: async (): Promise<ApiResponse<{ message: string }>> => {
+      try {
+        const { data } = await api.post<ApiResponse<{ message: string }>>('/auth/disable-2fa', {});
+        return data;
+      } catch (error) {
+        withServiceError(error, 'Failed to disable 2FA');
+      }
+    },
+
+    /**
+     * Get 2FA status - Check if 2FA is enabled
+     * Protected route - requires valid JWT token
+     */
+    getTwoFactorStatus: async (): Promise<ApiResponse<TwoFactorStatus>> => {
+      try {
+        const { data } = await api.get<ApiResponse<TwoFactorStatus>>('/auth/2fa-status');
+        return data;
+      } catch (error) {
+        withServiceError(error, 'Failed to fetch 2FA status');
       }
     }
 };
