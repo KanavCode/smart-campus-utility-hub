@@ -1,36 +1,6 @@
-
-import { useState } from 'react';
-import { GenericFormModal } from './GenericFormModal';
-import { eventsService } from '@/services/eventService';
-import { eventSchema } from '@/lib/validationSchemas';
-import { FieldConfig } from './types'; // Ensure you import your type
-
-export const EventForm = ({ onSuccess, onCancel, initialData }: any) => {
-  const [description, setDescription] = useState(initialData?.description || '');
-  const MAX_LIMIT = 500;
-  
-  // Explicitly type the array as FieldConfig[]
-  const fields: FieldConfig[] = [
-    { 
-      id: 'title', 
-      label: 'Event Title', 
-      type: 'text', 
-      required: true 
-    },
-    { 
-      id: 'description', 
-      label: 'Description', 
-      type: 'textarea', 
-      required: true,
-      onChange: (val: string) => setDescription(val) 
-    }
-  ];
-
-  return (
-    <div className="space-y-2">
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { z } from 'zod'; // 1. IMPORT ZOD
+import { z } from 'zod';
 import { eventsService } from '@/services/eventService';
 import { clubService, Club } from '@/services/clubService';
 import { GenericFormModal } from './GenericFormModal';
@@ -38,10 +8,13 @@ import { FieldConfig } from './types';
 import { ImageUploadField } from './ImageUploadField';
 import api from '@/lib/axios';
 
+const MAX_LIMIT = 500;
+
 export const EventForm = ({ onSuccess, onCancel, initialData }: any) => {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [image, setImage] = useState<File | null>(null);
   const [isLoadingClubs, setIsLoadingClubs] = useState(true);
+  const [description, setDescription] = useState(initialData?.description || '');
 
   useEffect(() => {
     loadClubs();
@@ -59,10 +32,9 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: any) => {
     }
   };
 
-  // 2. SCHEMA DEFINITION
   const eventSchema = z.object({
     title: z.string().min(1, 'Title is required'),
-    description: z.string().min(1, 'Description is required'),
+    description: z.string().min(1, 'Description is required').max(MAX_LIMIT, `Description must be ${MAX_LIMIT} characters or less`),
     location: z.string().min(1, 'Location is required'),
     club_id: z.string().min(1, 'Club is required'),
     start_time: z.string().min(1, 'Start time required'),
@@ -73,11 +45,11 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: any) => {
     { id: 'title', label: 'Event Title', type: 'text', required: true },
     { id: 'description', label: 'Description', type: 'textarea', required: true },
     { id: 'location', label: 'Location', type: 'text', required: true },
-    { 
-      id: 'club_id', 
-      label: 'Associated Club', 
-      type: 'select', 
-      options: clubs.map(c => ({ value: c.id.toString(), label: c.name })) 
+    {
+      id: 'club_id',
+      label: 'Associated Club',
+      type: 'select',
+      options: clubs.map((c) => ({ value: c.id.toString(), label: c.name })),
     },
     { id: 'start_time', label: 'Start Time', type: 'datetime-local', required: true },
     { id: 'end_time', label: 'End Time', type: 'datetime-local', required: true },
@@ -91,15 +63,14 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: any) => {
     const method = isUpdate ? 'put' : 'post';
     const url = isUpdate ? `/events/${initialData?.id}` : '/events';
 
-    await api({ method, url, data: formData, headers: { 'Content-Type': 'multipart/form-data' }});
+    await api({ method, url, data: formData, headers: { 'Content-Type': 'multipart/form-data' } });
     toast.success('Event saved successfully!');
     onSuccess();
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <ImageUploadField image={image} onImageSelect={setImage} onImageRemove={() => setImage(null)} />
-
       <GenericFormModal
         fields={fields}
         service={eventsService}
@@ -107,18 +78,13 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: any) => {
         onSuccess={onSuccess}
         onCancel={onCancel}
         validationSchema={eventSchema}
-
+        customSubmitHandler={customSubmitHandler}
         title="Event"
-        disableSubmit={description.length > MAX_LIMIT}
+        onFieldChange={(id: string, val: string) => { if (id === 'description') setDescription(val); }}
       />
       <p className={`text-sm text-right ${description.length > MAX_LIMIT ? 'text-red-500' : 'text-gray-500'}`}>
         {description.length} / {MAX_LIMIT}
       </p>
-
-        customSubmitHandler={customSubmitHandler}
-        title="Event"
-      />
-
     </div>
   );
 };

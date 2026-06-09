@@ -1,5 +1,12 @@
+import { useGenericForm } from './useGenericForm';
 import { FormField } from './FormField';
+import { GenericFormProps } from './types';
 
+interface ExtendedFormProps extends GenericFormProps {
+  disableSubmit?: boolean;
+  submitButtonLabel?: string;
+  onFieldChange?: (id: string, value: string) => void;
+}
 
 export const GenericFormModal = ({
   fields,
@@ -8,13 +15,13 @@ export const GenericFormModal = ({
   onSuccess,
   onCancel,
   validationSchema,
-  submitButtonLabel,
-  title,
-  mode = initialData?.id ? 'edit' : 'create',
   customSubmitHandler,
+  title,
   disableSubmit,
-}: GenericFormProps) => {
-  const { formData, errors, isLoading, register, handleSubmit } = useGenericForm(
+  submitButtonLabel,
+  onFieldChange,
+}: ExtendedFormProps) => {
+  const { errors, isLoading, register, handleSubmit } = useGenericForm(
     fields,
     service,
     initialData,
@@ -23,20 +30,11 @@ export const GenericFormModal = ({
     customSubmitHandler
   );
 
-export const GenericFormModal = (props: any) => {
-  const { fields, title, ...rest } = props;
-  
-  // Use the hook with 'any' to stop the type errors
-  const { errors, isLoading, register, handleSubmit } = props.useGenericForm 
-    ? props.useGenericForm(props.fields, props.service, props.initialData, props.onSuccess, props.validationSchema, props.customSubmitHandler)
-    : { errors: {}, isLoading: false, register: () => ({}), handleSubmit: (e: any) => e.preventDefault() };
-
-  // Group fields for layout
-  const groupedFields: any[] = [];
+  const groupedFields: any[][] = [];
   let currentRow: any[] = [];
   let currentRowCols = 0;
 
-  props.fields.forEach((field: any) => {
+  fields.forEach((field) => {
     const fieldCols = field.gridCol || 1;
     if (currentRowCols + fieldCols > 3) {
       if (currentRow.length > 0) groupedFields.push(currentRow);
@@ -49,37 +47,22 @@ export const GenericFormModal = (props: any) => {
   });
   if (currentRow.length > 0) groupedFields.push(currentRow);
 
+  const mode = initialData?.id ? 'edit' : 'create';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {title && <h2 className="text-lg font-semibold">{title}</h2>}
-
-      {fields.map((field) => (
-        <FormField
-          key={field.id}
-          field={field}
-          value={register(field.id).value}
-          onChange={register(field.id).onChange}
-          error={errors[field.id]}
-          isLoading={isLoading}
-        />
-      ))}
-      <div className="flex gap-3 pt-4">
-        <Button type="submit" disabled={isLoading || disableSubmit} className="flex-1">
-          {isLoading ? 'Saving...' : (submitButtonLabel || (mode === 'edit' ? 'Update' : 'Create'))}
-        </Button>
-        <Button type="button" onClick={onCancel} variant="outline" className="flex-1">
-          Cancel
-        </Button>
-
-      {groupedFields.map((row: any, i: number) => (
+      {groupedFields.map((row, i) => (
         <div key={i} className={`grid gap-4 ${row.length === 3 ? 'md:grid-cols-3' : row.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}>
-          {row.map((field: any) => (
+          {row.map((field) => (
             <FormField
               key={field.id}
               field={field}
               value={register(field.id)?.value}
-              onChange={register(field.id)?.onChange}
+              onChange={(val: string) => {
+                register(field.id)?.onChange(val);
+                onFieldChange?.(field.id, val);
+              }}
               error={errors?.[field.id]}
               isLoading={isLoading}
             />
@@ -87,8 +70,10 @@ export const GenericFormModal = (props: any) => {
         </div>
       ))}
       <div className="flex gap-3 pt-4">
-        <button type="submit" disabled={isLoading} className="bg-primary px-4 py-2 text-white rounded">Submit</button>
-        <button type="button" onClick={props.onCancel} className="border px-4 py-2 rounded">Cancel</button>
+        <button type="submit" disabled={isLoading || disableSubmit} className="bg-primary px-4 py-2 text-white rounded flex-1">
+          {isLoading ? 'Saving...' : (submitButtonLabel || (mode === 'edit' ? 'Update' : 'Create'))}
+        </button>
+        <button type="button" onClick={onCancel} className="border px-4 py-2 rounded flex-1">Cancel</button>
       </div>
     </form>
   );
