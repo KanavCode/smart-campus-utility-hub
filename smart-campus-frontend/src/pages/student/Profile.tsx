@@ -8,11 +8,13 @@ import { Label } from '@/components/ui/label';
 import { FormModal } from '@/components/modals/FormModal';
 import { AvatarCropModal } from '@/components/modals/AvatarCropModal';
 import { TwoFactorSetupModal } from '@/components/modals/TwoFactorSetupModal';
+import { Switch } from '@/components/ui/switch';
 import { User, Lock, Mail, GraduationCap, Camera, ShieldCheck, Laptop, Smartphone, Globe, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { authService } from '@/services/authService';
 import { ApiError, UserFormData, UserSession } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { isSoundEffectsEnabled, setSoundEffectsEnabled } from '@/lib/successSound';
 
 export default function Profile() {
   const { user, disableTwoFactor, getTwoFactorStatus } = useAuth();
@@ -21,6 +23,7 @@ export default function Profile() {
   const [is2FAModalOpen, setIs2FAModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [twoFactorStatus, setTwoFactorStatus] = useState<{ twoFactorEnabled: boolean; backupCodesCount: number } | null>(null);
+  const [soundEffectsEnabled, setSoundEffectsEnabledState] = useState(isSoundEffectsEnabled);
 
   // Sessions state
   const [sessions, setSessions] = useState<UserSession[]>([]);
@@ -234,6 +237,11 @@ export default function Profile() {
     fetchTwoFactorStatus();
   };
 
+  const handleSoundEffectsChange = (enabled: boolean) => {
+    setSoundEffectsEnabledState(enabled);
+    setSoundEffectsEnabled(enabled);
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -358,6 +366,14 @@ export default function Profile() {
                   Change Password
                 </motion.button>
               </Button>
+            </div>
+            <div className="flex items-center justify-between gap-4 pt-4 border-t border-border">
+              <Label htmlFor="sound-effects">Enable Sound Effects</Label>
+              <Switch
+                id="sound-effects"
+                checked={soundEffectsEnabled}
+                onCheckedChange={handleSoundEffectsChange}
+              />
             </div>
           </CardContent>
         </Card>
