@@ -21,11 +21,12 @@ export interface FieldConfig {
   max?: number | string;
   step?: number | string;
   options?: Array<{ value: string | number; label: string }>;
-  condition?: (formData: any) => boolean; // Show field conditionally
-  gridCol?: 1 | 2 | 3; // For layout (default 1)
+  condition?: (formData: any) => boolean; 
+  gridCol?: 1 | 2 | 3; 
   className?: string;
   disabled?: boolean;
-  hint?: string; // Optional helper text shown below the input
+  hint?: string;
+  onChange?: (val: string) => void; 
 }
 
 export interface CrudService {
@@ -44,6 +45,7 @@ export interface GenericFormProps {
   title?: string;
   mode?: 'create' | 'edit';
   customSubmitHandler?: (data: any, isUpdate: boolean) => Promise<void>;
+  disableSubmit?: boolean;
 }
 
 export interface UseGenericFormReturn {
