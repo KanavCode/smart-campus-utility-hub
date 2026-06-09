@@ -43,6 +43,7 @@ const notificationsRoutes = require("./components/notifications/notifications.ro
 const searchRoutes = require("./components/search/search.routes");
 const activityRoutes = require("./components/activities/activity.routes");
 const calendarRoutes = require('./components/calendar/calendar.routes');
+const feedbackRoutes = require('./components/feedback/feedback.routes');
 
 // Create Express application
 const app = express();
@@ -145,6 +146,7 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/calendar',   calendarRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Test Socket endpoint
 app.get('/api/test-socket', verifyToken, verifyAdmin, (req, res) => {
