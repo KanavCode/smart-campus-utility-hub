@@ -54,7 +54,7 @@ const register = asyncHandler(async (req, res) => {
     department,
     cgpa,
     semester,
-  });
+  }, req);
 
   logger.info('New user registered', { userId: result.user.id, email: result.user.email });
 
@@ -69,7 +69,7 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  const result = await userAuthService.loginUser({ email, password });
+  const result = await userAuthService.loginUser({ email, password }, req);
 
   logger.info('User logged in', { userId: result.user.id, email: result.user.email });
 
@@ -304,6 +304,18 @@ const ssoCallback = asyncHandler(async (req, res) => {
   }
 });
 
+const getSessions = asyncHandler(async (req, res) => {
+  const sessions = await userAuthService.getUserSessions(req.user.id);
+  sendSuccess(res, 200, 'Sessions fetched successfully', { sessions });
+});
+
+const revokeSession = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  await userAuthService.revokeSessionById(id, req.user.id);
+  logger.info('Session revoked', { userId: req.user.id, sessionId: id });
+  sendSuccess(res, 200, 'Session revoked successfully');
+});
+
 /**
  * Setup 2FA - Generate challenge (secret + QR code)
  * Protected endpoint
@@ -350,28 +362,7 @@ const verify2FALogin = asyncHandler(async (req, res) => {
     return sendSuccess(res, 400, 'User ID and 2FA code are required');
   }
 
-  const result = await userAuthService.verify2FACodeLogin(userId, code);
-
-  const setAuthCookies = (res, accessToken, refreshToken) => {
-    const buildAccessCookieOptions = () => ({
-      httpOnly: true,
-      secure: process.env.AUTH_COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production',
-      sameSite: process.env.AUTH_COOKIE_SAME_SITE || 'strict',
-      path: '/',
-      maxAge: 15 * 60 * 1000,
-    });
-
-    const buildRefreshCookieOptions = () => ({
-      httpOnly: true,
-      secure: process.env.AUTH_COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production',
-      sameSite: process.env.AUTH_COOKIE_SAME_SITE || 'strict',
-      path: '/',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
-
-    res.cookie('accessToken', accessToken, buildAccessCookieOptions());
-    res.cookie('refreshToken', refreshToken, buildRefreshCookieOptions());
-  };
+  const result = await userAuthService.verify2FACodeLogin(userId, code, req);
 
   setAuthCookies(res, result.accessToken, result.refreshToken);
 
@@ -422,6 +413,8 @@ module.exports = {
   resetPassword,
   ssoRedirect,
   ssoCallback,
+  getSessions,
+  revokeSession,
   setup2FA,
   verify2FASetup,
   verify2FALogin,

@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { logger } = require('../config/db');
+const UserSessionModel = require('../components/users/user.session.model');
 const ACCESS_COOKIE_NAME = 'accessToken';
 const REFRESH_COOKIE_NAME = 'refreshToken';
 
@@ -69,7 +70,7 @@ const verifyToken = (req, res, next) => {
     }
 
     // Verify token
-    jwt.verify(token, getJwtSecret(), (err, decoded) => {
+    jwt.verify(token, getJwtSecret(), async (err, decoded) => {
       if (err) {
         logger.warn('JWT verification failed', {
           errorType: err.name,
@@ -90,11 +91,29 @@ const verifyToken = (req, res, next) => {
         });
       }
 
+      // If token carries a sessionId, verify the session is still active
+      if (decoded.sessionId && process.env.NODE_ENV !== 'test') {
+        try {
+          const session = await UserSessionModel.findById(decoded.sessionId);
+          if (!session) {
+            return res.status(401).json({
+              success: false,
+              message: 'Unauthorized: Session has been revoked.',
+            });
+          }
+          // Update last active in the background
+          UserSessionModel.updateLastActive(decoded.sessionId).catch(() => {});
+        } catch (dbErr) {
+          logger.warn('Session DB check failed', { error: dbErr.message });
+        }
+      }
+
       // Attach user info to request
       req.user = decoded;
       logger.debug('Token verified', {
         userId: decoded.id,
         role: decoded.role,
+        sessionId: decoded.sessionId,
       });
       next();
     });

@@ -106,6 +106,19 @@ router.get(
   userController.get2FAStatus
 );
 
+// Session management routes
+router.get(
+  '/sessions',
+  verifyToken,
+  userController.getSessions
+);
+
+router.delete(
+  '/sessions/:id',
+  verifyToken,
+  userController.revokeSession
+);
+
 // Admin-only routes
 router.get(
   '/users',
