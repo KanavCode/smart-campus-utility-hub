@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
+import { BugReportWidget } from '../ui/BugReportWidget';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -17,6 +18,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           {children}
         </ErrorBoundary>
       </main>
+      <BugReportWidget />
     </div>
   );
 };
