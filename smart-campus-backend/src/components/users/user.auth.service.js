@@ -152,6 +152,16 @@ const loginUser = async ({ email, password }) => {
     throw new ApiError(401, 'Invalid email or password');
   }
 
+  // Check if 2FA is enabled
+  if (user.two_factor_enabled === true) {
+    logger.info('2FA required for user login', { userId: user.id, email: user.email });
+    return {
+      requiresTwoFactor: true,
+      tempUserId: user.id,
+      message: '2FA verification required',
+    };
+  }
+
   const tokens = await createAuthTokenPair(user);
 
   delete user.password_hash;
@@ -328,6 +338,140 @@ const revokeRefreshToken = async (refreshToken) => {
   await UserModel.clearRefreshTokenByHash(refreshTokenHash);
 };
 
+/**
+ * Verify 2FA code during login and return tokens if valid
+ * @param {number} userId - User ID
+ * @param {string} code - TOTP or backup code
+ * @returns {Object} User and token pair if valid
+ */
+const verify2FACodeLogin = async (userId, code) => {
+  if (!userId || !code) {
+    throw new ApiError(400, '2FA code and user ID are required');
+  }
+
+  // Import twofa service
+  const twoFAService = require('../../services/twofa.service');
+
+  const { verified, method } = await twoFAService.verify2FACode(userId, code);
+
+  if (!verified) {
+    logger.warn('Invalid 2FA code attempted', { userId });
+    throw new ApiError(401, 'Invalid 2FA code');
+  }
+
+  const user = await UserModel.findById(userId);
+  if (!user) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  if (user.is_active === false) {
+    throw new ApiError(403, 'Account is deactivated. Please contact support.');
+  }
+
+  const tokens = await createAuthTokenPair(user);
+
+  logger.info('2FA verification successful during login', {
+    userId,
+    method,
+  });
+
+  return {
+    user,
+    ...tokens,
+  };
+};
+
+/**
+ * Generate 2FA setup challenge (secret + QR code)
+ * @param {number} userId - User ID
+ * @returns {Object} Setup challenge with secret and QR code
+ */
+const generate2FASetupChallenge = async (userId) => {
+  const user = await UserModel.findById(userId);
+  if (!user) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  // Import twofa service
+  const twoFAService = require('../../services/twofa.service');
+
+  const challenge = await twoFAService.generateSetupChallenge(userId, user.email);
+
+  logger.info('2FA setup challenge generated', { userId });
+
+  return challenge;
+};
+
+/**
+ * Verify 2FA setup code and enable 2FA
+ * @param {number} userId - User ID
+ * @param {string} code - TOTP code to verify
+ * @param {string} secret - The secret to verify against
+ * @param {Array<string>} backupCodes - Backup codes to save
+ * @returns {Object} Success message and backup codes
+ */
+const verify2FASetup = async (userId, code, secret, backupCodes) => {
+  if (!code || !secret) {
+    throw new ApiError(400, 'TOTP code and secret are required');
+  }
+
+  // Import twofa service
+  const twoFAService = require('../../services/twofa.service');
+
+  // Verify the code with the provided secret
+  const isValid = twoFAService.verifyTOTPCode(code, secret);
+  if (!isValid) {
+    logger.warn('Invalid TOTP code during 2FA setup', { userId });
+    throw new ApiError(401, 'Invalid TOTP code. Please check and try again.');
+  }
+
+  // Enable 2FA in database
+  await twoFAService.enable2FA(userId, secret, backupCodes);
+
+  logger.info('2FA enabled for user', { userId });
+
+  return {
+    message: '2FA successfully enabled',
+    backupCodes, // Return backup codes so user can store them
+  };
+};
+
+/**
+ * Disable 2FA for user
+ * @param {number} userId - User ID
+ * @returns {Object} Success message
+ */
+const disable2FA = async (userId) => {
+  // Import twofa service
+  const twoFAService = require('../../services/twofa.service');
+
+  await twoFAService.disable2FA(userId);
+
+  logger.info('2FA disabled for user', { userId });
+
+  return {
+    message: '2FA successfully disabled',
+  };
+};
+
+/**
+ * Get 2FA status for user
+ * @param {number} userId - User ID
+ * @returns {Object} 2FA status
+ */
+const get2FAStatus = async (userId) => {
+  const status = await UserModel.get2FAStatus(userId);
+  if (!status) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  return {
+    twoFactorEnabled: status.two_factor_enabled,
+    enabledAt: status.two_factor_enabled_at,
+    backupCodesCount: status.backup_codes_count || 0,
+  };
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -338,6 +482,11 @@ module.exports = {
   resetPassword,
   handleSSOLogin,
   refreshAuthTokens,
+  verify2FACodeLogin,
+  generate2FASetupChallenge,
+  verify2FASetup,
+  disable2FA,
+  get2FAStatus,
   revokeRefreshTokenByUserId,
   revokeRefreshToken,
   ACCESS_COOKIE_NAME,
