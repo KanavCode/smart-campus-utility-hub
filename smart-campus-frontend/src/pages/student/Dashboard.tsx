@@ -8,10 +8,10 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { eventsService } from '@/services/eventService';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { timetableService, Group } from '@/services/timetableService';
 import { TimetableSlot } from '@/types';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
+import { DashboardEventsSkeleton, DashboardStatsGridSkeleton } from '@/components/dashboard/DashboardSkeletons';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -116,44 +116,6 @@ export default function StudentDashboard() {
 
   const profileCompletion = calculateProfileCompletion();
 
-  const renderStatCardSkeleton = () => (
-    <Card className="glass border-muted">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-4 w-4 rounded-full" />
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-8 w-12 mb-3" />
-        <Skeleton className="h-3 w-32" />
-      </CardContent>
-    </Card>
-  );
-
-  const renderEventsSectionSkeleton = () => (
-    <Card className="glass border-muted">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-8 w-24" />
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={`event-skeleton-${i}`} className="flex items-center justify-between p-4 rounded-lg bg-accent/10">
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-3 w-32" />
-              </div>
-              <div className="text-right space-y-2">
-                <Skeleton className="h-6 w-24" />
-                <Skeleton className="h-3 w-16" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-
   return (
     <DashboardLayout>
       <motion.div
@@ -194,13 +156,7 @@ export default function StudentDashboard() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {dashboardLoading ? (
-            <>
-              {[...Array(4)].map((_, i) => (
-                <div key={`stat-skeleton-${i}`} className="h-full">
-                  {renderStatCardSkeleton()}
-                </div>
-              ))}
-            </>
+            <DashboardStatsGridSkeleton />
           ) : (
             <>
               <motion.div 
@@ -327,7 +283,7 @@ export default function StudentDashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
               >
-                {renderEventsSectionSkeleton()}
+                <DashboardEventsSkeleton />
               </motion.div>
             ) : savedEvents.length > 0 ? (
                 <motion.div

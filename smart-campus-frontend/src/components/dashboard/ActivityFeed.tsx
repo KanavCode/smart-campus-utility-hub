@@ -11,6 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/lib/axios";
+import { DashboardActivityFeedSkeleton } from "@/components/dashboard/DashboardSkeletons";
 
 interface Activity {
   id: number;
@@ -67,17 +68,7 @@ export function ActivityFeed() {
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">
           {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex gap-3 animate-pulse">
-                  <div className="h-8 w-8 rounded-full bg-accent/50" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 w-3/4 bg-accent/50 rounded" />
-                    <div className="h-3 w-1/2 bg-accent/50 rounded" />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <DashboardActivityFeedSkeleton />
           ) : activities.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-8">
               No recent activities
