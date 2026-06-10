@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { electiveService, Elective, StudentAllocation, WaitlistEntry } from '@/services/electiveService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
 import { toast } from 'sonner';
+import { playSuccessSound } from '@/lib/successSound';
 
 // 10 Available Subjects for drag and drop
 const AVAILABLE_SUBJECTS = [
@@ -151,6 +152,7 @@ export default function Electives() {
       await electiveService.submitChoices(choices);
       
       setHasSubmitted(true);
+      playSuccessSound();
       toast.success('Preferences submitted successfully!');
     } catch (err: unknown) {
       const e = err as { message?: string };

@@ -9,6 +9,7 @@ import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader,
 import { eventsService, Event } from '@/services/eventService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
 import { useToast } from '@/components/ui/use-toast';
+import { playSuccessSound } from '@/lib/successSound';
 
 // Extend Event type internally if properties are missing from standard declaration
 interface ExtendedEvent extends Event {
@@ -86,6 +87,7 @@ export default function EventsPage() {
       } else {
         await eventsService.save(eventId);
         setSavedEventIds(prev => new Set(prev).add(eventId));
+        playSuccessSound();
         toast({ title: 'Event saved successfully!' });
       }
     } catch (error: unknown) {
@@ -108,6 +110,7 @@ export default function EventsPage() {
       const response = await eventsService.rsvp(eventId);
       const rsvpData = response.data?.rsvp;
       
+      playSuccessSound();
       toast.success(rsvpData?.status === 'confirmed' 
         ? 'Seat confirmed successfully! 🎉' 
         : 'Event is full! You have joined the Waitlist queue. ⏳'
