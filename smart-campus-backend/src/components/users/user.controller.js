@@ -3,6 +3,7 @@ const userAuthService = require('./user.auth.service');
 const userAdminService = require('./user.admin.service');
 const { asyncHandler } = require('../../middleware/errorHandler');
 const { logger } = require('../../config/db');
+const activityService = require('../../services/activity.service');
 
 const getFrontendUrlWithDefault = () => process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -123,6 +124,23 @@ const updateProfile = asyncHandler(async (req, res) => {
   });
 
   logger.info('User profile updated', { userId: req.user.id });
+
+  await activityService.logActivity({
+    userId: req.user.id,
+    action: 'PROFILE_UPDATED',
+    entityType: 'user',
+    entityId: req.user.id,
+    description: 'Updated profile information',
+    metadata: {
+      fields: ['full_name', 'department', 'cgpa', 'semester'].filter((field) => {
+        if (field === 'full_name') return full_name !== undefined;
+        if (field === 'department') return department !== undefined;
+        if (field === 'cgpa') return cgpa !== undefined;
+        if (field === 'semester') return semester !== undefined;
+        return false;
+      }),
+    },
+  });
 
   sendSuccess(res, 200, 'Profile updated successfully', { user: updatedUser });
 });

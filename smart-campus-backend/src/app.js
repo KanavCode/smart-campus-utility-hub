@@ -33,15 +33,15 @@ if (process.env.NODE_ENV !== 'test') {
 // =====================================================================
 // IMPORT ROUTES (UNIFIED & SINGLE DECLARATION)
 // =====================================================================
-const userRoutes = require("./components/users/user.routes");
-const eventsRoutes = require("./components/campus-events/events.routes");
-const clubsRoutes = require("./components/campus-events/clubs.routes");
-const timetableRoutes = require("./components/timetable/timetable.routes");
-const electiveRoutes = require("./components/electives/elective.routes");
-const settingsRoutes = require("./components/settings/settings.routes");
-const notificationsRoutes = require("./components/notifications/notifications.routes");
-const searchRoutes = require("./components/search/search.routes");
-const activityRoutes = require("./components/activities/activity.routes");
+const userRoutes = require('./components/users/user.routes');
+const eventsRoutes = require('./components/campus-events/events.routes');
+const clubsRoutes = require('./components/campus-events/clubs.routes');
+const timetableRoutes = require('./components/timetable/timetable.routes');
+const electiveRoutes = require('./components/electives/elective.routes');
+const settingsRoutes = require('./components/settings/settings.routes');
+const notificationsRoutes = require('./components/notifications/notifications.routes');
+const searchRoutes = require('./components/search/search.routes');
+const activityRoutes = require('./components/activities/activity.routes');
 const calendarRoutes = require('./components/calendar/calendar.routes');
 const feedbackRoutes = require('./components/feedback/feedback.routes');
 
