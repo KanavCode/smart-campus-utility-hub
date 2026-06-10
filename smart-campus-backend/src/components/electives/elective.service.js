@@ -313,7 +313,7 @@ const allocateElectives = async () => {
     await client.query('DELETE FROM elective_waitlist');
 
     const studentsResult = await client.query(
-      'SELECT id, full_name, email, cgpa FROM users WHERE role = $1 AND cgpa IS NOT NULL ORDER BY cgpa DESC',
+      'SELECT id, full_name, email, cgpa FROM users WHERE role = $1 AND cgpa IS NOT NULL ORDER BY cgpa DESC, id ASC',
       ['student']
     );
 
@@ -329,7 +329,7 @@ const allocateElectives = async () => {
 
     for (const student of students) {
       const choicesResult = await client.query(
-        'SELECT elective_id FROM student_choices WHERE student_id = $1 ORDER BY preference_rank ASC',
+        'SELECT elective_id, preference_rank FROM student_choices WHERE student_id = $1 ORDER BY preference_rank ASC',
         [student.id]
       );
 
@@ -346,14 +346,14 @@ const allocateElectives = async () => {
 
           electiveSeats[electiveId]--;
 
-          const electiveName = electivesResult.rows.find((elective) => elective.id === electiveId).subject_name;
+          const electiveName = (electivesResult.rows.find((elective) => elective.id === electiveId) || {}).subject_name;
 
           results.push({
             student_id: student.id,
             student_name: student.full_name,
             cgpa: student.cgpa,
             allocated_elective: electiveName,
-            preference_rank: choicesResult.rows.indexOf(choice) + 1
+            preference_rank: choice.preference_rank
           });
 
           allocated = true;
