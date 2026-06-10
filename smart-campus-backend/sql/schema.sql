@@ -100,7 +100,8 @@ CREATE TABLE clubs (
     description TEXT,
     contact_email VARCHAR(100),
     category VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT NULL
 );
 
 -- =====================================================================
@@ -118,7 +119,8 @@ CREATE TABLE events (
     is_featured BOOLEAN DEFAULT FALSE,
     tags TEXT[],
     image_url TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT NULL
 );
 
 -- =====================================================================
@@ -141,7 +143,8 @@ CREATE TABLE electives (
     max_students INTEGER DEFAULT 50,
     department VARCHAR(100),
     semester INTEGER CHECK (semester BETWEEN 1 AND 8),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT NULL
 );
 
 -- =====================================================================
@@ -371,6 +374,10 @@ CREATE INDEX idx_notifications_user_created ON notifications(user_id, created_at
 CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read);
 CREATE INDEX idx_activities_user_created ON activities(user_id, created_at DESC);
 
+CREATE INDEX IF NOT EXISTS idx_events_deleted_at    ON events(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_clubs_deleted_at     ON clubs(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_electives_deleted_at ON electives(deleted_at);
+
 -- Timetable indexes
 CREATE INDEX idx_teachers_department ON teachers(department);
 CREATE INDEX idx_teachers_active ON teachers(is_active);
@@ -448,5 +455,3 @@ INSERT INTO system_settings (id, academic_year, current_semester, campus_name) V
 -- =====================================================================
 -- SCHEMA CREATION COMPLETE
 -- =====================================================================
-ALTER TABLE events
-ADD COLUMN IF NOT EXISTS image_url TEXT;

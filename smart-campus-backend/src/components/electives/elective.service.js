@@ -16,7 +16,7 @@ const createElective = async ({ subject_name, description, max_students, departm
 };
 
 const listElectives = async ({ department, semester }) => {
-  let sql = 'SELECT * FROM electives WHERE 1=1';
+  let sql = 'SELECT * FROM electives WHERE deleted_at IS NULL';
   const values = [];
   let paramCounter = 1;
 
@@ -39,7 +39,10 @@ const listElectives = async ({ department, semester }) => {
 };
 
 const getElectiveById = async (id) => {
-  const result = await query('SELECT * FROM electives WHERE id = $1', [parseInteger(id)]);
+  const result = await query(
+    'SELECT * FROM electives WHERE id = $1 AND deleted_at IS NULL',
+    [parseInteger(id)],
+  );
 
   if (result.rows.length === 0) {
     throw new ApiError(404, 'Elective not found');
@@ -52,7 +55,7 @@ const updateElective = async (id, { subject_name, description, max_students, dep
   const sql = `
     UPDATE electives
     SET subject_name = $1, description = $2, max_students = $3, department = $4, semester = $5
-    WHERE id = $6
+    WHERE id = $6 AND deleted_at IS NULL
     RETURNING *
   `;
 
@@ -69,7 +72,10 @@ const updateElective = async (id, { subject_name, description, max_students, dep
 };
 
 const deleteElective = async (id) => {
-  const result = await query('DELETE FROM electives WHERE id = $1 RETURNING id', [parseInteger(id)]);
+  const result = await query(
+    'UPDATE electives SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id',
+    [parseInteger(id)],
+  );
 
   if (result.rowCount === 0) {
     throw new ApiError(404, 'Elective not found');
@@ -83,13 +89,26 @@ const submitChoices = async ({ choices, userId }) => {
   let normalizedChoices = [];
 
   if (allChoicesUseIds) {
-    normalizedChoices = choices.map((choice) => ({
+    const parsedChoices = choices.map((choice) => ({
       elective_id: parseInteger(choice.elective_id),
       preference_rank: choice.preference_rank,
       subject_name: choice.subject_name
     }));
+
+    const ids = parsedChoices.map((c) => c.elective_id);
+    const validResult = await query(
+      `SELECT id FROM electives WHERE id = ANY($1) AND deleted_at IS NULL`,
+      [ids]
+    );
+    const validIds = new Set(validResult.rows.map((r) => r.id));
+    const hasInvalid = parsedChoices.some((c) => !validIds.has(c.elective_id));
+    if (hasInvalid) {
+      return { success: false, message: 'Invalid or deleted electives in choices submission' };
+    }
+
+    normalizedChoices = parsedChoices;
   } else {
-    const electivesResult = await query('SELECT id, subject_name FROM electives');
+    const electivesResult = await query('SELECT id, subject_name FROM electives WHERE deleted_at IS NULL');
     const subjectToId = {};
     const validElectiveIds = new Set();
 
@@ -132,7 +151,7 @@ const getMyChoices = async (userId) => {
     SELECT sc.preference_rank, e.*
     FROM student_choices sc
     JOIN electives e ON sc.elective_id = e.id
-    WHERE sc.student_id = $1
+    WHERE sc.student_id = $1 AND e.deleted_at IS NULL
     ORDER BY sc.preference_rank ASC
   `;
 
@@ -145,7 +164,7 @@ const getMyAllocation = async (userId) => {
     SELECT ae.*, e.subject_name, e.description, e.department
     FROM allocated_electives ae
     JOIN electives e ON ae.elective_id = e.id
-    WHERE ae.student_id = $1
+    WHERE ae.student_id = $1 AND e.deleted_at IS NULL
   `;
 
   const result = await query(sql, [userId]);
@@ -166,7 +185,7 @@ const getMyWaitlist = async (userId) => {
       e.semester
     FROM elective_waitlist ew
     JOIN electives e ON e.id = ew.elective_id
-    WHERE ew.student_id = $1
+    WHERE ew.student_id = $1 AND e.deleted_at IS NULL
     ORDER BY ew.status = 'waiting' DESC, ew.preference_rank ASC, ew.created_at ASC
   `;
 
@@ -176,10 +195,10 @@ const getMyWaitlist = async (userId) => {
 
 const processWaitlistWithClient = async ({ client, electiveId = null }) => {
   const electiveParams = [];
-  let electiveFilterSql = '';
+  let electiveFilterSql = 'WHERE e.deleted_at IS NULL';
 
   if (electiveId != null) {
-    electiveFilterSql = 'WHERE e.id = $1';
+    electiveFilterSql += ' AND e.id = $1';
     electiveParams.push(parseInteger(electiveId));
   }
 
@@ -240,7 +259,7 @@ const processWaitlistWithClient = async ({ client, electiveId = null }) => {
 
       if (allocationInsert.rowCount === 0) {
         await client.query(
-          'UPDATE elective_waitlist SET status = \'skipped\' WHERE id = $1',
+          "UPDATE elective_waitlist SET status = 'skipped' WHERE id = $1",
           [waitEntry.id]
         );
         continue;
@@ -313,12 +332,14 @@ const allocateElectives = async () => {
     await client.query('DELETE FROM elective_waitlist');
 
     const studentsResult = await client.query(
-      'SELECT id, full_name, email, cgpa FROM users WHERE role = $1 AND cgpa IS NOT NULL ORDER BY cgpa DESC, id ASC',
+      'SELECT id, full_name, email, cgpa FROM users WHERE role = $1 AND cgpa IS NOT NULL ORDER BY cgpa DESC',
       ['student']
     );
 
     const students = studentsResult.rows;
-    const electivesResult = await client.query('SELECT id, subject_name, max_students FROM electives');
+    const electivesResult = await client.query(
+      'SELECT id, subject_name, max_students FROM electives WHERE deleted_at IS NULL'
+    );
 
     const electiveSeats = {};
     electivesResult.rows.forEach((elective) => {
@@ -329,7 +350,7 @@ const allocateElectives = async () => {
 
     for (const student of students) {
       const choicesResult = await client.query(
-        'SELECT elective_id, preference_rank FROM student_choices WHERE student_id = $1 ORDER BY preference_rank ASC',
+        'SELECT elective_id FROM student_choices WHERE student_id = $1 ORDER BY preference_rank ASC',
         [student.id]
       );
 
@@ -346,14 +367,14 @@ const allocateElectives = async () => {
 
           electiveSeats[electiveId]--;
 
-          const electiveName = (electivesResult.rows.find((elective) => elective.id === electiveId) || {}).subject_name;
+          const electiveName = electivesResult.rows.find((elective) => elective.id === electiveId).subject_name;
 
           results.push({
             student_id: student.id,
             student_name: student.full_name,
             cgpa: student.cgpa,
             allocated_elective: electiveName,
-            preference_rank: choice.preference_rank
+            preference_rank: choicesResult.rows.indexOf(choice) + 1
           });
 
           allocated = true;

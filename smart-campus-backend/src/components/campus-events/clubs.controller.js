@@ -69,7 +69,14 @@ const getAllClubs = asyncHandler(async (req, res) => {
     ? order.toUpperCase()
     : 'ASC';
 
-  let sql = 'SELECT *, COUNT(*) OVER() as total_count FROM clubs WHERE 1=1';
+  const sortFieldMap = {
+    name: 'name',
+    category: 'category',
+    created_at: 'created_at',
+  };
+  const safeSortField = sortFieldMap[sortField] || 'name';
+
+  let sql = 'SELECT *, COUNT(*) OVER() as total_count FROM clubs WHERE deleted_at IS NULL';
   const values = [];
   let paramCounter = 1;
 
@@ -85,7 +92,7 @@ const getAllClubs = asyncHandler(async (req, res) => {
     paramCounter++;
   }
 
-  sql += ` ORDER BY ${sortField} ${sortOrder}`;
+  sql += ` ORDER BY ${safeSortField} ${sortOrder}`;
   sql += ` LIMIT $${paramCounter} OFFSET $${paramCounter + 1}`;
   values.push(limitNum, offset);
 
@@ -118,7 +125,7 @@ const getClubById = asyncHandler(async (req, res) => {
   }
 
   // Get club details
-  const clubResult = await query('SELECT * FROM clubs WHERE id = $1', [clubId]);
+  const clubResult = await query('SELECT * FROM clubs WHERE id = $1 AND deleted_at IS NULL', [clubId]);
 
   if (clubResult.rows.length === 0) {
     throw new ApiError(404, 'Club not found');
@@ -126,7 +133,7 @@ const getClubById = asyncHandler(async (req, res) => {
 
   // Get club's events
   const eventsResult = await query(
-    'SELECT * FROM events WHERE club_id = $1 ORDER BY start_time DESC',
+    'SELECT * FROM events WHERE club_id = $1 AND deleted_at IS NULL ORDER BY start_time DESC',
     [clubId],
   );
 
@@ -152,7 +159,7 @@ const updateClub = asyncHandler(async (req, res) => {
   const sql = `
     UPDATE clubs
     SET name = $1, description = $2, contact_email = $3, category = $4
-    WHERE id = $5
+    WHERE id = $5 AND deleted_at IS NULL
     RETURNING *
   `;
 
@@ -185,15 +192,16 @@ const deleteClub = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid club ID');
   }
 
-  const result = await query('DELETE FROM clubs WHERE id = $1 RETURNING *', [
-    clubId,
-  ]);
+  const result = await query(
+    'UPDATE clubs SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING *',
+    [clubId],
+  );
 
   if (result.rowCount === 0) {
     throw new ApiError(404, 'Club not found');
   }
 
-  logger.info('Club deleted', { clubId: id, deletedBy: req.user.id });
+  logger.info('Club soft-deleted', { clubId: id, deletedBy: req.user.id });
 
   sendSuccess(res, 200, 'Club deleted successfully');
 });

@@ -35,12 +35,12 @@ const upload = multer({
 // ── Routes ─────────────────────────────────────────────────────────────────
 
 // Public routes 🛡️ (With Issue #190 Rate Limiting)
-// Public routes 🛡️ (Applied apiLimiter)
 router.get('/', apiLimiter, validate(validationSchemas.eventQuery, 'query'), eventsController.getAllEvents);
-router.get('/:id', apiLimiter, validate(validationSchemas.idParam, 'params'), eventsController.getEventById);
 
-// Protected routes
+// Protected routes — must be declared BEFORE /:id to avoid route shadowing
 router.get('/saved/my-events', verifyToken, eventsController.getSavedEvents);
+
+router.get('/:id', apiLimiter, validate(validationSchemas.idParam, 'params'), eventsController.getEventById);
 router.post('/:id/save', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.saveEvent);
 router.delete('/:id/save', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.unsaveEvent);
 
@@ -52,5 +52,6 @@ router.post('/:id/rsvp', verifyToken, validate(validationSchemas.idParam, 'param
 router.post('/', verifyToken, verifyAdmin, upload.single('image'), eventsController.createEvent);
 router.put('/:id', verifyToken, verifyAdmin, upload.single('image'), validate(validationSchemas.idParam, 'params'), eventsController.updateEvent);
 router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), eventsController.deleteEvent);
+router.post('/:id/restore', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), eventsController.restoreEvent);
 
 module.exports = router;
