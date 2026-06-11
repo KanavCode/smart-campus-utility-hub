@@ -7,17 +7,23 @@ const { asyncHandler } = require('../../middleware/errorHandler');
  * GET /api/activities
  */
 const getActivities = asyncHandler(async (req, res) => {
-  const { limit = 20, offset = 0, mine } = req.query;
-  const userId = mine === 'true' ? req.user.id : null;
+  const { limit = 20, offset = 0 } = req.query;
+  const userId = req.user.id;
 
-  const activities = await activityService.getActivities({
+  const result = await activityService.getActivities({
     userId,
     limit: parseInt(limit),
     offset: parseInt(offset)
   });
 
   sendSuccess(res, 200, 'Activities fetched successfully', {
-    activities
+    activities: result.activities,
+    pagination: {
+      total: result.total,
+      limit: result.limit,
+      offset: result.offset,
+      hasMore: result.offset + result.limit < result.total,
+    },
   });
 });
 

@@ -22,6 +22,7 @@ async function migrate() {
     
     // Create an index for faster queries
     await query('CREATE INDEX IF NOT EXISTS idx_activities_created_at ON activities(created_at DESC);');
+    await query('CREATE INDEX IF NOT EXISTS idx_activities_user_created ON activities(user_id, created_at DESC);');
     
     console.log('✅ Activity Feed indices created');
     

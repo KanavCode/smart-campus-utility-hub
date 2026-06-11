@@ -201,6 +201,20 @@ CREATE TABLE notifications (
 );
 
 -- =====================================================================
+-- 9A. ACTIVITIES (User Activity Log)
+-- =====================================================================
+CREATE TABLE activities (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    action VARCHAR(255) NOT NULL,
+    entity_type VARCHAR(50),
+    entity_id INTEGER,
+    description TEXT,
+    metadata JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================================
 -- 10. TEACHERS (Timetable Module)
 -- =====================================================================
 CREATE TABLE teachers (
@@ -355,6 +369,7 @@ CREATE INDEX idx_elective_waitlist_student ON elective_waitlist(student_id);
 CREATE INDEX idx_elective_waitlist_elective_status ON elective_waitlist(elective_id, status);
 CREATE INDEX idx_notifications_user_created ON notifications(user_id, created_at DESC);
 CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read);
+CREATE INDEX idx_activities_user_created ON activities(user_id, created_at DESC);
 
 -- Timetable indexes
 CREATE INDEX idx_teachers_department ON teachers(department);

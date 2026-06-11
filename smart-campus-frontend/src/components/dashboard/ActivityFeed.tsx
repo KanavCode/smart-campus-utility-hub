@@ -9,6 +9,7 @@ import {
   Star 
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/lib/axios";
 import { DashboardActivityFeedSkeleton } from "@/components/dashboard/DashboardSkeletons";
@@ -23,15 +24,35 @@ interface Activity {
   created_at: string;
 }
 
+interface ActivityPagination {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
 export function ActivityFeed() {
   const [activities, setActivities] = React.useState<Activity[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [pagination, setPagination] = React.useState<ActivityPagination>({
+    total: 0,
+    limit: 10,
+    offset: 0,
+    hasMore: false,
+  });
+
+  const currentPage = Math.floor(pagination.offset / pagination.limit) + 1;
+  const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.limit));
 
   React.useEffect(() => {
     const fetchActivities = async () => {
       try {
-        const response = await api.get<{ success: boolean, data: { activities: Activity[] } }>('/activities?limit=10');
+        const response = await api.get<{
+          success: boolean;
+          data: { activities: Activity[]; pagination: ActivityPagination };
+        }>(`/activities?limit=${pagination.limit}&offset=${pagination.offset}`);
         setActivities(response.data.data.activities);
+        setPagination(response.data.data.pagination);
       } catch (error) {
         console.error("Failed to fetch activities:", error);
       } finally {
@@ -40,7 +61,19 @@ export function ActivityFeed() {
     };
 
     fetchActivities();
-  }, []);
+  }, [pagination.limit, pagination.offset]);
+
+  const handleNextPage = () => {
+    if (!pagination.hasMore) return;
+    setLoading(true);
+    setPagination((current) => ({ ...current, offset: current.offset + current.limit }));
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.offset === 0) return;
+    setLoading(true);
+    setPagination((current) => ({ ...current, offset: Math.max(0, current.offset - current.limit) }));
+  };
 
   const getIcon = (action: string) => {
     switch (action) {
@@ -96,6 +129,19 @@ export function ActivityFeed() {
             </div>
           )}
         </ScrollArea>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handlePreviousPage} disabled={loading || pagination.offset === 0}>
+              Previous
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleNextPage} disabled={loading || !pagination.hasMore}>
+              Next
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

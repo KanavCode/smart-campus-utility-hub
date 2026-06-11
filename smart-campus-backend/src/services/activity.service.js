@@ -29,26 +29,31 @@ const activityService = {
    * Get activities with optional filtering
    */
   getActivities: async ({ userId, limit = 20, offset = 0 }) => {
-    let sql = `
+    const normalizedLimit = Math.max(1, Math.min(parseInt(limit, 10) || 20, 100));
+    const normalizedOffset = Math.max(0, parseInt(offset, 10) || 0);
+
+    const dataSql = `
       SELECT a.*, u.full_name as user_name, u.role as user_role
       FROM activities a
       LEFT JOIN users u ON a.user_id = u.id
-      WHERE 1=1
+      WHERE a.user_id = $1
+      ORDER BY a.created_at DESC
+      LIMIT $2 OFFSET $3
     `;
-    const values = [];
-    let paramCounter = 1;
 
-    if (userId) {
-      sql += ` AND a.user_id = $${paramCounter}`;
-      values.push(userId);
-      paramCounter++;
-    }
+    const countSql = 'SELECT COUNT(*)::int AS total FROM activities WHERE user_id = $1';
 
-    sql += ` ORDER BY a.created_at DESC LIMIT $${paramCounter} OFFSET $${paramCounter + 1}`;
-    values.push(limit, offset);
+    const [dataResult, countResult] = await Promise.all([
+      query(dataSql, [userId, normalizedLimit, normalizedOffset]),
+      query(countSql, [userId]),
+    ]);
 
-    const result = await query(sql, values);
-    return result.rows;
+    return {
+      activities: dataResult.rows,
+      total: countResult.rows[0]?.total || 0,
+      limit: normalizedLimit,
+      offset: normalizedOffset,
+    };
   }
 };
 
