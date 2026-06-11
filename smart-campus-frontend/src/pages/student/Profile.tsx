@@ -41,6 +41,17 @@ export default function Profile() {
     semester: '',
     cgpa: ''
   });
+  const requiredProfileFields = user?.role === 'student'
+    ? ['full_name', 'email', 'department', 'semester', 'cgpa'] as const
+    : ['full_name', 'email', 'department'] as const;
+
+  const requiredFieldLabels: Record<(typeof requiredProfileFields)[number], string> = {
+    full_name: 'Full Name',
+    email: 'Email',
+    department: 'Department',
+    semester: 'Semester',
+    cgpa: 'CGPA'
+  };
 
   // Load user profile on mount
   useEffect(() => {
@@ -68,17 +79,15 @@ export default function Profile() {
     }
   };
 
-  // Calculate profile completion
-  const calculateCompletion = () => {
-    const requiredFields = ['full_name', 'email', 'department'];
-    if (user?.role === 'student') {
-      requiredFields.push('cgpa', 'semester');
-    }
-    const filled = requiredFields.filter(field => profileData[field as keyof typeof profileData] && profileData[field as keyof typeof profileData].toString().trim() !== '').length;
-    return Math.round((filled / requiredFields.length) * 100);
+  const isRequiredFieldFilled = (field: (typeof requiredProfileFields)[number]) => {
+    const value = profileData[field];
+    return value !== null && value !== undefined && value.toString().trim() !== '';
   };
 
-  const profileCompletion = calculateCompletion();
+  const profileCompletion = Math.round(
+    (requiredProfileFields.filter(isRequiredFieldFilled).length / requiredProfileFields.length) * 100
+  );
+  const missingRequiredFields = requiredProfileFields.filter(field => !isRequiredFieldFilled(field));
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
     newPassword: '',
@@ -315,34 +324,59 @@ export default function Profile() {
                 transition={{ duration: 1, ease: 'easeOut' }}
               />
             </div>
+            <div className="mt-3 rounded-lg border border-border/60 bg-background/40 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">Required fields</p>
+                <p className="text-xs text-muted-foreground">
+                  {missingRequiredFields.length === 0 ? 'All required fields complete' : `${missingRequiredFields.length} missing`}
+                </p>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {requiredProfileFields.map((field) => {
+                  const isMissing = !isRequiredFieldFilled(field);
+                  return (
+                    <span
+                      key={field}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                        isMissing
+                          ? 'border-destructive/40 bg-destructive/10 text-destructive'
+                          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                      }`}
+                    >
+                      {requiredFieldLabels[field]}{isMissing ? ' missing' : ' complete'}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <Label className="text-muted-foreground">Full Name</Label>
-                <p className="text-lg font-medium">{profileData.full_name}</p>
+              <div className={isRequiredFieldFilled('full_name') ? '' : 'rounded-lg border border-destructive/30 bg-destructive/5 p-3'}>
+                <Label className={isRequiredFieldFilled('full_name') ? 'text-muted-foreground' : 'text-destructive'}>Full Name</Label>
+                <p className={`text-lg font-medium ${isRequiredFieldFilled('full_name') ? '' : 'text-destructive'}`}>{profileData.full_name || 'Not set'}</p>
               </div>
-              <div>
-                <Label className="text-muted-foreground">Email</Label>
-                <p className="text-lg font-medium flex items-center gap-2">
+              <div className={isRequiredFieldFilled('email') ? '' : 'rounded-lg border border-destructive/30 bg-destructive/5 p-3'}>
+                <Label className={isRequiredFieldFilled('email') ? 'text-muted-foreground' : 'text-destructive'}>Email</Label>
+                <p className={`text-lg font-medium flex items-center gap-2 ${isRequiredFieldFilled('email') ? '' : 'text-destructive'}`}>
                   <Mail className="h-4 w-4" />
-                  {profileData.email}
+                  {profileData.email || 'Not set'}
                 </p>
               </div>
-              <div>
-                <Label className="text-muted-foreground">Department</Label>
-                <p className="text-lg font-medium flex items-center gap-2">
+              <div className={isRequiredFieldFilled('department') ? '' : 'rounded-lg border border-destructive/30 bg-destructive/5 p-3'}>
+                <Label className={isRequiredFieldFilled('department') ? 'text-muted-foreground' : 'text-destructive'}>Department</Label>
+                <p className={`text-lg font-medium flex items-center gap-2 ${isRequiredFieldFilled('department') ? '' : 'text-destructive'}`}>
                   <GraduationCap className="h-4 w-4" />
-                  {profileData.department}
+                  {profileData.department || 'Not set'}
                 </p>
               </div>
-              <div>
-                <Label className="text-muted-foreground">Semester</Label>
-                <p className="text-lg font-medium">{profileData.semester || 'Not set'}</p>
+              <div className={user?.role === 'student' && !isRequiredFieldFilled('semester') ? 'rounded-lg border border-destructive/30 bg-destructive/5 p-3' : ''}>
+                <Label className={user?.role === 'student' && !isRequiredFieldFilled('semester') ? 'text-destructive' : 'text-muted-foreground'}>Semester</Label>
+                <p className={`text-lg font-medium ${user?.role === 'student' && !isRequiredFieldFilled('semester') ? 'text-destructive' : ''}`}>{profileData.semester || 'Not set'}</p>
               </div>
-              <div>
-                <Label className="text-muted-foreground">CGPA</Label>
-                <p className="text-lg font-medium">{profileData.cgpa || 'Not set'}</p>
+              <div className={user?.role === 'student' && !isRequiredFieldFilled('cgpa') ? 'rounded-lg border border-destructive/30 bg-destructive/5 p-3' : ''}>
+                <Label className={user?.role === 'student' && !isRequiredFieldFilled('cgpa') ? 'text-destructive' : 'text-muted-foreground'}>CGPA</Label>
+                <p className={`text-lg font-medium ${user?.role === 'student' && !isRequiredFieldFilled('cgpa') ? 'text-destructive' : ''}`}>{profileData.cgpa || 'Not set'}</p>
               </div>
             </div>
             <div className="flex gap-4 pt-4">
