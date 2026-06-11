@@ -13,20 +13,20 @@ const { apiLimiter } = require('../../middleware/rateLimiter.middleware'); // �
 // Public routes 🛡️ (Applied apiLimiter)
 router.get('/', apiLimiter, validate(validationSchemas.electiveQuery, 'query'), electiveController.getAllElectives);
 
-// Student routes
+// Static student routes — must be BEFORE /:id to avoid route shadowing
 router.post('/choices', verifyToken, verifyStudent, validate(validationSchemas.submitChoices), electiveController.submitChoices);
 router.get('/my/choices', verifyToken, verifyStudent, electiveController.getMyChoices);
 router.get('/my/allocation', verifyToken, verifyStudent, electiveController.getMyAllocation);
 router.get('/my/waitlist', verifyToken, verifyStudent, electiveController.getMyWaitlist);
 
-// Routes using ID param 🛡️ (Applied apiLimiter)
-router.get('/:id', apiLimiter, validate(validationSchemas.idParam, 'params'), electiveController.getElectiveById);
+// Static admin routes — must be BEFORE /:id to avoid route shadowing
+router.post('/allocate', verifyToken, verifyAdmin, electiveController.allocateElectives);
+router.post('/waitlist/process', verifyToken, verifyAdmin, validate(validationSchemas.processWaitlist), electiveController.processWaitlist);
 
-// Admin routes
+// Dynamic ID routes
+router.get('/:id', apiLimiter, validate(validationSchemas.idParam, 'params'), electiveController.getElectiveById);
 router.post('/', verifyToken, verifyAdmin, validate(validationSchemas.createElective), electiveController.createElective);
 router.put('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), validate(validationSchemas.createElective), electiveController.updateElective);
 router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), electiveController.deleteElective);
-router.post('/allocate', verifyToken, verifyAdmin, electiveController.allocateElectives);
-router.post('/waitlist/process', verifyToken, verifyAdmin, validate(validationSchemas.processWaitlist), electiveController.processWaitlist);
 
 module.exports = router;

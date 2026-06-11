@@ -140,7 +140,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
   // Ensure we always use a safe, whitelisted column name for ORDER BY.
   const safeSortField = sortFieldMap[sortField] || 'e.start_time';
   
-  let sql = 'SELECT e.*, c.name as club_name, COUNT(*) OVER() as total_count FROM events e LEFT JOIN clubs c ON e.club_id = c.id WHERE 1=1';
+  let sql = 'SELECT e.*, c.name as club_name, COUNT(*) OVER() as total_count FROM events e LEFT JOIN clubs c ON e.club_id = c.id WHERE e.deleted_at IS NULL';
   const values = [];
   let paramCounter = 1;
 
@@ -221,7 +221,7 @@ const getEventById = asyncHandler(async (req, res) => {
     SELECT e.*, c.name as club_name, c.description as club_description
     FROM events e
     LEFT JOIN clubs c ON e.club_id = c.id
-    WHERE e.id = $1
+    WHERE e.id = $1 AND e.deleted_at IS NULL
   `;
 
   const result = await query(sql, [eventId]);
@@ -268,11 +268,11 @@ const updateEvent = asyncHandler(async (req, res) => {
     ? `UPDATE events
        SET title=$1, description=$2, location=$3, start_time=$4, end_time=$5,
            club_id=$6, target_department=$7, is_featured=$8, tags=$9, image_url=$10
-       WHERE id=$11 RETURNING *`
+       WHERE id=$11 AND deleted_at IS NULL RETURNING *`
     : `UPDATE events
        SET title=$1, description=$2, location=$3, start_time=$4, end_time=$5,
            club_id=$6, target_department=$7, is_featured=$8, tags=$9
-       WHERE id=$10 RETURNING *`;
+       WHERE id=$10 AND deleted_at IS NULL RETURNING *`;
 
   const values = image_url
     ? [title, description, location, start_time, end_time, club_id, target_department, is_featured, tags, image_url, eventId]
@@ -307,8 +307,6 @@ await notificationService.notifyRole({
   sendSuccess(res, 200, 'Event updated successfully', {
     event: result.rows[0],
   });
-
-  sendSuccess(res, 200, 'Event updated successfully', { event: result.rows[0] });
 });
 
 /**
@@ -323,15 +321,16 @@ const deleteEvent = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid event ID');
   }
 
-  const result = await query('DELETE FROM events WHERE id = $1 RETURNING *', [
-    eventId,
-  ]);
+  const result = await query(
+    'UPDATE events SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING *',
+    [eventId],
+  );
 
   if (result.rowCount === 0) {
     throw new ApiError(404, 'Event not found');
   }
 
-  logger.info('Event deleted', { eventId: id, deletedBy: req.user.id });
+  logger.info('Event soft-deleted', { eventId: id, deletedBy: req.user.id });
 
   sendSuccess(res, 200, 'Event deleted successfully');
 });
@@ -349,8 +348,8 @@ const saveEvent = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid event ID');
   }
 
-  // Check if event exists
-  const eventCheck = await query('SELECT id FROM events WHERE id = $1', [
+  // Check if event exists and is not soft-deleted
+  const eventCheck = await query('SELECT id FROM events WHERE id = $1 AND deleted_at IS NULL', [
     eventId,
   ]);
   if (eventCheck.rows.length === 0) {
@@ -427,7 +426,7 @@ const getSavedEvents = asyncHandler(async (req, res) => {
     FROM saved_events se
     JOIN events e ON se.event_id = e.id
     LEFT JOIN clubs c ON e.club_id = c.id
-    WHERE se.user_id = $1
+    WHERE se.user_id = $1 AND e.deleted_at IS NULL
     ORDER BY e.start_time ASC
   `;
 
@@ -452,7 +451,7 @@ const rsvpToEvent = asyncHandler(async (req, res) => {
   }
 
   // 1. Fetch Event and its Max Capacity
-  const eventCheck = await query('SELECT id, title, max_capacity FROM events WHERE id = $1', [eventId]);
+  const eventCheck = await query('SELECT id, title, max_capacity FROM events WHERE id = $1 AND deleted_at IS NULL', [eventId]);
   if (eventCheck.rows.length === 0) {
     throw new ApiError(404, 'Event not found');
   }
@@ -511,14 +510,39 @@ const rsvpToEvent = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Restore a soft-deleted event (Admin only)
+ * POST /api/events/:id/restore
+ */
+const restoreEvent = asyncHandler(async (req, res) => {
+  const eventId = parseInt(req.params.id);
+  if (isNaN(eventId) || eventId < 1) {
+    throw new ApiError(400, 'Invalid event ID');
+  }
+
+  const result = await query(
+    'UPDATE events SET deleted_at = NULL WHERE id = $1 AND deleted_at IS NOT NULL RETURNING *',
+    [eventId],
+  );
+
+  if (result.rowCount === 0) {
+    throw new ApiError(404, 'Event not found or not deleted');
+  }
+
+  logger.info('Event restored', { eventId, restoredBy: req.user.id });
+
+  sendSuccess(res, 200, 'Event restored successfully', { event: result.rows[0] });
+});
+
 module.exports = {
   createEvent,
   getAllEvents,
   getEventById,
   updateEvent,
   deleteEvent,
+  restoreEvent,
   saveEvent,
   unsaveEvent,
   getSavedEvents,
-  rsvpToEvent, // 🎫 Added the new fullstack handler right here
+  rsvpToEvent,
 };

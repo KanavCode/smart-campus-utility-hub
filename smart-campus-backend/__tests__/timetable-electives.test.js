@@ -237,7 +237,10 @@ describe('Electives API Tests', () => {
         return await callback(mockClient);
       });
 
-      mockClient.query.mockResolvedValue({ rows: [] });
+      query.mockResolvedValueOnce({
+        rows: [{ id: 1 }, { id: 2 }, { id: 3 }]
+      });
+      mockClient.query.mockResolvedValue({ rows: [], rowCount: 0 });
 
       const response = await request(app)
         .post('/api/electives/choices')

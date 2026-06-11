@@ -24,31 +24,31 @@ const globalSearch = asyncHandler(async (req, res) => {
   
   // Search Events
   const eventsPromise = query(
-    'SELECT id, title as name, description, \'event\' as type FROM events WHERE title ILIKE $1 OR description ILIKE $1 LIMIT 5',
+    "SELECT id, title as name, description, 'event' as type FROM events WHERE deleted_at IS NULL AND (title ILIKE $1 OR description ILIKE $1) LIMIT 5",
     [searchTerm]
   );
 
   // Search Clubs
   const clubsPromise = query(
-    'SELECT id, name, description, \'club\' as type FROM clubs WHERE name ILIKE $1 OR description ILIKE $1 LIMIT 5',
+    "SELECT id, name, description, 'club' as type FROM clubs WHERE deleted_at IS NULL AND (name ILIKE $1 OR description ILIKE $1) LIMIT 5",
     [searchTerm]
   );
 
   // Search Electives
   const electivesPromise = query(
-    'SELECT id, name, description, \'elective\' as type FROM electives WHERE name ILIKE $1 OR description ILIKE $1 LIMIT 5',
+    "SELECT id, subject_name as name, description, 'elective' as type FROM electives WHERE deleted_at IS NULL AND (subject_name ILIKE $1 OR description ILIKE $1) LIMIT 5",
     [searchTerm]
   );
 
   // Search Subjects
   const subjectsPromise = query(
-    'SELECT id, name, code as description, \'subject\' as type FROM subjects WHERE name ILIKE $1 OR code ILIKE $1 LIMIT 5',
+    "SELECT id::text, subject_name as name, subject_code as description, 'subject' as type FROM subjects WHERE subject_name ILIKE $1 OR subject_code ILIKE $1 LIMIT 5",
     [searchTerm]
   );
 
   // Search Teachers
   const teachersPromise = query(
-    'SELECT id, name, department as description, \'teacher\' as type FROM teachers WHERE name ILIKE $1 OR department ILIKE $1 LIMIT 5',
+    "SELECT id::text, full_name as name, department as description, 'teacher' as type FROM teachers WHERE full_name ILIKE $1 OR department ILIKE $1 LIMIT 5",
     [searchTerm]
   );
 
