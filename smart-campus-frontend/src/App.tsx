@@ -14,7 +14,8 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { OfflineBanner } from "@/components/layout/OfflineBanner";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
-import { useIdleTimeout } from "@/hooks/useIdleTimeout";
+import { SessionTimeoutWarningDialog } from "@/components/modals/SessionTimeoutWarningDialog";
+import { useSessionTimeoutWarning } from "@/hooks/useSessionTimeoutWarning";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -74,20 +75,30 @@ const IdleTimeoutHandler = () => {
   const navigate = useNavigate();
   const { logout, isAuthenticated } = useAuth();
 
-  useIdleTimeout(async () => {
-    if (!isAuthenticated) return;
+  const { isWarningOpen, continueSession } = useSessionTimeoutWarning({
+    enabled: isAuthenticated,
+    onExpire: async () => {
+      if (!isAuthenticated) return;
 
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Idle logout failed:", error);
-    } finally {
-      window.alert("You were logged out due to inactivity.");
-      navigate("/auth", { replace: true });
-    }
-  }, 15 * 60 * 1000);
+      try {
+        await logout();
+      } catch (error) {
+        console.error('Idle logout failed:', error);
+      } finally {
+        window.alert('You were logged out due to inactivity.');
+        navigate('/auth', { replace: true });
+      }
+    },
+  });
 
-  return null;
+  return (
+    <SessionTimeoutWarningDialog
+      open={isWarningOpen}
+      onContinue={() => {
+        void continueSession();
+      }}
+    />
+  );
 };
 
 const App = () => (
