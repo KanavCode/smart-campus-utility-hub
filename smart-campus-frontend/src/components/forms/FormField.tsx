@@ -19,6 +19,10 @@ export const FormField = ({
   error,
   isLoading,
 }: FormFieldProps) => {
+  const errorId = `${field.id}-error`;
+  const hintId = field.hint ? `${field.id}-hint` : undefined;
+  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
+
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
       const target = e.target;
@@ -49,6 +53,8 @@ export const FormField = ({
             onChange={handleChange}
             required={field.required}
             disabled={isLoading || field.disabled}
+            aria-invalid={!!error}
+            aria-describedby={describedBy}
             className={`${baseInputClasses} min-h-[100px]`}
           />
         );
@@ -61,6 +67,8 @@ export const FormField = ({
             onChange={handleChange}
             required={field.required}
             disabled={isLoading || field.disabled}
+            aria-invalid={!!error}
+            aria-describedby={describedBy}
             className={`w-full px-3 py-2 rounded-lg ${baseInputClasses} focus:outline-none focus:ring-2 focus:ring-primary`}
           >
             <option value="">-- Select {field.label.toLowerCase()} --</option>
@@ -80,6 +88,8 @@ export const FormField = ({
             checked={value ?? false}
             onChange={handleChange}
             disabled={isLoading || field.disabled}
+            aria-invalid={!!error}
+            aria-describedby={describedBy}
             className="h-4 w-4"
           />
         );
@@ -95,6 +105,8 @@ export const FormField = ({
             onChange={handleChange}
             required={field.required}
             disabled={isLoading || field.disabled}
+            aria-invalid={!!error}
+            aria-describedby={describedBy}
             className={`w-full px-3 py-2 rounded-lg text-sm bg-transparent ${baseInputClasses} focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed`}
           />
         );
@@ -112,6 +124,8 @@ export const FormField = ({
             min={field.min}
             max={field.max}
             step={field.step}
+            aria-invalid={!!error}
+            aria-describedby={describedBy}
             className={baseInputClasses}
           />
         );
@@ -135,12 +149,16 @@ export const FormField = ({
         </Label>
       )}
       
+      {field.hint && !error ? (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {field.hint}
+        </p>
+      ) : null}
+
       {error ? (
-        <p className="text-xs text-red-500 flex items-center gap-1">
+        <p id={errorId} className="text-xs text-red-500 flex items-center gap-1" role="alert">
           <span aria-hidden="true">⚠</span> {error}
         </p>
-      ) : field.hint ? (
-        <p className="text-xs text-muted-foreground">{field.hint}</p>
       ) : null}
     </div>
   );

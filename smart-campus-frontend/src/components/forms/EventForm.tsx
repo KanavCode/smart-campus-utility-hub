@@ -39,7 +39,17 @@ export const EventForm = ({ onSuccess, onCancel, initialData }: any) => {
     club_id: z.string().min(1, 'Club is required'),
     start_time: z.string().min(1, 'Start time required'),
     end_time: z.string().min(1, 'End time required'),
-  });
+  }).refine(
+    (data) => {
+      const start = new Date(data.start_time);
+      const end = new Date(data.end_time);
+      return end > start;
+    },
+    {
+      message: 'End time must be after start time',
+      path: ['end_time'],
+    }
+  );
 
   const fields: FieldConfig[] = [
     { id: 'title', label: 'Event Title', type: 'text', required: true },

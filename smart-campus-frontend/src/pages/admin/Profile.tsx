@@ -26,8 +26,34 @@ export default function AdminProfile() {
     confirm_password: ''
   });
 
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const errors: Record<string, string> = {};
+    if (!profileData.full_name.trim()) {
+      errors.full_name = 'Full name is required';
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!profileData.email) {
+      errors.email = 'Email is required';
+    } else if (!emailRegex.test(profileData.email)) {
+      errors.email = 'Invalid email address';
+    }
+    if (!profileData.department.trim()) {
+      errors.department = 'Department is required';
+    }
+
+    setEditErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0];
+      toast.error(firstError);
+      return;
+    }
+
     try {
       await authService.updateProfile(profileData);
       toast.success('Profile updated successfully!');
@@ -39,10 +65,28 @@ export default function AdminProfile() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const errors: Record<string, string> = {};
+    if (!passwordData.current_password) {
+      errors.current_password = 'Current password is required';
+    }
+    if (!passwordData.new_password) {
+      errors.new_password = 'New password is required';
+    } else if (passwordData.new_password.length < 6) {
+      errors.new_password = 'Password must be at least 6 characters';
+    }
     if (passwordData.new_password !== passwordData.confirm_password) {
-      toast.error('Passwords do not match!');
+      errors.confirm_password = 'Passwords do not match';
+    }
+
+    setPasswordErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0];
+      toast.error(firstError);
       return;
     }
+
     try {
       await authService.changePassword(passwordData.current_password, passwordData.new_password);
       toast.success('Password changed successfully!');
@@ -171,9 +215,26 @@ export default function AdminProfile() {
             <Input
               id="full_name"
               value={profileData.full_name}
-              onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
+              onChange={(e) => {
+                setProfileData({ ...profileData, full_name: e.target.value });
+                if (editErrors.full_name) {
+                  setEditErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.full_name;
+                    return next;
+                  });
+                }
+              }}
               required
+              aria-invalid={!!editErrors.full_name}
+              aria-describedby={editErrors.full_name ? "edit-fullname-error" : undefined}
+              className={editErrors.full_name ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {editErrors.full_name && (
+              <p id="edit-fullname-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                <span aria-hidden="true">⚠</span> {editErrors.full_name}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -181,18 +242,52 @@ export default function AdminProfile() {
               id="email"
               type="email"
               value={profileData.email}
-              onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+              onChange={(e) => {
+                setProfileData({ ...profileData, email: e.target.value });
+                if (editErrors.email) {
+                  setEditErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.email;
+                    return next;
+                  });
+                }
+              }}
               required
+              aria-invalid={!!editErrors.email}
+              aria-describedby={editErrors.email ? "edit-email-error" : undefined}
+              className={editErrors.email ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {editErrors.email && (
+              <p id="edit-email-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                <span aria-hidden="true">⚠</span> {editErrors.email}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="department">Department</Label>
             <Input
               id="department"
               value={profileData.department}
-              onChange={(e) => setProfileData({ ...profileData, department: e.target.value })}
+              onChange={(e) => {
+                setProfileData({ ...profileData, department: e.target.value });
+                if (editErrors.department) {
+                  setEditErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.department;
+                    return next;
+                  });
+                }
+              }}
               required
+              aria-invalid={!!editErrors.department}
+              aria-describedby={editErrors.department ? "edit-department-error" : undefined}
+              className={editErrors.department ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {editErrors.department && (
+              <p id="edit-department-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                <span aria-hidden="true">⚠</span> {editErrors.department}
+              </p>
+            )}
           </div>
           <div className="flex gap-2 justify-end">
             <Button
@@ -227,9 +322,26 @@ export default function AdminProfile() {
               id="current_password"
               type="password"
               value={passwordData.current_password}
-              onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
+              onChange={(e) => {
+                setPasswordData({ ...passwordData, current_password: e.target.value });
+                if (passwordErrors.current_password) {
+                  setPasswordErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.current_password;
+                    return next;
+                  });
+                }
+              }}
               required
+              aria-invalid={!!passwordErrors.current_password}
+              aria-describedby={passwordErrors.current_password ? "password-current-error" : undefined}
+              className={passwordErrors.current_password ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {passwordErrors.current_password && (
+              <p id="password-current-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                <span aria-hidden="true">⚠</span> {passwordErrors.current_password}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="new_password">New Password</Label>
@@ -237,9 +349,27 @@ export default function AdminProfile() {
               id="new_password"
               type="password"
               value={passwordData.new_password}
-              onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+              onChange={(e) => {
+                setPasswordData({ ...passwordData, new_password: e.target.value });
+                if (passwordErrors.new_password || passwordErrors.confirm_password) {
+                  setPasswordErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.new_password;
+                    delete next.confirm_password;
+                    return next;
+                  });
+                }
+              }}
               required
+              aria-invalid={!!passwordErrors.new_password}
+              aria-describedby={passwordErrors.new_password ? "password-new-error" : undefined}
+              className={passwordErrors.new_password ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {passwordErrors.new_password && (
+              <p id="password-new-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                <span aria-hidden="true">⚠</span> {passwordErrors.new_password}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirm_password">Confirm New Password</Label>
@@ -247,9 +377,26 @@ export default function AdminProfile() {
               id="confirm_password"
               type="password"
               value={passwordData.confirm_password}
-              onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
+              onChange={(e) => {
+                setPasswordData({ ...passwordData, confirm_password: e.target.value });
+                if (passwordErrors.confirm_password) {
+                  setPasswordErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.confirm_password;
+                    return next;
+                  });
+                }
+              }}
               required
+              aria-invalid={!!passwordErrors.confirm_password}
+              aria-describedby={passwordErrors.confirm_password ? "password-confirm-error" : undefined}
+              className={passwordErrors.confirm_password ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {passwordErrors.confirm_password && (
+              <p id="password-confirm-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                <span aria-hidden="true">⚠</span> {passwordErrors.confirm_password}
+              </p>
+            )}
           </div>
           <div className="flex gap-2 justify-end">
             <Button

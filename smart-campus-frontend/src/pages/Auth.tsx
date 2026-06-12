@@ -59,6 +59,12 @@ export default function Auth() {
     }
   }, [loginWithToken, navigate]);
 
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ 
     name: '', 
@@ -118,28 +124,57 @@ export default function Auth() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate password match
-    if (signupData.password !== signupData.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
+    const newErrors: Record<string, string> = {};
+
+    if (!signupData.name.trim()) {
+      newErrors.name = "Full name is required";
+    } else if (signupData.name.length > 100) {
+      newErrors.name = "Full name must be 100 characters or less";
     }
 
-    // Validate student-specific fields
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!signupData.email) {
+      newErrors.email = "Email is required";
+    } else if (!emailRegex.test(signupData.email)) {
+      newErrors.email = "Invalid email address";
+    }
+
     if (signupData.role === "student") {
-      if (!signupData.cgpa || !signupData.semester) {
-        toast.error("CGPA and Semester are required for students");
-        return;
+      if (!signupData.cgpa) {
+        newErrors.cgpa = "CGPA is required";
+      } else {
+        const cgpaVal = parseFloat(signupData.cgpa);
+        if (isNaN(cgpaVal) || cgpaVal < 0 || cgpaVal > 10) {
+          newErrors.cgpa = "CGPA must be between 0 and 10";
+        }
       }
-      const cgpa = parseFloat(signupData.cgpa);
-      const semester = parseInt(signupData.semester);
-      if (cgpa < 0 || cgpa > 10) {
-        toast.error("CGPA must be between 0 and 10");
-        return;
+
+      if (!signupData.semester) {
+        newErrors.semester = "Semester is required";
+      } else {
+        const semVal = parseInt(signupData.semester, 10);
+        if (isNaN(semVal) || semVal < 1 || semVal > 8) {
+          newErrors.semester = "Semester must be between 1 and 8";
+        }
       }
-      if (semester < 1 || semester > 8) {
-        toast.error("Semester must be between 1 and 8");
-        return;
-      }
+    }
+
+    if (!signupData.password) {
+      newErrors.password = "Password is required";
+    } else if (signupData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    if (signupData.password !== signupData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.values(newErrors)[0];
+      toast.error(firstError);
+      return;
     }
 
     setIsLoading(true);
@@ -355,15 +390,29 @@ export default function Auth() {
                           type="text"
                           placeholder="John Doe"
                           value={signupData.name}
-                          onChange={(e) =>
+                          onChange={(e) => {
                             setSignupData({
                               ...signupData,
                               name: e.target.value,
-                            })
-                          }
+                            });
+                            if (errors.name) {
+                              setErrors((prev) => {
+                                const next = { ...prev };
+                                delete next.name;
+                                return next;
+                              });
+                            }
+                          }}
                           required
-                          className="focus:ring-2 focus:ring-accent glow-accent"
+                          aria-invalid={!!errors.name}
+                          aria-describedby={errors.name ? "signup-name-error" : undefined}
+                          className={`focus:ring-2 focus:ring-accent glow-accent ${errors.name ? 'border-red-500 focus:ring-red-500' : ''}`}
                         />
+                        {errors.name && (
+                          <p id="signup-name-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                            <span aria-hidden="true">⚠</span> {errors.name}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="signup-email">Email</Label>
@@ -372,23 +421,38 @@ export default function Auth() {
                           type="email"
                           placeholder="student@campus.edu"
                           value={signupData.email}
-                          onChange={(e) =>
+                          onChange={(e) => {
                             setSignupData({
                               ...signupData,
                               email: e.target.value,
-                            })
-                          }
+                            });
+                            if (errors.email) {
+                              setErrors((prev) => {
+                                const next = { ...prev };
+                                delete next.email;
+                                return next;
+                              });
+                            }
+                          }}
                           required
-                          className="focus:ring-2 focus:ring-accent glow-accent"
+                          aria-invalid={!!errors.email}
+                          aria-describedby={errors.email ? "signup-email-error" : undefined}
+                          className={`focus:ring-2 focus:ring-accent glow-accent ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
                         />
+                        {errors.email && (
+                          <p id="signup-email-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                            <span aria-hidden="true">⚠</span> {errors.email}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="signup-role">I am a</Label>
                         <Select
                           value={signupData.role}
-                          onValueChange={(value: "student" | "admin") =>
-                            setSignupData({ ...signupData, role: value })
-                          }
+                          onValueChange={(value: "student" | "admin") => {
+                            setSignupData({ ...signupData, role: value });
+                            setErrors({});
+                          }}
                         >
                           <SelectTrigger className="focus:ring-2 focus:ring-accent glow-accent">
                             <SelectValue placeholder="Select your role" />
@@ -427,15 +491,29 @@ export default function Auth() {
                               max="10"
                               placeholder="8.5"
                               value={signupData.cgpa}
-                              onChange={(e) =>
+                              onChange={(e) => {
                                 setSignupData({
                                   ...signupData,
                                   cgpa: e.target.value,
-                                })
-                              }
+                                });
+                                if (errors.cgpa) {
+                                  setErrors((prev) => {
+                                    const next = { ...prev };
+                                    delete next.cgpa;
+                                    return next;
+                                  });
+                                }
+                              }}
                               required
-                              className="focus:ring-2 focus:ring-accent glow-accent"
+                              aria-invalid={!!errors.cgpa}
+                              aria-describedby={errors.cgpa ? "signup-cgpa-error" : undefined}
+                              className={`focus:ring-2 focus:ring-accent glow-accent ${errors.cgpa ? 'border-red-500 focus:ring-red-500' : ''}`}
                             />
+                            {errors.cgpa && (
+                              <p id="signup-cgpa-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                                <span aria-hidden="true">⚠</span> {errors.cgpa}
+                              </p>
+                            )}
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="signup-semester">
@@ -448,15 +526,29 @@ export default function Auth() {
                               max="8"
                               placeholder="4"
                               value={signupData.semester}
-                              onChange={(e) =>
+                              onChange={(e) => {
                                 setSignupData({
                                   ...signupData,
                                   semester: e.target.value,
-                                })
-                              }
+                                });
+                                if (errors.semester) {
+                                  setErrors((prev) => {
+                                    const next = { ...prev };
+                                    delete next.semester;
+                                    return next;
+                                  });
+                                }
+                              }}
                               required
-                              className="focus:ring-2 focus:ring-accent glow-accent"
+                              aria-invalid={!!errors.semester}
+                              aria-describedby={errors.semester ? "signup-semester-error" : undefined}
+                              className={`focus:ring-2 focus:ring-accent glow-accent ${errors.semester ? 'border-red-500 focus:ring-red-500' : ''}`}
                             />
+                            {errors.semester && (
+                              <p id="signup-semester-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                                <span aria-hidden="true">⚠</span> {errors.semester}
+                              </p>
+                            )}
                           </div>
                         </>
                       )}
@@ -467,14 +559,24 @@ export default function Auth() {
                             id="signup-password"
                             type={showSignupPassword ? 'text' : 'password'}
                             value={signupData.password}
-                            onChange={(e) =>
+                            onChange={(e) => {
                               setSignupData({
                                 ...signupData,
                                 password: e.target.value,
-                              })
-                            }
+                              });
+                              if (errors.password || errors.confirmPassword) {
+                                setErrors((prev) => {
+                                  const next = { ...prev };
+                                  delete next.password;
+                                  delete next.confirmPassword;
+                                  return next;
+                                });
+                              }
+                            }}
                             required
-                            className="pr-10 focus:ring-2 focus:ring-accent glow-accent"
+                            aria-invalid={!!errors.password}
+                            aria-describedby={errors.password ? "signup-password-error" : undefined}
+                            className={`pr-10 focus:ring-2 focus:ring-accent glow-accent ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
                           />
                           <button
                             type="button"
@@ -489,6 +591,11 @@ export default function Auth() {
                             )}
                           </button>
                         </div>
+                        {errors.password && (
+                          <p id="signup-password-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                            <span aria-hidden="true">⚠</span> {errors.password}
+              </p>
+            )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="signup-confirm-password">
@@ -499,14 +606,23 @@ export default function Auth() {
                             id="signup-confirm-password"
                             type={showSignupConfirmPassword ? 'text' : 'password'}
                             value={signupData.confirmPassword}
-                            onChange={(e) =>
+                            onChange={(e) => {
                               setSignupData({
                                 ...signupData,
                                 confirmPassword: e.target.value,
-                              })
-                            }
+                              });
+                              if (errors.confirmPassword) {
+                                setErrors((prev) => {
+                                  const next = { ...prev };
+                                  delete next.confirmPassword;
+                                  return next;
+                                });
+                              }
+                            }}
                             required
-                            className="pr-10 focus:ring-2 focus:ring-accent glow-accent"
+                            aria-invalid={!!errors.confirmPassword}
+                            aria-describedby={errors.confirmPassword ? "signup-confirm-password-error" : undefined}
+                            className={`pr-10 focus:ring-2 focus:ring-accent glow-accent ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
                           />
                           <button
                             type="button"
@@ -521,6 +637,11 @@ export default function Auth() {
                             )}
                           </button>
                         </div>
+                        {errors.confirmPassword && (
+                          <p id="signup-confirm-password-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                            <span aria-hidden="true">⚠</span> {errors.confirmPassword}
+                          </p>
+                        )}
                       </div>
                       <Button
                         type="submit"
