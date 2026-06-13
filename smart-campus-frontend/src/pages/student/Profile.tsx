@@ -93,6 +93,8 @@ export default function Profile() {
     newPassword: '',
     confirmPassword: ''
   });
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
 
   // Avatar file selection → open crop modal
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,6 +127,41 @@ export default function Profile() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const errors: Record<string, string> = {};
+    if (!profileData.full_name.trim()) {
+      errors.full_name = 'Full name is required';
+    }
+    if (user?.role === 'student') {
+      if (!profileData.department.trim()) {
+        errors.department = 'Department is required';
+      }
+      if (!profileData.semester) {
+        errors.semester = 'Semester is required';
+      } else {
+        const semVal = parseInt(profileData.semester, 10);
+        if (isNaN(semVal) || semVal < 1 || semVal > 8) {
+          errors.semester = 'Semester must be between 1 and 8';
+        }
+      }
+      if (!profileData.cgpa) {
+        errors.cgpa = 'CGPA is required';
+      } else {
+        const cgpaVal = parseFloat(profileData.cgpa);
+        if (isNaN(cgpaVal) || cgpaVal < 0 || cgpaVal > 10) {
+          errors.cgpa = 'CGPA must be between 0 and 10';
+        }
+      }
+    }
+
+    setEditErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0];
+      toast.error(firstError);
+      return;
+    }
+
     try {
       const updatePayload: UserFormData = {
         full_name: profileData.full_name,
@@ -149,10 +186,28 @@ export default function Profile() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const errors: Record<string, string> = {};
+    if (!passwordData.oldPassword) {
+      errors.oldPassword = 'Current password is required';
+    }
+    if (!passwordData.newPassword) {
+      errors.newPassword = 'New password is required';
+    } else if (passwordData.newPassword.length < 6) {
+      errors.newPassword = 'Password must be at least 6 characters';
+    }
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('Passwords do not match!');
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    setPasswordErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0];
+      toast.error(firstError);
       return;
     }
+
     try {
       await authService.changePassword(passwordData.oldPassword, passwordData.newPassword);
       toast.success('Password changed successfully!');
@@ -511,9 +566,26 @@ export default function Profile() {
             <Input
               id="full_name"
               value={profileData.full_name}
-              onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
+              onChange={(e) => {
+                setProfileData({ ...profileData, full_name: e.target.value });
+                if (editErrors.full_name) {
+                  setEditErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.full_name;
+                    return next;
+                  });
+                }
+              }}
               required
+              aria-invalid={!!editErrors.full_name}
+              aria-describedby={editErrors.full_name ? "edit-fullname-error" : undefined}
+              className={editErrors.full_name ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {editErrors.full_name && (
+              <p id="edit-fullname-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                <span aria-hidden="true">⚠</span> {editErrors.full_name}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email (Read-only)</Label>
@@ -530,8 +602,25 @@ export default function Profile() {
               <Input
                 id="department"
                 value={profileData.department}
-                onChange={(e) => setProfileData({ ...profileData, department: e.target.value })}
+                onChange={(e) => {
+                  setProfileData({ ...profileData, department: e.target.value });
+                  if (editErrors.department) {
+                    setEditErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.department;
+                      return next;
+                    });
+                  }
+                }}
+                aria-invalid={!!editErrors.department}
+                aria-describedby={editErrors.department ? "edit-department-error" : undefined}
+                className={editErrors.department ? 'border-red-500 focus:ring-red-500' : ''}
               />
+              {editErrors.department && (
+                <p id="edit-department-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                  <span aria-hidden="true">⚠</span> {editErrors.department}
+                </p>
+              )}
             </div>
             {user?.role === 'student' && (
               <div className="space-y-2">
@@ -542,9 +631,26 @@ export default function Profile() {
                   min="1"
                   max="8"
                   value={profileData.semester}
-                  onChange={(e) => setProfileData({ ...profileData, semester: e.target.value })}
+                  onChange={(e) => {
+                    setProfileData({ ...profileData, semester: e.target.value });
+                    if (editErrors.semester) {
+                      setEditErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.semester;
+                        return next;
+                      });
+                    }
+                  }}
                   required
+                  aria-invalid={!!editErrors.semester}
+                  aria-describedby={editErrors.semester ? "edit-semester-error" : undefined}
+                  className={editErrors.semester ? 'border-red-500 focus:ring-red-500' : ''}
                 />
+                {editErrors.semester && (
+                  <p id="edit-semester-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                    <span aria-hidden="true">⚠</span> {editErrors.semester}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -558,9 +664,26 @@ export default function Profile() {
                 min="0"
                 max="10"
                 value={profileData.cgpa}
-                onChange={(e) => setProfileData({ ...profileData, cgpa: e.target.value })}
+                onChange={(e) => {
+                  setProfileData({ ...profileData, cgpa: e.target.value });
+                  if (editErrors.cgpa) {
+                    setEditErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.cgpa;
+                      return next;
+                    });
+                  }
+                }}
                 required
+                aria-invalid={!!editErrors.cgpa}
+                aria-describedby={editErrors.cgpa ? "edit-cgpa-error" : undefined}
+                className={editErrors.cgpa ? 'border-red-500 focus:ring-red-500' : ''}
               />
+              {editErrors.cgpa && (
+                <p id="edit-cgpa-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                  <span aria-hidden="true">⚠</span> {editErrors.cgpa}
+                </p>
+              )}
             </div>
           )}
           <div className="flex gap-2 justify-end">
@@ -596,9 +719,26 @@ export default function Profile() {
               id="oldPassword"
               type="password"
               value={passwordData.oldPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
+              onChange={(e) => {
+                setPasswordData({ ...passwordData, oldPassword: e.target.value });
+                if (passwordErrors.oldPassword) {
+                  setPasswordErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.oldPassword;
+                    return next;
+                  });
+                }
+              }}
               required
+              aria-invalid={!!passwordErrors.oldPassword}
+              aria-describedby={passwordErrors.oldPassword ? "password-old-error" : undefined}
+              className={passwordErrors.oldPassword ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {passwordErrors.oldPassword && (
+              <p id="password-old-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                <span aria-hidden="true">⚠</span> {passwordErrors.oldPassword}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="newPassword">New Password</Label>
@@ -606,9 +746,27 @@ export default function Profile() {
               id="newPassword"
               type="password"
               value={passwordData.newPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+              onChange={(e) => {
+                setPasswordData({ ...passwordData, newPassword: e.target.value });
+                if (passwordErrors.newPassword || passwordErrors.confirmPassword) {
+                  setPasswordErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.newPassword;
+                    delete next.confirmPassword;
+                    return next;
+                  });
+                }
+              }}
               required
+              aria-invalid={!!passwordErrors.newPassword}
+              aria-describedby={passwordErrors.newPassword ? "password-new-error" : undefined}
+              className={passwordErrors.newPassword ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {passwordErrors.newPassword && (
+              <p id="password-new-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                <span aria-hidden="true">⚠</span> {passwordErrors.newPassword}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm New Password</Label>
@@ -616,9 +774,26 @@ export default function Profile() {
               id="confirmPassword"
               type="password"
               value={passwordData.confirmPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+              onChange={(e) => {
+                setPasswordData({ ...passwordData, confirmPassword: e.target.value });
+                if (passwordErrors.confirmPassword) {
+                  setPasswordErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.confirmPassword;
+                    return next;
+                  });
+                }
+              }}
               required
+              aria-invalid={!!passwordErrors.confirmPassword}
+              aria-describedby={passwordErrors.confirmPassword ? "password-confirm-error" : undefined}
+              className={passwordErrors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {passwordErrors.confirmPassword && (
+              <p id="password-confirm-error" className="text-xs text-red-500 mt-1 flex items-center gap-1" role="alert">
+                <span aria-hidden="true">⚠</span> {passwordErrors.confirmPassword}
+              </p>
+            )}
           </div>
           <div className="flex gap-2 justify-end">
             <Button
