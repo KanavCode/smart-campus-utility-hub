@@ -5,13 +5,14 @@ import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Beaker, AlertCircle, RefreshCw, Calendar, Download } from 'lucide-react';
+import { Beaker, AlertCircle, RefreshCw, Calendar, Download, CalendarPlus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { timetableService } from '@/services/timetableService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
 import { WifiOff } from 'lucide-react';
 import { GoogleCalendarSyncModal } from '@/components/timetable/GoogleCalendarSyncModal';
+import { buildTimetableGoogleCalendarUrl } from '@/lib/googleCalendar';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -305,14 +306,40 @@ export default function StudentTimetable() {
     }
 
     const isLab = slot.subject.course_type === 'Lab' || slot.subject.course_type === 'Practical';
+    const googleCalendarUrl = buildTimetableGoogleCalendarUrl({
+      dayOfWeek: slot.day_of_week,
+      periodNumber: slot.period_number,
+      subjectCode: slot.subject.subject_code,
+      subjectName: slot.subject.subject_name,
+      teacherName: slot.teacher.full_name,
+      roomCode: slot.room.room_code,
+      roomName: slot.room.room_name,
+      academicYear: slot.academic_year,
+      semesterType: slot.semester_type,
+    });
 
     return (
       <div className="space-y-1">
-        <div className="flex items-center gap-1">
-          {isLab && <Beaker className="h-3 w-3 text-accent flex-shrink-0" />}
-          <div className="font-semibold text-xs line-clamp-1" title={slot.subject.subject_name}>
-            {slot.subject.subject_code}
+        <div className="flex items-start justify-between gap-1">
+          <div className="flex items-center gap-1 min-w-0">
+            {isLab && <Beaker className="h-3 w-3 text-accent flex-shrink-0" />}
+            <div className="font-semibold text-xs line-clamp-1" title={slot.subject.subject_name}>
+              {slot.subject.subject_code}
+            </div>
           </div>
+          {googleCalendarUrl && (
+            <a
+              href={googleCalendarUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(event) => event.stopPropagation()}
+              title="Add to Google Calendar"
+              aria-label={`Add ${slot.subject.subject_name || slot.subject.subject_code} to Google Calendar`}
+              className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
+            >
+              <CalendarPlus className="h-3.5 w-3.5" />
+            </a>
+          )}
         </div>
         <div className="text-[10px] text-muted-foreground line-clamp-1" title={slot.teacher.full_name}>
           {slot.teacher.full_name}
