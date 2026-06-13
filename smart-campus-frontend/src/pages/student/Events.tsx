@@ -10,6 +10,16 @@ import { eventsService, Event } from '@/services/eventService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
 import { useToast } from '@/components/ui/use-toast';
 import { playSuccessSound } from '@/lib/successSound';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Extend Event type internally if properties are missing from standard declaration
 interface ExtendedEvent extends Event {
@@ -26,6 +36,7 @@ export default function EventsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingMap, setIsSavingMap] = useState<Map<number, boolean>>(new Map());
   const [isRsvpingMap, setIsRsvpingMap] = useState<Map<number, boolean>>(new Map()); // 🎫 Track RSVP loaders per card
+  const [cancelEventId, setCancelEventId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     search: '',
@@ -121,6 +132,25 @@ export default function EventsPage() {
     } catch (error: unknown) {
       const e = error as { message?: string };
       toast.error(e?.message || 'Failed to process RSVP request');
+    } finally {
+      setIsRsvpingMap(new Map(isRsvpingMap).set(eventId, false));
+    }
+  };
+
+  // 🎫 Handle Event RSVP Cancellation
+  const handleCancelRsvpEvent = async (eventId: number) => {
+    try {
+      setIsRsvpingMap(new Map(isRsvpingMap).set(eventId, true));
+      
+      await eventsService.cancelRsvp(eventId);
+      
+      toast.success('Registration cancelled successfully! ❌');
+
+      // Refresh states locally to re-render badges
+      loadEvents();
+    } catch (error: unknown) {
+      const e = error as { message?: string };
+      toast.error(e?.message || 'Failed to cancel registration');
     } finally {
       setIsRsvpingMap(new Map(isRsvpingMap).set(eventId, false));
     }
@@ -416,32 +446,43 @@ export default function EventsPage() {
 
                 {/* 🎫 Dynamic Fullstack Action Button */}
                 <div className="px-6 pb-6">
-                  <Button
-                    onClick={() => handleRsvpEvent(event.id)}
-                    disabled={isRsvpingMap.get(event.id) || !!userStatus || !isOnline}
-                    className={`w-full font-bold transition-all ${
-                      userStatus 
-                        ? 'bg-secondary text-secondary-foreground cursor-not-allowed'
-                        : isFull 
+                  {userStatus ? (
+                    <Button
+                      onClick={() => setCancelEventId(event.id)}
+                      disabled={isRsvpingMap.get(event.id) || !isOnline}
+                      className="w-full font-bold transition-all bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isRsvpingMap.get(event.id) ? (
+                        <>
+                          <Loader className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        'Cancel Registration'
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => handleRsvpEvent(event.id)}
+                      disabled={isRsvpingMap.get(event.id) || !isOnline}
+                      className={`w-full font-bold transition-all ${
+                        isFull 
                           ? 'bg-amber-600 hover:bg-amber-700 text-white' 
                           : 'bg-primary text-primary-foreground'
-                    }`}
-                  >
-                    {isRsvpingMap.get(event.id) ? (
-                      <>
-                        <Loader className="h-4 w-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : userStatus === 'confirmed' ? (
-                      'Already RSVPed'
-                    ) : userStatus === 'waitlisted' ? (
-                      'On Waitlist'
-                    ) : isFull ? (
-                      'Join Waitlist'
-                    ) : (
-                      'RSVP Now'
-                    )}
-                  </Button>
+                      }`}
+                    >
+                      {isRsvpingMap.get(event.id) ? (
+                        <>
+                          <Loader className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : isFull ? (
+                        'Join Waitlist'
+                      ) : (
+                        'RSVP Now'
+                      )}
+                    </Button>
+                  )}
                 </div>
               </Card>
             </motion.div>
@@ -450,6 +491,31 @@ export default function EventsPage() {
           </div>
         )}
       </motion.div>
+
+      <AlertDialog open={cancelEventId !== null} onOpenChange={(open) => { if (!open) setCancelEventId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Registration?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel your registration for this event? If the event becomes full, you may have to join the waitlist if you decide to register again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCancelEventId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (cancelEventId !== null) {
+                  handleCancelRsvpEvent(cancelEventId);
+                  setCancelEventId(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, Cancel
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

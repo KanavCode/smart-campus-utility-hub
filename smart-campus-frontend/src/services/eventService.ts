@@ -180,6 +180,15 @@ export const eventsService = {
     }
   },
 
+  cancelRsvp: async (eventId: string | number): Promise<any> => {
+    try {
+      const data = asApiData(await api.delete(`/events/${eventId}/rsvp`));
+      return data;
+    } catch (error) {
+      withServiceError(error, 'Failed to cancel RSVP request');
+    }
+  },
+
   /**
    * Get all saved events for current user
    */

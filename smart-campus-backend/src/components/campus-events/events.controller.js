@@ -511,6 +511,55 @@ const rsvpToEvent = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Cancel RSVP for an Event (Protected)
+ * DELETE /api/events/:id/rsvp
+ */
+const cancelRsvpToEvent = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  const eventId = parseInt(id);
+  if (isNaN(eventId) || eventId < 1) {
+    throw new ApiError(400, 'Invalid event ID');
+  }
+
+  // 1. Fetch Event
+  const eventCheck = await query('SELECT id, title FROM events WHERE id = $1 AND deleted_at IS NULL', [eventId]);
+  if (eventCheck.rows.length === 0) {
+    throw new ApiError(404, 'Event not found');
+  }
+  const event = eventCheck.rows[0];
+
+  // 2. Check if RSVP exists
+  const rsvpCheck = await query(
+    'SELECT id, status FROM event_rsvps WHERE user_id = $1 AND event_id = $2',
+    [userId, eventId]
+  );
+  if (rsvpCheck.rows.length === 0) {
+    throw new ApiError(400, 'You are not registered for this event');
+  }
+  const rsvp = rsvpCheck.rows[0];
+
+  // 3. Delete the RSVP record
+  await query('DELETE FROM event_rsvps WHERE user_id = $1 AND event_id = $2', [userId, eventId]);
+
+  logger.info('Event RSVP cancelled', { eventId, userId });
+
+  // 4. Log Dynamic Tracking Activity Logs
+  await activityService.logActivity({
+    userId,
+    action: 'CANCEL_RSVP',
+    entityType: 'event_rsvp',
+    entityId: rsvp.id,
+    description: `Successfully cancelled registration for event: ${event.title}`,
+    metadata: { eventId, status: rsvp.status }
+  });
+
+  // 5. Send Success response
+  sendSuccess(res, 200, 'Registration cancelled successfully');
+});
+
+/**
  * Restore a soft-deleted event (Admin only)
  * POST /api/events/:id/restore
  */
@@ -545,4 +594,5 @@ module.exports = {
   unsaveEvent,
   getSavedEvents,
   rsvpToEvent,
+  cancelRsvpToEvent,
 };
