@@ -4,9 +4,7 @@ class User extends Model {
   static get tableName() { return 'users'; }
 
   // Global filter to exclude soft-deleted records
-  static get query() { 
-    return super.query().whereNull('deleted_at'); 
-  }
+  static query(builder) { return (builder || super.query()).whereNull('deleted_at'); }
 
   // Soft delete method
   async softDelete(trx) { 
