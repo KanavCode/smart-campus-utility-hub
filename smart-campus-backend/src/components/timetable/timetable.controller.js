@@ -781,7 +781,7 @@ const deleteTimetableSlot = asyncHandler(async (req, res) => {
  * Get timetable as iCalendar subscription file (.ics)
  * GET /api/timetable/calendar/:groupId
  */
-const getTimetableAsIcs = asyncHandler(async (req, res) => {
+// const getTimetableAsIcs = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
   const { academic_year = '2024-25', semester_type = 'odd' } = req.query;
 
