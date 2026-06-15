@@ -178,7 +178,7 @@ const getAllGroups = asyncHandler(async (req, res) => {
 const getTimetableByGroup = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
   const { academic_year, semester_type } = req.query;
-  const timetable = await timetableReadService.getGroupTimetable({;
+  const timetable = await timetableReadService.getGroupTimetable({
     groupId,
     academic_year,
     semester_type
