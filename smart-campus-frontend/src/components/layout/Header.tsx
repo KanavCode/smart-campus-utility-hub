@@ -30,7 +30,7 @@ export const Header = () => {
   };
 
   const initials = user?.full_name
-    .split(' ')
+    ?.split(' ')
     .map(n => n[0])
     .join('')
     .toUpperCase() || 'U';
