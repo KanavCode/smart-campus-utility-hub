@@ -790,7 +790,7 @@ const deleteTimetableSlot = asyncHandler(async (req, res) => {
   }
 
   // Fetch timetable slots
-  const slots = await timetableReadService.getGroupTimetable({;
+  const slots = await timetableReadService.getGroupTimetable({
     groupId,
     academic_year,
     semester_type
