@@ -70,13 +70,6 @@ api.interceptors.response.use(
       };
       return Promise.reject(timeoutError);
     }
-axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-});
-
-// New endpoint for classroom availability
-api.get<{ classrooms: Classroom[] }>("/classrooms/availability?date=...&time=...");
-    
     // Pass through other errors, structured by types
     return Promise.reject(error.response?.data || { message: error.message });
   }
