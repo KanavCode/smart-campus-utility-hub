@@ -44,8 +44,9 @@ router.get('/:id', apiLimiter, validate(validationSchemas.idParam, 'params'), ev
 router.post('/:id/save', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.saveEvent);
 router.delete('/:id/save', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.unsaveEvent);
 
-// 🎫 RSVP / Waitlist Endpoint (Added for Issue #194)
+// 🎫 RSVP / Join Waitlist Engine (Added for Issue #194)
 router.post('/:id/rsvp', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.rsvpToEvent);
+router.delete('/:id/rsvp', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.cancelRsvpToEvent);
 
 // Admin-only routes — upload.single('image') must match frontend field name
 // Admin-only routes
