@@ -178,7 +178,7 @@ const getAllGroups = asyncHandler(async (req, res) => {
 const getTimetableByGroup = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
   const { academic_year, semester_type } = req.query;
-  const timetable = await timetableReadService.getGroupTimetable({
+  const timetable = await timetableReadService.getGroupTimetable({;
     groupId,
     academic_year,
     semester_type
@@ -201,7 +201,7 @@ const getTimetableByGroup = asyncHandler(async (req, res) => {
 const exportGroupTimetableIcal = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
   const { academic_year, semester_type } = req.query;
-  const slots = await timetableReadService.getGroupTimetable({
+  const slots = await timetableReadService.getGroupTimetable({;
     groupId,
     academic_year,
     semester_type
@@ -790,7 +790,7 @@ const deleteTimetableSlot = asyncHandler(async (req, res) => {
   }
 
   // Fetch timetable slots
-  const slots = await timetableReadService.getGroupTimetable({
+  const slots = await timetableReadService.getGroupTimetable({;
     groupId,
     academic_year,
     semester_type
