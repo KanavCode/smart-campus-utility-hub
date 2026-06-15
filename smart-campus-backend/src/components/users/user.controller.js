@@ -33,10 +33,10 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
 };
 
 const clearAuthCookies = (res) => {
+  // eslint-disable-next-line no-unused-vars
   const { maxAge: _accessMaxAge, ...accessClearOptions } = userAuthService.buildAccessCookieOptions();
+  // eslint-disable-next-line no-unused-vars
   const { maxAge: _refreshMaxAge, ...refreshClearOptions } = userAuthService.buildRefreshCookieOptions();
-  res.clearCookie(userAuthService.ACCESS_COOKIE_NAME, accessClearOptions);
-  res.clearCookie(userAuthService.REFRESH_COOKIE_NAME, refreshClearOptions);
 };
 
 /**

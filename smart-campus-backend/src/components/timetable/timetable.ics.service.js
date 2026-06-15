@@ -65,7 +65,7 @@ class IcsCalendarService {
     return resultDate;
   }
 
-  static createVEvent(slot, groupName) {
+  static createVEvent(slot, ___groupName) {
     const crypto = require('crypto');
     const eventId = crypto.randomUUID();
     const timestamp = new Date().toISOString().replace(/[-:.]/g, '');
@@ -95,7 +95,7 @@ STATUS:CONFIRMED
 END:VEVENT`;
   }
 
-  static generateIcs(slots, groupName, academicYear = '2024-25') {
+  static generateIcs(slots, ___groupName, academicYear = '2024-25') {
     if (!slots || slots.length === 0) {
       throw new Error('No timetable slots provided');
     }
@@ -106,14 +106,14 @@ VERSION:2.0
 PRODID:-//Smart Campus//Calendar//EN
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
-X-WR-CALNAME:${this.escapeText(`${groupName} Timetable (${academicYear})`)}
+X-WR-CALNAME:${this.escapeText(`${___groupName} Timetable (${academicYear})`)}
 X-WR-TIMEZONE:Asia/Kolkata
-X-WR-CALDESC:${this.escapeText(`Timetable for ${groupName}`)}
+X-WR-CALDESC:${this.escapeText(`Timetable for ${___groupName}`)}
 DTSTAMP:${timestamp}Z
 `;
 
     slots.forEach(slot => {
-      icsContent += `\n${this.createVEvent(slot, groupName)}`;
+      icsContent += `\n${this.createVEvent(slot, ___groupName)}`;
     });
 
     icsContent += '\nEND:VCALENDAR';
