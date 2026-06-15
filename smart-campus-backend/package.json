@@ -7,6 +7,7 @@
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
     "test": "jest",
+    "test:suggestion": "jest src/components/timetable/suggestion.engine.test.js",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "db:migrate": "node sql/migrate.js",
@@ -74,7 +75,8 @@
       "!**/node_modules/**"
     ],
     "testMatch": [
-      "**/__tests__/**/*.test.js"
+      "**/__tests__/**/*.test.js",
+      "**/?(*.)+(test).js"
     ],
     "verbose": true
   },
