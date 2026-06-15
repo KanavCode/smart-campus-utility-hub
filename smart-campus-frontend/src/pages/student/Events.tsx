@@ -5,21 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader, Share2, Copy, CheckCircle, Users } from 'lucide-react';
+import { Calendar, MapPin, Clock, Bookmark, Search, Filter, AlertCircle, Loader, Share2, Copy, CheckCircle, Users, CalendarPlus } from 'lucide-react';
 import { eventsService, Event } from '@/services/eventService';
 import { useConnectivity } from '@/contexts/ConnectivityContext';
 import { useToast } from '@/components/ui/use-toast';
 import { playSuccessSound } from '@/lib/successSound';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 // Extend Event type internally if properties are missing from standard declaration
 interface ExtendedEvent extends Event {
@@ -324,6 +314,15 @@ export default function EventsPage() {
               const maxCapacity = extendedEvent.max_capacity ?? 0;
               const currentConfirmed = extendedEvent.current_confirmed ?? 0;
               const isFull = maxCapacity > 0 && currentConfirmed >= maxCapacity;
+              const googleCalendarUrl = buildCampusEventGoogleCalendarUrl({
+                title: event.title,
+                description: event.description,
+                startTime: event.start_time,
+                endTime: event.end_time,
+                location: event.location,
+                clubName: event.club_name,
+                tags: event.tags,
+              });
 
               return (
                 <motion.div
@@ -361,6 +360,20 @@ export default function EventsPage() {
                           </div>
                           
                           <div className="flex items-center gap-2 flex-shrink-0">
+                            {googleCalendarUrl && (
+                              <motion.a
+                                href={googleCalendarUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                title="Add to Google Calendar"
+                                aria-label={`Add ${event.title} to Google Calendar`}
+                              >
+                                <CalendarPlus className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                              </motion.a>
+                            )}
+
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
