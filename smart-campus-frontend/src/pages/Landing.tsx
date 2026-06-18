@@ -497,7 +497,7 @@ export default function Landing() {
         <div className="container mx-auto text-center">
           <h2 className="text-5xl font-bold mb-6">Ready to Simplify Your Campus Life?</h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            A free, open-source platform to simplify campus management for students and administrators.
+            A free platform to simplify campus management for students and administrators.
           </p>
           <MagneticShimmerButton
             onClick={() => navigate('/auth')}

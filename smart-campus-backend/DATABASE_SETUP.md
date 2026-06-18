@@ -1,314 +1,224 @@
-# 🗄️ PostgreSQL Database Setup Guide
+# 🗄️ Database Setup Guide
 
-## Step 1: Install PostgreSQL
+Smart Campus Utility Hub uses **Supabase** as its hosted PostgreSQL database. This guide covers both the recommended Supabase setup and the optional local PostgreSQL setup for development.
 
-### Windows Installation:
+---
 
-1. Download PostgreSQL from: https://www.postgresql.org/download/windows/
-2. Run the installer (recommended version: PostgreSQL 14 or higher)
-3. During installation, remember the **password** you set for the `postgres` user
-4. Default port is **5432** (keep it unless you have conflicts)
-5. Install pgAdmin 4 (GUI tool for managing PostgreSQL)
+## 🌟 Option A: Supabase (Recommended)
 
-### Verify Installation:
+Supabase is a hosted PostgreSQL platform. No local database installation needed.
+
+### Step 1: Create a Supabase Project
+
+1. Go to [supabase.com](https://supabase.com) and sign in (free tier available)
+2. Click **"New project"** → choose your organization
+3. Fill in:
+   - **Project name**: `smart-campus-utility-hub`
+   - **Database password**: Choose a strong password (save it!)
+   - **Region**: Choose closest to your users
+4. Click **"Create new project"** — wait ~2 minutes for setup
+
+### Step 2: Get Your Connection String
+
+1. In your Supabase project, go to **Settings → Database**
+2. Scroll to **Connection string** → click the **"Transaction pooler"** tab
+3. Copy the URI — it looks like:
+   ```
+   postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+   ```
+
+> [!IMPORTANT]
+> Use the **Transaction pooler** URI (port 6543), NOT the direct connection (port 5432).
+> The Transaction pooler is required for serverless/hosted environments.
+
+### Step 3: Run the Schema
+
+1. In Supabase, go to **SQL Editor → New query**
+2. Open the file `smart-campus-backend/sql/schema_supabase.sql` from this project
+3. Paste the entire contents into the SQL editor
+4. Click **"Run"** — all tables, indexes, and triggers will be created
+5. You should see a success message at the bottom
+
+### Step 4: Configure Environment
+
+In `smart-campus-backend/.env`, add your connection string:
+
+```env
+# Uncomment and fill in your Supabase connection string
+DATABASE_URL=postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+
+# Optional — for Supabase Storage / Edge Functions in the future
+# SUPABASE_URL=https://[project-ref].supabase.co
+# SUPABASE_ANON_KEY=your-anon-key
+```
+
+> [!NOTE]
+> Comment out or remove the individual `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` vars when using `DATABASE_URL`.
+
+### Step 5: Start the Backend
 
 ```powershell
-# Check PostgreSQL version
-psql --version
+cd smart-campus-backend
+npm install
+npm run dev
+```
 
-# Should output something like: psql (PostgreSQL) 14.x
+**Expected output:**
+```
+✅ Database connected successfully
+📅 Server time: 2025-xx-xxTxx:xx:xx.xxxZ
+🗄️  Database: postgres
+🏢 Host: aws-0-[region].pooler.supabase.com
+🚀 Smart Campus Backend server running on port 5000
 ```
 
 ---
 
-## Step 2: Access PostgreSQL
+## 🏠 Option B: Local PostgreSQL (Dev Only)
 
-### Option A: Using Command Line (psql)
+Use this if you want a fully local setup without Supabase.
+
+### Step 1: Install PostgreSQL
+
+**Windows:**
+1. Download PostgreSQL from: https://www.postgresql.org/download/windows/
+2. Run the installer (recommended: PostgreSQL 14 or higher)
+3. Remember the **password** you set for the `postgres` user
+4. Default port is **5432**
+
+**Verify:**
+```powershell
+psql --version
+```
+
+### Step 2: Create Database
 
 ```powershell
 # Connect to PostgreSQL
 psql -U postgres
 
-# You'll be prompted for the password you set during installation
-```
-
-### Option B: Using pgAdmin 4 (GUI)
-
-1. Open pgAdmin 4
-2. Right-click "Servers" → Register → Server
-3. Name: `Smart Campus Local`
-4. Connection tab:
-   - Host: `localhost`
-   - Port: `5432`
-   - Username: `postgres`
-   - Password: (your postgres password)
-5. Click "Save"
-
----
-
-## Step 3: Create Database
-
-### Using psql:
-
-```sql
--- Connect to PostgreSQL (if not already connected)
-psql -U postgres
-
--- Create the database
+# Create the database
 CREATE DATABASE smart_campus_unified;
-
--- Verify database creation
-\l
-
--- Connect to the new database
-\c smart_campus_unified
-
--- You should see: "You are now connected to database "smart_campus_unified""
+\q
 ```
 
-### Using pgAdmin 4:
-
-1. Right-click "Databases" → Create → Database
-2. Database name: `smart_campus_unified`
-3. Owner: `postgres`
-4. Click "Save"
-
----
-
-## Step 4: Run Database Migration
-
-Now that the database exists, run the schema migration:
+### Step 3: Run the Schema
 
 ```powershell
-# Navigate to your backend directory (if not already there)
-cd M:\smarthub\smart-campus-utility-hub\smart-campus-backend
-
-# Run the migration script to create all tables
-node sql/migrate.js
+# Connect to the new database
+psql -U postgres -d smart_campus_unified -f sql/schema.sql
 ```
 
-**Expected Output:**
+### Step 4: Configure Environment
 
-```
-✅ Database connection successful
-✅ Smart Campus database schema created successfully
-✅ Migration completed
-```
-
----
-
-## Step 5: Seed Database with Sample Data
-
-Now populate the database with realistic sample data for development and testing:
-
-```powershell
-# Navigate to backend directory (if not already there)
-cd smart-campus-backend
-
-# Run the seed script
-npm run db:seed
-```
-
-## Step 6: Update .env File
-
-Open `.env` and update the database credentials:
+In `smart-campus-backend/.env`, ensure `DATABASE_URL` is commented out and fill in the individual vars:
 
 ```env
-# Database Configuration (PostgreSQL)
+# Local PostgreSQL (DATABASE_URL must be commented out or absent)
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=smart_campus_unified
 DB_USER=postgres
-DB_PASSWORD=YOUR_ACTUAL_PASSWORD_HERE  # ⚠️ Change this to your postgres password
+DB_PASSWORD=YOUR_ACTUAL_PASSWORD_HERE
 ```
 
-**Important:** Replace `YOUR_ACTUAL_PASSWORD_HERE` with the password you set during PostgreSQL installation.
-
----
-
-## Step 7: Test Database Connection
-
-Run the database connection test:
-
-```powershell
-node test-db.js
-```
-
-**Expected Output:**
-
-```
-✅ Database connection successful!
-Database: smart_campus_unified
-User: postgres
-Host: localhost
-Port: 5432
-```
-
----
-
-## 🚀 Final Run Commands
-
-### Development Mode (with auto-restart):
+### Step 5: Start the Backend
 
 ```powershell
 npm run dev
-```
-
-### Production Mode:
-
-```powershell
-npm start
-```
-
-### Run Tests:
-
-```powershell
-npm test
-```
-
-### Run Tests with Coverage:
-
-```powershell
-npm run test:coverage
 ```
 
 ---
 
 ## 📋 Complete Setup Checklist
 
-- [ ] PostgreSQL installed on your system
-- [ ] Database `smart_campus_unified` created
-- [ ] `.env` file updated with correct password
-- [ ] Database migration completed (`node sql/migrate.js`)
-- [ ] Database connection tested (`node test-db.js`)
-- [ ] Backend server started (`npm run dev`)
+### Supabase
+- [ ] Supabase project created
+- [ ] Schema executed in SQL Editor (`schema_supabase.sql`)
+- [ ] `DATABASE_URL` set in `.env`
+- [ ] Backend starts with "✅ Database connected successfully"
 - [ ] Test endpoint: http://localhost:5000/api/health
+
+### Local PostgreSQL
+- [ ] PostgreSQL installed and running
+- [ ] Database `smart_campus_unified` created
+- [ ] Schema applied (`sql/schema.sql`)
+- [ ] `.env` updated with correct credentials
+- [ ] Backend starts successfully
 
 ---
 
-## 🔍 Verify Everything is Working
+## 🔍 Test the API
 
-1. **Start the server:**
+```powershell
+curl http://localhost:5000/api/health
+```
 
-   ```powershell
-   npm run dev
-   ```
-
-2. **Expected output:**
-
-   ```
-   ✅ Database connection established successfully
-   🚀 Smart Campus Backend server running on port 5000
-   📚 API Documentation: http://localhost:5000/api
-   🏥 Health Check: http://localhost:5000/api/health
-   ```
-
-3. **Test the API:**
-   Open your browser or use curl:
-
-   ```powershell
-   curl http://localhost:5000/api/health
-   ```
-
-   Should return:
-
-   ```json
-   {
-     "success": true,
-     "status": "OK",
-     "message": "Smart Campus Backend is running",
-     "database": "Connected"
-   }
-   ```
+Expected response:
+```json
+{
+  "success": true,
+  "status": "OK",
+  "message": "Smart Campus Backend is running",
+  "database": "Connected"
+}
+```
 
 ---
 
 ## ⚠️ Common Issues & Solutions
 
-### Issue 1: "psql: command not found"
+### "SSL connection required"
+**Solution:** Make sure your `DATABASE_URL` includes a Supabase pooler URI. The `db.js` config automatically enables SSL when `DATABASE_URL` contains `supabase`.
 
-**Solution:** Add PostgreSQL to your PATH:
+### "password authentication failed"
+**Solution:** Double-check the password in your `DATABASE_URL` or `DB_PASSWORD`. Reset in Supabase: Settings → Database → Reset database password.
 
-1. Find PostgreSQL bin folder (usually `C:\Program Files\PostgreSQL\14\bin`)
-2. Add to System Environment Variables → Path
-3. Restart terminal
+### "port 5432 already in use"
+**Solution:** Another PostgreSQL instance is running. Use port `6543` (Transaction pooler) for Supabase instead.
 
-### Issue 2: "password authentication failed"
+### "database does not exist"
+**Solution:** For local setup, run `CREATE DATABASE smart_campus_unified;` in psql first.
 
-**Solution:**
-
-- Double-check your password in `.env`
-- Reset postgres password:
-  ```sql
-  ALTER USER postgres PASSWORD 'new_password';
-  ```
-
-### Issue 3: "database does not exist"
-
-**Solution:**
-
-- Make sure you created the database: `CREATE DATABASE smart_campus_unified;`
-- Check database name spelling in `.env`
-
-### Issue 4: "port 5432 already in use"
-
-**Solution:**
-
-- Another PostgreSQL instance might be running
-- Check Task Manager → Services → postgresql-x64-14
-- Restart the PostgreSQL service
-
-### Issue 5: "ECONNREFUSED ::1:5432"
-
-**Solution:**
-
-- PostgreSQL might not be running
-- Start PostgreSQL service:
-  ```powershell
-  # Windows
-  net start postgresql-x64-14
-  ```
-
-### Issue 6: Migration script fails
-
-**Solution:**
-
-- Make sure database is empty or drop existing tables
-- Run in psql:
-  ```sql
-  DROP SCHEMA public CASCADE;
-  CREATE SCHEMA public;
-  ```
-- Then run migration again
+### Migration fails ("relation already exists")
+**Solution:** Drop and recreate:
+```sql
+-- In Supabase SQL Editor or psql
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+-- Then re-run schema_supabase.sql
+```
 
 ---
 
 ## 🔐 Security Best Practices
 
-1. **Never commit `.env` file** (already in .gitignore)
-2. **Use strong passwords** for production
-3. **Change JWT_SECRET** to a random string (min 32 characters)
-4. **Create separate database user** for production:
-   ```sql
-   CREATE USER smart_campus_app WITH PASSWORD 'strong_password';
-   GRANT ALL PRIVILEGES ON DATABASE smart_campus_unified TO smart_campus_app;
-   ```
+1. **Never commit `.env`** — already in `.gitignore`
+2. **Use strong JWT_SECRET** — minimum 32 characters, random
+3. **Use Supabase Row Level Security (RLS)** for production (see Supabase docs)
+4. **Rotate credentials** if accidentally exposed
 
 ---
 
 ## 📊 Database Schema Overview
 
-After migration, you'll have **15 tables**:
+After setup, you'll have **19 tables**:
 
 | Table                         | Purpose                                |
 | ----------------------------- | -------------------------------------- |
 | `users`                       | Unified user authentication & profiles |
+| `user_sessions`               | Active session tracking                |
+| `system_settings`             | Admin-configurable campus settings     |
 | `clubs`                       | Campus clubs/organizations             |
 | `events`                      | Campus events                          |
+| `event_rsvps`                 | Event RSVP tracking                    |
 | `saved_events`                | Student saved events                   |
 | `electives`                   | Available elective courses             |
 | `student_choices`             | Student elective preferences           |
 | `allocated_electives`         | Final elective allocations             |
+| `elective_waitlist`           | Waitlist management                    |
+| `notifications`               | User notifications                     |
+| `activities`                  | User activity log                      |
 | `teachers`                    | Faculty information                    |
 | `subjects`                    | Course catalog                         |
 | `rooms`                       | Classroom/lab information              |
@@ -320,16 +230,4 @@ After migration, you'll have **15 tables**:
 
 ---
 
-## 🎯 Next Steps
-
-After successful database setup:
-
-1. ✅ Start the backend server: `npm run dev`
-2. 📝 Test API endpoints using the provided `API_DOCUMENTATION.md`
-3. 🧪 Run the test suite: `npm test`
-4. 🎨 Begin frontend integration
-5. 📊 Populate sample data (optional)
-
----
-
-**Need Help?** Check `INTEGRATION_GUIDE.md` and `API_DOCUMENTATION.md` for more details.
+**Need Help?** Check `API_DOCUMENTATION.md` for endpoint details.

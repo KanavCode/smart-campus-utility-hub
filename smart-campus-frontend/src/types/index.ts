@@ -1,21 +1,44 @@
-export interface ApiError {
+// ─────────────────────────────────────────────────────────────────────────────
+// Core API Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ApiResponse<T = unknown> {
+  success: boolean;
   message?: string;
-  code?: string;
-  status?: number;
+  data?: T;
+  error?: string;
+  errors?: string[];
 }
 
-export type UserRole = 'student' | 'admin' | 'faculty' | string;
+export interface ApiError {
+  message: string;
+  code?: string;
+  status?: number;
+  errors?: string[];
+  success?: boolean;
+}
 
+// ─────────────────────────────────────────────────────────────────────────────
+// User & Auth
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type UserRole = 'student' | 'admin' | 'faculty';
+
+/**
+ * User entity — id is UUID string in the Supabase schema
+ */
 export interface User {
-  id?: string | number;
+  id: string;           // UUID
   full_name: string;
   email: string;
   role: UserRole;
   department?: string;
   cgpa?: number | null;
   semester?: number | null;
-  is_active?: boolean;
+  is_active: boolean;
   two_factor_enabled?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface UserFormData extends Partial<User> {
@@ -34,67 +57,23 @@ export interface TwoFactorStatus {
   backupCodesCount: number;
 }
 
-export interface TeacherFormData {
-  id?: string | number;
-  teacher_code: string;
-  full_name: string;
-  email?: string;
+export interface UserSession {
+  id: string;           // UUID
+  ip_address: string;
+  user_agent: string;
+  device_type: string;
+  location: string;
+  last_active: string;
+  created_at: string;
+  is_current: boolean;
 }
 
-export interface SubjectFormData {
-  subject_code?: string;
-  subject_name: string;
-  course_type?: string;
-}
-
-export interface RoomFormData {
-  id?: string | number;
-  room_code: string;
-  room_name: string;
-  capacity?: number;
-}
-
-export interface GroupFormData {
-  id?: string | number;
-  group_code: string;
-  group_name: string;
-  department?: string;
-  semester?: number;
-  academic_year?: string;
-}
-
-export interface ClubFormData {
-  id?: string | number;
-  name: string;
-  code?: string;
-  description?: string;
-}
-
-export interface EventFormData {
-  id?: string | number;
-  title: string;
-  description?: string;
-  start_time?: string;
-  end_time?: string;
-  venue?: string;
-  club_id?: string | number;
-}
-
-export interface ElectiveFormData {
-  id?: string | number;
-  name: string;
-  code?: string;
-  seats?: number;
-}
-
-export interface ApiResponse<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Timetable — IDs are all UUID strings
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface TimetableSlot {
-  id: string;
+  id: string;           // UUID
   day_of_week: string;
   period_number: number;
   subject: {
@@ -114,69 +93,93 @@ export interface TimetableSlot {
   semester_type?: string;
 }
 
-export { ApiError as ApiErrorType };
-/**
- * Common API response structure
- */
-export interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin CRUD Form Data
+// ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Standard API error shape
- */
-export interface ApiError {
-  message: string;
-  code?: string;
-  errors?: string[];
-  success?: boolean;
-}
-
-/**
- * User Role type
- */
-export type UserRole = 'student' | 'admin' | 'faculty';
-
-/**
- * User interface
- */
-export interface User {
-  id: number;
+export interface TeacherFormData {
+  id?: string;          // UUID
+  teacher_code: string;
   full_name: string;
-  email: string;
-  role: UserRole;
-  department?: string;
-  cgpa?: number;
-  semester?: number;
-  is_active: boolean;
-  created_at: string;
+  email?: string;
 }
 
+export interface SubjectFormData {
+  id?: string;          // UUID
+  subject_code?: string;
+  subject_name: string;
+  course_type?: string;
+}
+
+export interface RoomFormData {
+  id?: string;          // UUID
+  room_code: string;
+  room_name: string;
+  capacity?: number;
+}
+
+export interface GroupFormData {
+  id?: string;          // UUID
+  group_code: string;
+  group_name: string;
+  department?: string;
+  semester?: number;
+  academic_year?: string;
+}
+
+export interface ClubFormData {
+  id?: string;          // UUID
+  name: string;
+  code?: string;
+  description?: string;
+}
+
+export interface EventFormData {
+  id?: string;          // UUID
+  title: string;
+  description?: string;
+  start_time?: string;
+  end_time?: string;
+  venue?: string;
+  club_id?: string;     // UUID
+}
+
+export interface ElectiveFormData {
+  id?: string;          // UUID
+  name: string;
+  code?: string;
+  seats?: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Domain Entities — IDs are UUID strings (Supabase schema)
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Event interface
+ * Campus Event entity
  */
 export interface CampusEvent {
-  id: number;
+  id: string;           // UUID
   title: string;
   description: string;
   location: string;
   start_time: string;
   end_time: string;
-  club_id?: number;
+  club_id?: string;     // UUID
   club_name?: string;
   target_department?: string;
   is_featured: boolean;
   tags?: string[];
   image_url?: string;
+  capacity?: number;
+  rsvp_count?: number;
 }
 
 /**
- * Elective interface
+ * Elective entity
  */
 export interface Elective {
-  id: number;
+  id: string;           // UUID
   subject_name: string;
   description: string;
   max_students: number;
@@ -187,10 +190,10 @@ export interface Elective {
 }
 
 /**
- * Club interface
+ * Club entity
  */
 export interface Club {
-  id: number;
+  id: string;           // UUID
   name: string;
   description: string;
   contact_email: string;
@@ -198,13 +201,5 @@ export interface Club {
   image_url?: string;
 }
 
-export interface UserSession {
-  id: number;
-  ip_address: string;
-  user_agent: string;
-  device_type: string;
-  location: string;
-  last_active: string;
-  created_at: string;
-  is_current: boolean;
-}
+// Re-export ApiError under alias for backward compatibility
+export type { ApiError as ApiErrorType };

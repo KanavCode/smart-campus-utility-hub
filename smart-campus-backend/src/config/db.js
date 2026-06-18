@@ -2,7 +2,7 @@ const { Pool } = require('pg');
 const winston = require('winston');
 require('dotenv').config();
 
-// Configure logger
+// Configure logger — console only (file logs handled by host/platform)
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
@@ -19,29 +19,32 @@ const logger = winston.createLogger({
         })
       )
     }),
-    new winston.transports.File({ 
-      filename: 'logs/error.log', 
-      level: 'error' 
-    }),
-    new winston.transports.File({ 
-      filename: 'logs/combined.log' 
-    })
   ]
 });
 
 // Database connection pool configuration
-const poolConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT) || 5432,
-  database: process.env.DB_NAME || 'smart_campus_unified',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD ?? 'postgres',
-  
-  // Pool configuration
-  max: parseInt(process.env.DB_MAX_CONNECTIONS) || 20,
-  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS) || 30000,
-  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS) || 5000,
-};
+// Supports both DATABASE_URL (Supabase/hosted) and individual env vars (local dev)
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' || process.env.DATABASE_URL.includes('supabase')
+        ? { rejectUnauthorized: false }
+        : false,
+      max: parseInt(process.env.DB_MAX_CONNECTIONS) || 20,
+      idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS) || 30000,
+      connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS) || 5000,
+    }
+  : {
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT) || 5432,
+      database: process.env.DB_NAME || 'smart_campus_unified',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD ?? 'postgres',
+      max: parseInt(process.env.DB_MAX_CONNECTIONS) || 20,
+      idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS) || 30000,
+      connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS) || 5000,
+    };
+
 
 // Create connection pool
 const pool = new Pool(poolConfig);
@@ -74,16 +77,24 @@ const testConnection = async () => {
   try {
     client = await pool.connect();
     const result = await client.query('SELECT NOW()');
+    const dbInfo = process.env.DATABASE_URL
+      ? new URL(process.env.DATABASE_URL)
+      : null;
     logger.info('✅ Database connected successfully');
     logger.info(`📅 Server time: ${result.rows[0].now}`);
-    logger.info(`🗄️  Database: ${poolConfig.database}`);
-    logger.info(`🏢 Host: ${poolConfig.host}:${poolConfig.port}`);
+    if (dbInfo) {
+      logger.info(`🗄️  Database: ${dbInfo.pathname.replace('/', '')}`);
+      logger.info(`🏢 Host: ${dbInfo.host}`);
+    } else {
+      logger.info(`🗄️  Database: ${process.env.DB_NAME || 'smart_campus_unified'}`);
+      logger.info(`🏢 Host: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}`);
+    }
     isDbConnected = true;
     return true;
   } catch (err) {
     logger.warn('⚠️ Database connection failed:', err.message);
     logger.warn('Server will start but database features will be unavailable.');
-    logger.warn('Please ensure PostgreSQL is running and configured correctly.');
+    logger.warn('Please ensure your DATABASE_URL or individual DB_* env vars are configured correctly.');
     isDbConnected = false;
     return false;
   } finally {

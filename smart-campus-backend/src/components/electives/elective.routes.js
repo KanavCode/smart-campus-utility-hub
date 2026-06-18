@@ -24,9 +24,9 @@ router.post('/allocate', verifyToken, verifyAdmin, electiveController.allocateEl
 router.post('/waitlist/process', verifyToken, verifyAdmin, validate(validationSchemas.processWaitlist), electiveController.processWaitlist);
 
 // Dynamic ID routes
-router.get('/:id', apiLimiter, validate(validationSchemas.idParam, 'params'), electiveController.getElectiveById);
+router.get('/:id', apiLimiter, validate(validationSchemas.uuidParam, 'params'), electiveController.getElectiveById);
 router.post('/', verifyToken, verifyAdmin, validate(validationSchemas.createElective), electiveController.createElective);
-router.put('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), validate(validationSchemas.createElective), electiveController.updateElective);
-router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), electiveController.deleteElective);
+router.put('/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), validate(validationSchemas.createElective), electiveController.updateElective);
+router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), electiveController.deleteElective);
 
 module.exports = router;

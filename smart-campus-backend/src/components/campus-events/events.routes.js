@@ -40,19 +40,18 @@ router.get('/', apiLimiter, validate(validationSchemas.eventQuery, 'query'), eve
 // Protected routes — must be declared BEFORE /:id to avoid route shadowing
 router.get('/saved/my-events', verifyToken, eventsController.getSavedEvents);
 
-router.get('/:id', apiLimiter, validate(validationSchemas.idParam, 'params'), eventsController.getEventById);
-router.post('/:id/save', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.saveEvent);
-router.delete('/:id/save', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.unsaveEvent);
+router.get('/:id', apiLimiter, validate(validationSchemas.uuidParam, 'params'), eventsController.getEventById);
+router.post('/:id/save', verifyToken, validate(validationSchemas.uuidParam, 'params'), eventsController.saveEvent);
+router.delete('/:id/save', verifyToken, validate(validationSchemas.uuidParam, 'params'), eventsController.unsaveEvent);
 
-// 🎫 RSVP / Join Waitlist Engine (Added for Issue #194)
-router.post('/:id/rsvp', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.rsvpToEvent);
-router.delete('/:id/rsvp', verifyToken, validate(validationSchemas.idParam, 'params'), eventsController.cancelRsvpToEvent);
+// RSVP routes
+router.post('/:id/rsvp', verifyToken, validate(validationSchemas.uuidParam, 'params'), eventsController.rsvpToEvent);
+router.delete('/:id/rsvp', verifyToken, validate(validationSchemas.uuidParam, 'params'), eventsController.cancelRsvpToEvent);
 
-// Admin-only routes — upload.single('image') must match frontend field name
 // Admin-only routes
 router.post('/', verifyToken, verifyAdmin, upload.single('image'), eventsController.createEvent);
-router.put('/:id', verifyToken, verifyAdmin, upload.single('image'), validate(validationSchemas.idParam, 'params'), eventsController.updateEvent);
-router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), eventsController.deleteEvent);
-router.post('/:id/restore', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), eventsController.restoreEvent);
+router.put('/:id', verifyToken, verifyAdmin, upload.single('image'), validate(validationSchemas.uuidParam, 'params'), eventsController.updateEvent);
+router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), eventsController.deleteEvent);
+router.post('/:id/restore', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), eventsController.restoreEvent);
 
 module.exports = router;

@@ -8,11 +8,10 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-18%2B-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13%2B-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 [![Express.js](https://img.shields.io/badge/Express.js-5.x-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![NSoC 2026](https://img.shields.io/badge/NSoC-2026-ff6b35)](https://github.com/KanavCode/smart-campus-utility-hub)
 [![GitHub Issues](https://img.shields.io/github/issues/KanavCode/smart-campus-utility-hub)](https://github.com/KanavCode/smart-campus-utility-hub/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/KanavCode/smart-campus-utility-hub?style=social)](https://github.com/KanavCode/smart-campus-utility-hub/stargazers)
 [![Repository Views](https://komarev.com/ghpvc/?username=KanavCode-smart-campus-utility-hub&label=Repository%20Views&color=blue&style=flat)](https://github.com/KanavCode/smart-campus-utility-hub)
@@ -199,9 +198,6 @@ smart-campus-utility-hub/
 │   │       └── axios.ts              # Configured Axios instance
 │   ├── .env.example                  # Environment variable template
 │   └── package.json
-│
-├── docs/
-│   └── LABELS.md                     # GitHub label and NSoC points strategy
 │
 ├── scripts/
 │   └── setup.sh                      # One-command local setup script
@@ -485,17 +481,9 @@ See [ROADMAP.md](ROADMAP.md) for the full project roadmap across three phases:
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Whether it's bug fixes, feature additions, or documentation improvements. This project participates in **Nexus Spring of Code (NSoC) 2026**.
+We welcome contributions from the community! Whether it's bug fixes, feature additions, or documentation improvements.
 
 👉 Read the full contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
-👉 Label and points policy: [docs/LABELS.md](docs/LABELS.md)
-
-### NSoC Quick Rules
-
-- Include `#NSoC2026` in the PR description for NSoC submissions.
-- Work only on issues assigned to you before opening a PR.
-- Use one NSoC level label per issue: `level1` (3 pts), `level2` (5 pts), `level3` (10 pts).
-- PRs without assignment/linked issue are invalid for NSoC tracking.
 
 ### How to Contribute
 
@@ -512,10 +500,6 @@ We welcome contributions from the community! Whether it's bug fixes, feature add
    ```bash
    git push origin feat/your-feature-name
    ```
-
-### Good First Issues
-
-Looking for a place to start? Check out issues labelled [`good first issue`](https://github.com/KanavCode/smart-campus-utility-hub/labels/good%20first%20issue), [`NSOC'26`](https://github.com/KanavCode/smart-campus-utility-hub/labels/NSOC%2726), and [`level1`](https://github.com/KanavCode/smart-campus-utility-hub/labels/level1).
 
 ---
 

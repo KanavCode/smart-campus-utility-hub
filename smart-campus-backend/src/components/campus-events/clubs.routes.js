@@ -11,11 +11,11 @@ const { validate, validationSchemas } = require('../../middleware/validation');
 
 // Public routes
 router.get('/', validate(validationSchemas.clubQuery, 'query'), clubsController.getAllClubs);
-router.get('/:id', validate(validationSchemas.idParam, 'params'), clubsController.getClubById);
+router.get('/:id', validate(validationSchemas.uuidParam, 'params'), clubsController.getClubById);
 
 // Admin-only routes
 router.post('/', verifyToken, verifyAdmin, validate(validationSchemas.createClub), clubsController.createClub);
-router.put('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), validate(validationSchemas.createClub), clubsController.updateClub);
-router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.idParam, 'params'), clubsController.deleteClub);
+router.put('/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), validate(validationSchemas.createClub), clubsController.updateClub);
+router.delete('/:id', verifyToken, verifyAdmin, validate(validationSchemas.uuidParam, 'params'), clubsController.deleteClub);
 
 module.exports = router;
