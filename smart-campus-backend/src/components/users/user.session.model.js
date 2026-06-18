@@ -13,13 +13,13 @@ class UserSessionModel {
   }
 
   static async findByRefreshTokenHash(hash) {
-    const sql = `SELECT * FROM user_sessions WHERE refresh_token = $1 AND deleted_at IS NULL`;
+    const sql = 'SELECT * FROM user_sessions WHERE refresh_token = $1 AND deleted_at IS NULL';
     const result = await query(sql, [hash]);
     return result.rows[0] || null;
   }
 
   static async findById(id) {
-    const sql = `SELECT * FROM user_sessions WHERE id = $1 AND deleted_at IS NULL`;
+    const sql = 'SELECT * FROM user_sessions WHERE id = $1 AND deleted_at IS NULL';
     const result = await query(sql, [id]);
     return result.rows[0] || null;
   }
@@ -47,7 +47,7 @@ class UserSessionModel {
   }
 
   static async updateLastActive(id) {
-    const sql = `UPDATE user_sessions SET last_active = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL`;
+    const sql = 'UPDATE user_sessions SET last_active = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL';
     await query(sql, [id]);
   }
 

@@ -4,7 +4,7 @@ import { Elective, ApiResponse } from '@/types';
 
 export interface StudentChoice {
   preference_rank: number;
-  id: number;
+  id: string;            // UUID
   subject_name: string;
   description: string;
   max_students: number;
@@ -13,9 +13,9 @@ export interface StudentChoice {
 }
 
 export interface StudentAllocation {
-  id: number;
-  student_id: number;
-  elective_id: number;
+  id: string;            // UUID
+  student_id: string;    // UUID
+  elective_id: string;   // UUID
   allocation_round: number;
   subject_name: string;
   description: string;
@@ -23,7 +23,7 @@ export interface StudentAllocation {
 }
 
 export interface AllocationResult {
-  student_id?: number;
+  student_id?: string;   // UUID
   student_name: string;
   cgpa: number;
   allocated_elective: string;
@@ -31,8 +31,8 @@ export interface AllocationResult {
 }
 
 export interface WaitlistEntry {
-  id: number;
-  elective_id: number;
+  id: string;            // UUID
+  elective_id: string;   // UUID
   preference_rank: number;
   status: 'waiting' | 'allocated' | 'skipped' | 'removed';
   created_at: string;
@@ -62,7 +62,7 @@ export const electiveService = {
   /**
    * Get specific elective by ID (public endpoint)
    */
-  getById: async (id: number): Promise<Elective> => {
+  getById: async (id: string): Promise<Elective> => {
     try {
       const data = asApiData(await api.get(`/electives/${id}`));
       return getPayload<Elective>(data, 'elective') as Elective;
@@ -92,7 +92,7 @@ export const electiveService = {
   /**
    * Update elective (admin only)
    */
-  update: async (id: number, electiveData: Partial<Elective>): Promise<Elective> => {
+  update: async (id: string, electiveData: Partial<Elective>): Promise<Elective> => {
     try {
       const data = asApiData(await api.put(`/electives/${id}`, electiveData));
       return getPayload<Elective>(data, 'elective') as Elective;
@@ -104,7 +104,7 @@ export const electiveService = {
   /**
    * Delete elective (admin only)
    */
-  delete: async (id: number): Promise<void> => {
+  delete: async (id: string): Promise<void> => {
     try {
       await api.delete(`/electives/${id}`);
     } catch (error) {
@@ -169,7 +169,7 @@ export const electiveService = {
     }
   },
 
-  processWaitlist: async (electiveId?: number): Promise<{ promotedCount: number }> => {
+  processWaitlist: async (electiveId?: string): Promise<{ promotedCount: number }> => {
     try {
       const data = asApiData(await api.post('/electives/waitlist/process', electiveId ? { elective_id: electiveId } : {}));
       return (data as { data: { promotedCount: number } }).data;
