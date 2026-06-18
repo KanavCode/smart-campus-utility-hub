@@ -103,7 +103,7 @@ const validationSchemas = {
     location:          Joi.string().max(255).optional(),
     start_time:        Joi.date().iso().required(),
     end_time:          Joi.date().iso().greater(Joi.ref('start_time')).required(),
-    club_id:           Joi.string().uuid().required(),
+    club_id:           Joi.number().integer().positive().required(),
     target_department: Joi.string().max(100).optional(),
     is_featured:       Joi.boolean().default(false),
     tags:              Joi.array().items(Joi.string()).optional(),
@@ -113,7 +113,7 @@ const validationSchemas = {
   eventQuery: Joi.object({
     search:      Joi.string().max(100).optional(),
     tag:         Joi.string().max(50).optional(),
-    club_id:     Joi.string().uuid().optional(),
+    club_id:     Joi.number().integer().positive().optional(),
     department:  Joi.string().max(100).optional(),
     is_featured: Joi.string().valid('true', 'false').optional(),
     upcoming:    Joi.string().valid('true', 'false').optional(),
@@ -151,11 +151,11 @@ const validationSchemas = {
     semester:     Joi.number().integer().min(1).max(8).optional()
   }),
 
-  // elective_id is a UUID string (Supabase schema)
+  // elective_id is numeric in the current PostgreSQL schema.
   submitChoices: Joi.object({
     choices: Joi.array().items(
       Joi.object({
-        elective_id:     Joi.string().uuid(),
+        elective_id:     Joi.number().integer().positive(),
         subject_name:    Joi.string().valid(...allowedSubjects),
         preference_rank: Joi.number().integer().min(1).max(5).required()
       }).or('elective_id', 'subject_name')
@@ -168,7 +168,7 @@ const validationSchemas = {
   }),
 
   processWaitlist: Joi.object({
-    elective_id: Joi.string().uuid().optional()
+    elective_id: Joi.number().integer().positive().optional()
   }),
 
   // ─── Route Parameter Schemas ───────────────────────────────────────────────

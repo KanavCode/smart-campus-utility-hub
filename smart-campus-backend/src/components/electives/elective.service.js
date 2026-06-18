@@ -97,7 +97,7 @@ const submitChoices = async ({ choices, userId }) => {
 
     const ids = parsedChoices.map((c) => c.elective_id);
     const validResult = await query(
-      `SELECT id FROM electives WHERE id = ANY($1) AND deleted_at IS NULL`,
+      'SELECT id FROM electives WHERE id = ANY($1) AND deleted_at IS NULL',
       [ids]
     );
     const validIds = new Set(validResult.rows.map((r) => r.id));
